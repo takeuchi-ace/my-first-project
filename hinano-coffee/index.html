@@ -1,0 +1,3044 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hinano Coffee ☕ カフェ経営シミュレーション</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --cream:#FFF8F0;--cream-dark:#F5EDE0;
+  --brown:#6F4E37;--brown-light:#8B6F5A;--brown-dark:#4A3423;
+  --mint:#2dd4bf;--mint-light:#99f6e4;--mint-dark:#14b8a6;
+  --gold:#f59e0b;--red:#ef4444;--green:#22c55e;
+  --text:#3D2B1F;--text-dim:#8B7B6F;
+  --card-bg:#FFFFFF;--shadow:0 2px 12px rgba(111,78,55,.1);
+  --radius:12px;--tr:.25s ease;
+}
+html{font-size:15px}
+body{font-family:'Segoe UI','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;line-height:1.6;overflow-x:hidden}
+
+/* Screens */
+.screen{display:none;position:fixed;inset:0;flex-direction:column}
+.screen.active{display:flex}
+
+/* Title */
+.screen--title{align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#FFF8F0 0%,#F5EDE0 50%,#e8ddd0 100%);gap:12px}
+.title-icon{font-size:4rem}.title-main{font-size:2.8rem;font-weight:800;color:var(--brown);letter-spacing:.05em}
+.title-sub{font-size:1rem;color:var(--text-dim);letter-spacing:.1em;margin-bottom:20px}
+.title-buttons{display:flex;gap:12px;flex-direction:column;align-items:center}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 40px;font-size:1rem;font-weight:700;border:none;border-radius:var(--radius);cursor:pointer;transition:all var(--tr);letter-spacing:.06em}
+.btn:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.15)}.btn:active{transform:translateY(0)}
+.btn-primary{color:#fff;background:var(--brown)}.btn-primary:hover{background:var(--brown-light)}
+.btn-mint{color:#fff;background:var(--mint-dark)}.btn-mint:hover{background:var(--mint)}
+.btn-sm{padding:8px 20px;font-size:.85rem;border-radius:8px}
+.btn-outline{color:var(--brown);background:transparent;border:2px solid var(--brown)}.btn-outline:hover{background:var(--brown);color:#fff}
+.btn-load{color:var(--brown);background:transparent;border:2px solid var(--cream-dark);padding:10px 30px;font-size:.85rem}.btn-load:hover{border-color:var(--brown);background:var(--cream)}
+
+/* Game Screen */
+.screen--game{background:var(--cream);overflow:hidden}
+
+/* Status Bar */
+.status-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--brown);color:#fff;flex-shrink:0;flex-wrap:wrap;gap:6px 16px}
+.status-item{display:flex;align-items:center;gap:5px}
+.status-icon{font-size:1rem}.status-label{font-size:.68rem;opacity:.7;letter-spacing:.06em}
+.status-value{font-size:.95rem;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* Game Content */
+.game-content{flex:1;display:flex;gap:14px;padding:14px;overflow:hidden}
+
+/* Panels */
+.panel{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;overflow-y:auto}
+.panel-title{font-size:.78rem;font-weight:700;color:var(--brown);letter-spacing:.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--cream-dark);display:flex;align-items:center;gap:6px}
+.panel-title .title-extra{margin-left:auto;font-size:.65rem;color:var(--text-dim);font-weight:400}
+
+/* Left: Roasting */
+.panel-roast{width:280px;flex-shrink:0;display:flex;flex-direction:column}
+.bean-selector{display:flex;gap:5px;margin-bottom:10px}
+.bean-btn{flex:1;padding:7px 3px;font-size:.72rem;font-weight:600;color:var(--text-dim);background:var(--cream);border:2px solid var(--cream-dark);border-radius:8px;cursor:pointer;transition:all var(--tr);text-align:center}
+.bean-btn.active{color:var(--brown);border-color:var(--brown);background:#fff}
+.bean-btn:hover:not(.active){border-color:var(--brown-light)}
+.bean-info{font-size:.72rem;color:var(--text-dim);background:var(--cream);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.7}
+.bean-info strong{color:var(--brown)}
+
+/* Inventory */
+.inventory-display{display:flex;gap:5px;margin-bottom:8px}
+.inv-item{flex:1;background:var(--cream);border-radius:8px;padding:5px 6px;text-align:center}
+.inv-item-value{font-size:.9rem;font-weight:700;color:var(--brown)}.inv-item-label{font-size:.58rem;color:var(--text-dim)}
+.btn-buy{width:100%;padding:7px;font-size:.78rem;font-weight:700;color:var(--brown);background:var(--cream);border:2px solid var(--cream-dark);border-radius:8px;cursor:pointer;transition:all var(--tr);margin-bottom:10px}
+.btn-buy:hover{border-color:var(--mint-dark);background:var(--mint-light)}
+
+/* Roaster */
+.roaster{position:relative;width:160px;height:160px;margin:0 auto 10px}
+.roaster-body{width:160px;height:160px;border-radius:50%;background:#e8ddd0;display:flex;align-items:center;justify-content:center;position:relative;border:4px solid var(--brown-light);transition:background .3s;overflow:hidden}
+.roaster-bean{font-size:3rem;transition:filter .3s}
+.roaster-body.roasting{animation:shake .15s infinite alternate}
+@keyframes shake{from{transform:rotate(-1deg)}to{transform:rotate(1deg)}}
+.smoke-container{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:100px;height:70px;pointer-events:none}
+.smoke{position:absolute;width:10px;height:10px;background:rgba(180,170,160,.5);border-radius:50%;opacity:0}
+.smoke.active{animation:smokeRise 1.2s ease-out infinite}
+.smoke:nth-child(1){left:20%;animation-delay:0s}.smoke:nth-child(2){left:45%;animation-delay:.3s}
+.smoke:nth-child(3){left:70%;animation-delay:.6s}.smoke:nth-child(4){left:35%;animation-delay:.15s}
+.smoke:nth-child(5){left:60%;animation-delay:.45s}
+@keyframes smokeRise{0%{opacity:.6;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-55px) scale(2.5)}}
+.roaster-overlay{position:absolute;inset:0;border-radius:50%;opacity:0;transition:opacity .5s,background .5s;pointer-events:none}
+
+/* Roast Controls */
+.roast-controls{display:flex;gap:8px;justify-content:center;margin-bottom:10px}
+.btn-start,.btn-stop{padding:9px 26px;font-size:.9rem;font-weight:700;color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:all var(--tr)}
+.btn-start{background:var(--green)}.btn-start:hover:not(:disabled){background:#16a34a;transform:translateY(-1px)}
+.btn-stop{background:var(--red)}.btn-stop:hover:not(:disabled){background:#dc2626;transform:translateY(-1px)}
+.btn-start:disabled,.btn-stop:disabled{opacity:.3;cursor:not-allowed}
+.roast-result{text-align:center;min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.result-grade{font-size:1.3rem;font-weight:800;letter-spacing:.08em;margin-bottom:2px}
+.result-grade.perfect{color:var(--gold)}.result-grade.great{color:var(--mint-dark)}.result-grade.good{color:var(--green)}
+.result-grade.under{color:var(--text-dim)}.result-grade.burnt{color:var(--red)}
+.result-quality{font-size:.75rem;color:var(--text-dim)}
+.result-anim{animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+
+/* Center: Dashboard */
+.panel-dashboard{flex:1;display:flex;flex-direction:column}
+.daily-summary{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
+.summary-card{background:var(--cream);border-radius:10px;padding:9px 10px;text-align:center}
+.summary-card-icon{font-size:1rem;margin-bottom:2px}
+.summary-card-value{font-size:1.05rem;font-weight:800;color:var(--brown);font-variant-numeric:tabular-nums}
+.summary-card-value.positive{color:var(--green)}.summary-card-value.negative{color:var(--red)}
+.summary-card-label{font-size:.64rem;color:var(--text-dim);margin-top:1px}
+.cost-breakdown{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.cost-item{flex:1;min-width:60px;background:var(--cream);border-radius:8px;padding:5px 6px;text-align:center}
+.cost-item-value{font-size:.8rem;font-weight:700;color:var(--brown)}.cost-item-label{font-size:.56rem;color:var(--text-dim)}
+
+/* Bars */
+.bar-section{margin-bottom:10px}
+.bar-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-dim)}
+.bar-outer{height:12px;background:var(--cream-dark);border-radius:6px;overflow:hidden;margin-top:3px}
+.bar-inner{height:100%;border-radius:6px;transition:width .5s ease}
+.bar-pop{background:linear-gradient(90deg,var(--mint-dark),var(--mint))}
+.bar-qual{background:linear-gradient(90deg,var(--gold),#fbbf24)}
+
+/* Log */
+.log-area{flex:1;background:var(--cream);border-radius:10px;padding:8px;overflow-y:auto;font-size:.68rem;color:var(--text-dim);line-height:1.7;min-height:70px}
+.log-entry{border-bottom:1px solid var(--cream-dark);padding:2px 0}.log-entry:last-child{border-bottom:none}
+.log-positive{color:var(--green)}.log-negative{color:var(--red)}.log-highlight{color:var(--gold);font-weight:600}
+
+/* Right Panel */
+.panel-info{width:250px;flex-shrink:0}
+
+/* Menu */
+.menu-list{margin-bottom:10px}
+.menu-item{display:flex;align-items:center;padding:5px 8px;background:var(--cream);border-radius:8px;margin-bottom:3px;font-size:.74rem;gap:4px}
+.menu-item-name{font-weight:600;color:var(--brown);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu-item-price{color:var(--text-dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.menu-tag{font-size:.55rem;background:var(--mint-light);color:var(--mint-dark);padding:1px 5px;border-radius:4px;font-weight:600;white-space:nowrap}
+.menu-delete{background:none;border:none;color:var(--red);font-size:.85rem;cursor:pointer;padding:0 3px;opacity:.4;line-height:1}
+.menu-delete:hover{opacity:1}
+
+/* Blend Form */
+.blend-form{margin-bottom:10px}
+.blend-slider-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;font-size:.72rem}
+.blend-slider-row label{width:48px;font-weight:600;color:var(--brown);flex-shrink:0}
+.blend-slider-row input[type=range]{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:var(--cream-dark);border-radius:3px;outline:none}
+.blend-slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--brown);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.blend-slider-row span{width:30px;text-align:right;font-variant-numeric:tabular-nums;font-size:.7rem}
+.blend-total{font-size:.72rem;text-align:center;padding:4px 0;margin-bottom:5px;border-radius:6px}
+.blend-total.valid{color:var(--green);font-weight:600;background:rgba(34,197,94,.08)}
+.blend-total.invalid{color:var(--red);background:rgba(239,68,68,.06)}
+.blend-preview{font-size:.65rem;text-align:center;color:var(--text-dim);margin-bottom:5px}
+.blend-name-input{width:100%;padding:7px 9px;font-size:.78rem;border:2px solid var(--cream-dark);border-radius:8px;outline:none;margin-bottom:5px;font-family:inherit}
+.blend-name-input:focus{border-color:var(--mint-dark)}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px}
+.stat-item{background:var(--cream);border-radius:8px;padding:7px;text-align:center}
+.stat-value{font-size:.95rem;font-weight:700;color:var(--brown)}.stat-label{font-size:.58rem;color:var(--text-dim);margin-top:1px}
+
+/* Actions */
+.action-section{margin-bottom:10px}
+.btn-action{width:100%;padding:8px 10px;font-size:.76rem;font-weight:700;color:var(--brown);background:var(--cream);border:2px solid var(--cream-dark);border-radius:8px;cursor:pointer;transition:all var(--tr);margin-bottom:5px;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.btn-action:hover:not(:disabled){border-color:var(--mint-dark);background:var(--mint-light)}
+.btn-action:disabled{opacity:.4;cursor:not-allowed}
+.btn-action .action-cost{font-size:.65rem;color:var(--text-dim)}
+.ad-active{font-size:.65rem;color:var(--mint-dark);font-weight:600;background:var(--mint-light);border-radius:6px;padding:3px 8px;margin-bottom:5px;text-align:center}
+
+/* Day Bar */
+.day-bar{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 20px;background:var(--card-bg);border-top:1px solid var(--cream-dark);flex-shrink:0}
+.day-bar-label{font-size:.78rem;color:var(--text-dim);font-weight:600}
+.btn-day{padding:7px 20px;font-size:.82rem;font-weight:700;color:var(--brown);background:var(--cream);border:2px solid var(--cream-dark);border-radius:10px;cursor:pointer;transition:all var(--tr)}
+.btn-day:hover{border-color:var(--mint-dark);background:var(--mint-light);color:var(--brown-dark)}
+.btn-save{padding:7px 14px;font-size:.72rem;font-weight:600;color:var(--text-dim);background:transparent;border:1px solid var(--cream-dark);border-radius:8px;cursor:pointer;transition:all var(--tr);margin-left:auto}
+.btn-save:hover{border-color:var(--brown);color:var(--brown)}
+
+/* Score */
+.screen--score{align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#FFF8F0,#F5EDE0);gap:10px;padding:48px}
+.score-title{font-size:1rem;color:var(--text-dim);letter-spacing:.15em}
+.score-rank{font-size:6rem;font-weight:900;line-height:1}
+.score-rank.rank-s{color:var(--gold)}.score-rank.rank-a{color:var(--mint-dark)}.score-rank.rank-b{color:var(--green)}.score-rank.rank-c{color:var(--brown)}.score-rank.rank-d{color:var(--red)}
+.score-details{display:flex;gap:18px;margin:10px 0 20px;flex-wrap:wrap;justify-content:center}
+.score-detail{text-align:center}
+.score-detail-value{font-size:1.1rem;font-weight:800;color:var(--brown)}
+.score-detail-label{font-size:.68rem;color:var(--text-dim)}
+.score-actions{display:flex;gap:16px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal-box{background:#fff;border-radius:var(--radius);padding:32px 36px;text-align:center;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.modal-icon{font-size:3rem;margin-bottom:10px}.modal-title{font-size:1.2rem;font-weight:800;color:var(--red);margin-bottom:6px}
+.modal-text{font-size:.82rem;color:var(--text-dim);margin-bottom:18px;line-height:1.7}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Cash Short Banner */
+.cash-short-banner{display:none;padding:6px 16px;background:linear-gradient(90deg,#fecaca,#fca5a5);color:#991b1b;font-size:.78rem;font-weight:700;text-align:center;animation:pulseBanner 1.5s ease-in-out infinite}
+.cash-short-banner.active{display:block}
+@keyframes pulseBanner{0%,100%{opacity:1}50%{opacity:.7}}
+
+/* Investment */
+.invest-section{margin-bottom:10px}
+.invest-btn{width:100%;padding:8px 10px;font-size:.74rem;font-weight:700;color:var(--brown);background:var(--cream);border:2px solid var(--cream-dark);border-radius:8px;cursor:pointer;transition:all var(--tr);margin-bottom:4px;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.invest-btn:hover:not(:disabled){border-color:var(--gold);background:#fefce8}
+.invest-btn:disabled{opacity:.4;cursor:not-allowed}
+.invest-btn .invest-cost{font-size:.63rem;color:var(--text-dim)}
+.invest-status{font-size:.65rem;padding:4px 8px;border-radius:6px;margin-bottom:4px;text-align:center;font-weight:600}
+.invest-active{color:#065f46;background:#d1fae5}
+.invest-warn{color:#92400e;background:#fef3c7}
+.invest-danger{color:#991b1b;background:#fecaca}
+.btn-invest-pay{display:none;width:100%;padding:6px;font-size:.72rem;font-weight:700;color:#fff;background:var(--gold);border:none;border-radius:8px;cursor:pointer;transition:all var(--tr);margin-bottom:4px}
+.btn-invest-pay.active{display:block}
+.btn-invest-pay:hover{background:#d97706}
+
+/* Retainer */
+.retainer-section{margin-bottom:10px}
+.retainer-btn{width:100%;padding:8px 10px;font-size:.74rem;font-weight:700;color:var(--brown);background:var(--cream);border:2px solid var(--cream-dark);border-radius:8px;cursor:pointer;transition:all var(--tr);margin-bottom:4px;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.retainer-btn:hover{border-color:var(--mint-dark);background:var(--mint-light)}
+.retainer-btn.contracted{border-color:var(--green);background:#f0fdf4;color:#166534}
+.retainer-btn.contracted:hover{background:#dcfce7}
+.retainer-btn .retainer-cost{font-size:.63rem;color:var(--text-dim)}
+.retainer-active{font-size:.63rem;color:#166534;font-weight:600;background:#dcfce7;border-radius:6px;padding:2px 8px;margin-bottom:4px;text-align:center}
+.event-flash{animation:eventFlash .6s ease}
+@keyframes eventFlash{0%,100%{background:var(--cream)}50%{background:#fecaca}}
+
+/* Old visit stage — hidden, replaced by shop exterior */
+.visit-stage{display:none!important}
+
+/* Shop Exterior */
+.shop-exterior{height:120px;background:linear-gradient(180deg,#c4e0f9 0%,#dbeafe 50%,#b6d7a8 50%,#a0c890 100%);position:relative;overflow:hidden;flex-shrink:0;border-bottom:1px solid var(--cream-dark);cursor:pointer}
+.shop-scene{position:relative;width:100%;height:100%;max-width:700px;margin:0 auto}
+/* Building */
+.shop-bldg{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);text-align:center;transition:all .6s ease}
+.shop-roof{margin:0 auto;width:0;height:0;border-left-style:solid;border-left-color:transparent;border-right-style:solid;border-right-color:transparent;border-bottom-style:solid;transition:all .6s ease}
+.shop-walls{position:relative;border-radius:0 0 3px 3px;display:flex;align-items:flex-end;justify-content:center;gap:2px;padding:4px 6px;transition:all .6s ease}
+.shop-door{font-size:.85rem;line-height:1}.shop-window{font-size:.7rem;line-height:1}
+/* Sign */
+.shop-sign-board{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;font-weight:700;padding:2px 8px;border-radius:3px;z-index:2;transition:all .5s ease}
+.shop-sign-hand{top:-24px;background:#f5e6d0;color:#6B4226;font-family:'Comic Sans MS',cursive;font-size:.5rem}
+.shop-sign-clean{top:-26px;background:#fff;color:#4A3423;border:1px solid #ddd;font-size:.55rem}
+.shop-sign-neon{top:-28px;background:#1e293b;color:#fbbf24;text-shadow:0 0 4px #fbbf24;font-size:.58rem;letter-spacing:.05em}
+.shop-sign-elegant{top:-30px;background:linear-gradient(135deg,#1e293b,#334155);color:#f0f0f0;font-size:.58rem;letter-spacing:.08em}
+.shop-sign-gold{top:-32px;background:linear-gradient(135deg,#b8860b,#d4a935,#b8860b);color:#fff;font-size:.62rem;letter-spacing:.1em;box-shadow:0 2px 6px rgba(184,134,11,.35)}
+/* Decor */
+.shop-decor-item{position:absolute;bottom:24px;font-size:.8rem;transition:opacity .4s}
+/* Queue */
+.shop-queue-area{position:absolute;bottom:24px;display:flex;gap:4px;font-size:.8rem;opacity:.8}
+/* Ground path */
+.shop-ground-line{position:absolute;bottom:22px;left:0;right:0;height:2px;background:rgba(120,100,60,.15)}
+/* Tier label */
+.shop-tier-label{position:absolute;top:4px;right:10px;font-size:.5rem;color:rgba(50,50,70,.35);font-weight:600;letter-spacing:.04em}
+.shop-tier-up{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.1rem;font-weight:800;color:var(--gold);opacity:0;z-index:10;text-shadow:0 1px 6px rgba(0,0,0,.15);pointer-events:none}
+.shop-tier-up.show{animation:tierUpPop 1.8s ease forwards}
+@keyframes tierUpPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.2)}30%{transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%)}}
+/* Visitor in shop scene */
+.shop-v{position:absolute;bottom:24px;font-size:1.1rem;opacity:0;right:-20px}
+.shop-v.walk-in{animation:svWalkIn 1.1s ease-out forwards}
+@keyframes svWalkIn{0%{right:-20px;opacity:0}12%{opacity:1}65%{right:calc(50% - 15px)}100%{right:calc(50% - 15px);opacity:1}}
+.shop-v-coffee{position:absolute;bottom:50px;opacity:0;font-size:.9rem;z-index:5}
+.shop-v-coffee.show{animation:svCoffee .4s ease 1s forwards}
+@keyframes svCoffee{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+.shop-v-react{position:absolute;bottom:68px;opacity:0;font-size:.85rem;z-index:5}
+.shop-v-react.show{animation:svReact .35s ease 1.15s forwards}
+@keyframes svReact{0%{opacity:0;transform:scale(.3) translateY(4px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.shop-v-revenue{position:absolute;bottom:86px;left:50%;transform:translateX(-50%);font-size:.82rem;font-weight:800;opacity:0;white-space:nowrap;z-index:5}
+.shop-v-revenue.show{animation:svRevenue .45s ease 1.3s forwards}
+@keyframes svRevenue{0%{opacity:0;transform:translateX(-50%) translateY(6px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+.shop-v-revenue.positive{color:var(--green)}.shop-v-revenue.negative{color:var(--red)}
+.shop-v-label{position:absolute;top:4px;left:10px;font-size:.55rem;color:rgba(50,50,70,.45);font-weight:600}
+.shop-v-skip{position:absolute;bottom:4px;right:10px;font-size:.48rem;color:rgba(50,50,70,.3)}
+
+/* Game Modals (shared) */
+.game-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1100;align-items:center;justify-content:center}
+.game-modal.active{display:flex}
+.game-modal-box{background:#fff;border-radius:var(--radius);padding:24px 28px;max-width:460px;width:92%;max-height:82vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.game-modal-title{font-size:1.05rem;font-weight:800;color:var(--brown);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.game-modal-sub{font-size:.76rem;color:var(--text-dim);margin-bottom:8px;line-height:1.7}
+.game-modal-actions{display:flex;gap:8px;margin-top:14px}
+/* Recipe items */
+.rcp-item{display:flex;align-items:center;padding:7px 10px;background:var(--cream);border-radius:8px;margin-bottom:3px;font-size:.72rem;gap:5px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.rcp-item:hover{border-color:var(--mint-dark)}.rcp-item.selected{border-color:var(--brown);background:#fff}
+.rcp-item-name{font-weight:600;color:var(--brown);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rcp-item-sub{font-size:.6rem;color:var(--text-dim);white-space:nowrap}
+.rcp-del{background:none;border:none;color:var(--red);font-size:.8rem;cursor:pointer;padding:0 3px;opacity:.35;line-height:1}.rcp-del:hover{opacity:1}
+.rcp-save{background:none;border:none;color:var(--mint-dark);font-size:.65rem;cursor:pointer;padding:0 3px;opacity:.5;font-weight:600}.rcp-save:hover{opacity:1}
+/* Timing minigame */
+.timing-game{margin:12px 0;text-align:center}
+.timing-lbl{font-size:.76rem;font-weight:700;color:var(--brown);margin-bottom:6px}
+.timing-bar{position:relative;height:22px;background:var(--cream-dark);border-radius:11px;overflow:hidden;margin-bottom:8px}
+.timing-zone{position:absolute;height:100%;background:rgba(34,197,94,.22);border-left:2px solid var(--green);border-right:2px solid var(--green)}
+.timing-cur{position:absolute;top:0;width:4px;height:100%;background:var(--red);border-radius:2px;left:0}
+.timing-result{font-size:1rem;font-weight:800;margin:4px 0}
+.timing-result.s-good{color:var(--green)}.timing-result.s-ok{color:var(--gold)}.timing-result.s-bad{color:var(--red)}
+/* Comp phases */
+.comp-phase{display:none}.comp-phase.active{display:block}
+/* Brand badge */
+.brand-badge{display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;padding:1px 7px;border-radius:5px;font-size:.6rem;font-weight:700}
+/* メニュー管理モーダル */
+.menu-mgr-layout{display:flex;gap:12px;min-height:200px}
+.menu-mgr-left{flex:1;max-height:260px;overflow-y:auto;border:1px solid var(--card-border);border-radius:var(--radius);padding:6px}
+.menu-mgr-right{width:170px;display:flex;flex-direction:column;gap:6px}
+.menu-slot{background:var(--cream);border:2px dashed var(--card-border);border-radius:var(--radius);padding:8px;text-align:center;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;color:var(--text-dim);cursor:default;position:relative;transition:border-color .2s}
+.menu-slot.filled{border-style:solid;border-color:var(--brown);background:#fff}
+.menu-slot .slot-label{font-size:.58rem;color:var(--text-dim);margin-bottom:2px}
+.menu-slot .slot-name{font-size:.76rem;font-weight:700;color:var(--brown)}
+.menu-slot .slot-stats{font-size:.58rem;color:var(--text-dim);margin-top:2px}
+.menu-slot .slot-remove{position:absolute;top:2px;right:4px;background:none;border:none;color:#ef4444;cursor:pointer;font-size:.7rem;padding:2px}
+.menu-rcp-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-bottom:1px solid #f0ebe6;cursor:pointer;border-radius:4px;transition:background .15s}
+.menu-rcp-item:hover{background:var(--cream)}
+.menu-rcp-item .rcp-info{font-size:.72rem;color:var(--gray700)}
+.menu-rcp-item .rcp-info strong{color:var(--brown)}
+.menu-rcp-item .rcp-stats{font-size:.58rem;color:var(--text-dim)}
+.menu-strategy{text-align:center;margin-top:6px;padding:5px 8px;border-radius:var(--radius);font-size:.68rem;font-weight:700}
+.strategy-stable{background:#d1fae5;color:#065f46}
+.strategy-aggressive{background:#fee2e2;color:#991b1b}
+.strategy-trendy{background:#ede9fe;color:#5b21b6}
+.strategy-none{background:#f1f5f9;color:#64748b}
+/* メニュー一覧のセクション分け */
+.menu-section-label{font-size:.62rem;font-weight:700;color:var(--brown);padding:3px 6px;background:var(--cream);border-radius:4px;margin-bottom:2px}
+.menu-item.menu-inactive{opacity:.75}
+.menu-toggle{background:none;border:none;cursor:pointer;font-size:.72rem;padding:2px 4px;border-radius:4px;transition:background .15s}
+.menu-toggle:hover{background:rgba(0,0,0,.06)}
+.menu-toggle.on{color:#059669}
+.menu-toggle.off{color:var(--brown)}
+/* ロット数セレクター */
+.lot-selector{display:flex;align-items:center;gap:6px;margin:6px 0;padding:5px 8px;background:var(--cream);border-radius:var(--radius);font-size:.72rem}
+.lot-label{color:var(--text-dim);font-weight:600;white-space:nowrap}
+.lot-btn{width:26px;height:26px;border:1px solid var(--card-border);border-radius:6px;background:#fff;cursor:pointer;font-size:.85rem;font-weight:700;color:var(--brown);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.lot-btn:hover{background:var(--mint);color:#fff}
+.lot-btn:active{transform:scale(.95)}
+.lot-value{font-size:.9rem;font-weight:800;color:var(--brown);min-width:20px;text-align:center}
+.lot-max{font-size:.62rem;color:var(--text-dim)}
+/* Comp/pref buttons */
+.event-btn{width:100%;padding:8px 10px;font-size:.74rem;font-weight:700;color:#92400e;background:linear-gradient(135deg,#fef3c7,#fde68a);border:2px solid #fbbf24;border-radius:8px;cursor:pointer;transition:all var(--tr);margin-bottom:4px;text-align:left;display:flex;justify-content:space-between;align-items:center}
+.event-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 10px rgba(251,191,36,.3)}
+.event-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Shop level XP bar */
+.shop-xp-bar{position:absolute;top:4px;left:10px;display:flex;align-items:center;gap:5px;font-size:.5rem;color:rgba(50,50,70,.5);font-weight:600}
+.shop-xp-outer{width:60px;height:5px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden}
+.shop-xp-inner{height:100%;background:linear-gradient(90deg,var(--mint-dark),var(--mint));border-radius:3px;transition:width .5s ease}
+
+/* Event Popup */
+.evt-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1200;align-items:center;justify-content:center}
+.evt-popup.active{display:flex}
+.evt-popup-box{background:#fff;border-radius:var(--radius);padding:28px 32px;text-align:center;max-width:420px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.3);position:relative;overflow:hidden;animation:fadeIn .3s ease}
+.evt-icon{font-size:2.8rem;margin-bottom:6px}
+.evt-title{font-size:1.1rem;font-weight:800;margin-bottom:6px}
+.evt-title.negative{color:var(--red)}.evt-title.positive{color:var(--green)}
+.evt-body{font-size:.82rem;color:var(--text-dim);margin-bottom:14px;line-height:1.7}
+.evt-compare{margin-bottom:12px;border-radius:10px;overflow:hidden}
+.evt-compare-header{font-size:.72rem;font-weight:700;padding:6px 12px;border-radius:8px 8px 0 0}
+.evt-compare-header.ace{background:linear-gradient(90deg,#dcfce7,#bbf7d0);color:#166534}
+.evt-compare-header.damage{background:linear-gradient(90deg,#fee2e2,#fecaca);color:#991b1b}
+.evt-compare-header.subsidy{background:linear-gradient(90deg,#dbeafe,#bfdbfe);color:#1e40af}
+.evt-compare-row{display:flex;justify-content:space-between;padding:6px 12px;font-size:.78rem;background:var(--cream)}
+.evt-compare-normal{color:#9ca3af;text-decoration:line-through}
+.evt-compare-actual{font-weight:700;color:var(--green)}
+.evt-compare-actual.negative{color:var(--red)}
+.evt-compare-actual.boost{color:#2563eb}
+.evt-compare-saved{padding:8px 12px;font-size:.88rem;font-weight:800;color:var(--green);background:#f0fdf4;text-align:center}
+.evt-hint{font-size:.68rem;color:var(--text-dim);margin-bottom:12px;line-height:1.6;padding:6px 10px;background:var(--cream);border-radius:8px}
+.evt-actions{display:flex;justify-content:center;gap:8px}
+.evt-ace-anim{display:none;font-size:2rem;margin-bottom:4px}
+.evt-ace-anim.show{display:block;animation:aceEnter .5s ease forwards}
+@keyframes aceEnter{0%{opacity:0;transform:translateX(40px)}100%{opacity:1;transform:translateX(0)}}
+.evt-crew-anim{display:none;font-size:1.2rem;margin-bottom:4px;letter-spacing:4px}
+.evt-crew-anim.show{display:block;animation:docsStack .6s ease forwards}
+@keyframes docsStack{0%{opacity:0;transform:translateY(20px)}50%{opacity:1;transform:translateY(-4px)}100%{opacity:1;transform:translateY(0)}}
+/* Retainer indicators in status bar */
+.retainer-ind{font-size:.85rem;opacity:.3;transition:opacity .3s,filter .3s;filter:grayscale(1)}
+.retainer-ind.active{opacity:1;filter:grayscale(0)}
+
+/* Regulars Panel (4th column) */
+.panel-regulars{width:300px;flex-shrink:0;display:flex;flex-direction:column}
+.reg-section{margin-bottom:8px}
+.reg-section-title{font-size:.68rem;font-weight:700;color:var(--brown);margin-bottom:4px}
+.reg-slot{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--cream);border-radius:8px;margin-bottom:3px;font-size:.72rem}
+.reg-slot-icon{font-size:1.1rem}
+.reg-slot-name{font-weight:600;color:var(--brown);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reg-slot-empty{padding:8px;background:var(--cream);border:2px dashed var(--cream-dark);border-radius:8px;margin-bottom:3px;text-align:center;font-size:.68rem;color:var(--text-dim)}
+.reg-rarity-n{font-size:.55rem;background:#e2e8f0;color:#475569;padding:1px 5px;border-radius:4px;font-weight:700}
+.reg-rarity-r{font-size:.55rem;background:#dbeafe;color:#2563eb;padding:1px 5px;border-radius:4px;font-weight:700}
+.reg-rarity-sr{font-size:.55rem;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#b45309;padding:1px 5px;border-radius:4px;font-weight:700}
+.reg-loyalty-bar{width:50px;height:6px;background:var(--cream-dark);border-radius:3px;overflow:hidden;flex-shrink:0}
+.reg-loyalty-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.reg-bonus-summary{font-size:.68rem;color:var(--text-dim);background:var(--cream);border-radius:8px;padding:6px 8px;line-height:1.7}
+.reg-log{font-size:.64rem;color:var(--text-dim);background:var(--cream);border-radius:8px;padding:6px 8px;max-height:80px;overflow-y:auto;line-height:1.6}
+.reg-log-entry{border-bottom:1px solid var(--cream-dark);padding:1px 0}.reg-log-entry:last-child{border-bottom:none}
+.reg-warn{animation:regWarn 1s ease-in-out infinite}
+@keyframes regWarn{0%,100%{background:var(--cream)}50%{background:#fecaca}}
+.btn-collection{width:100%;padding:6px 10px;font-size:.74rem;font-weight:700;color:var(--brown);background:var(--cream);border:2px solid var(--cream-dark);border-radius:8px;cursor:pointer;transition:all var(--tr);margin-bottom:8px;text-align:center}
+.btn-collection:hover{border-color:var(--mint-dark);background:var(--mint-light)}
+
+/* Collection Modal */
+.coll-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:320px;overflow-y:auto;margin-bottom:10px}
+.coll-card{background:var(--cream);border-radius:10px;padding:10px;text-align:center;border:2px solid var(--cream-dark);transition:all .2s}
+.coll-card.locked{opacity:.5;filter:grayscale(.8)}
+.coll-icon{font-size:1.8rem;margin-bottom:4px}
+.coll-icon.locked{filter:grayscale(1) brightness(.6)}
+.coll-name{font-size:.76rem;font-weight:700;color:var(--brown);margin-bottom:2px}
+.coll-type{font-size:.6rem;color:var(--text-dim);margin-bottom:4px}
+.coll-tags{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;margin-bottom:4px}
+.coll-tag-like{font-size:.55rem;background:#dcfce7;color:#166534;padding:1px 5px;border-radius:4px;font-weight:600}
+.coll-tag-dislike{font-size:.55rem;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:4px;font-weight:600}
+.coll-perk{font-size:.6rem;color:var(--mint-dark);font-weight:600;margin-bottom:4px}
+.coll-toggle{width:100%;padding:4px 8px;font-size:.68rem;font-weight:700;border:none;border-radius:6px;cursor:pointer;transition:all var(--tr)}
+.coll-toggle.activate{color:#fff;background:var(--mint-dark)}.coll-toggle.activate:hover{background:var(--mint)}
+.coll-toggle.deactivate{color:var(--brown);background:var(--cream-dark)}.coll-toggle.deactivate:hover{background:#e2d5c5}
+.coll-filter-bar{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.coll-filter-btn{padding:4px 10px;font-size:.68rem;font-weight:600;color:var(--text-dim);background:var(--cream);border:1px solid var(--cream-dark);border-radius:6px;cursor:pointer;transition:all .15s}
+.coll-filter-btn.active{color:var(--brown);border-color:var(--brown);background:#fff}
+.coll-filter-btn:hover:not(.active){border-color:var(--brown-light)}
+
+/* Regular face in shop scene */
+.shop-v-regular{position:absolute;bottom:50px;font-size:1.1rem;opacity:0;z-index:4}
+.shop-v-regular.show{animation:regFace .8s ease forwards}
+@keyframes regFace{0%{opacity:0;transform:scale(.5)}40%{opacity:1;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+
+<!-- タイトル -->
+<div class="screen screen--title active" id="screenTitle">
+  <div class="title-icon">☕</div>
+  <h1 class="title-main">Hinano Coffee</h1>
+  <p class="title-sub">カフェ経営シミュレーション</p>
+  <div class="title-buttons">
+    <button class="btn btn-primary" id="btnGameStart">☕ はじめる</button>
+    <button class="btn-load" id="btnLoad" style="display:none">📂 つづきから</button>
+  </div>
+</div>
+
+<!-- メインゲーム -->
+<div class="screen screen--game" id="screenGame">
+  <header class="status-bar">
+    <div class="status-item"><span class="status-icon">📅</span><div><span class="status-value" id="statYear">1</span><span class="status-label">年</span><span class="status-value" id="statMonth">1</span><span class="status-label">月</span><span class="status-value" id="statWeek">1</span><span class="status-label">週</span></div></div>
+    <div class="status-item"><span class="status-icon" id="weatherIcon">☀️</span><div><span class="status-value" id="seasonLabel">春</span><span class="status-label" id="weatherLabel"> 晴れ</span></div></div>
+    <div class="status-item"><span class="status-icon">💰</span><div><span class="status-label">所持金 </span><span class="status-value" id="statMoney">50,000</span><span class="status-label">円</span></div></div>
+    <div class="status-item"><span class="status-icon">⭐</span><div><span class="status-label">人気度 </span><span class="status-value" id="statPopularity">30</span></div></div>
+    <div class="status-item"><span class="status-icon">☕</span><div><span class="status-label">品質 </span><span class="status-value" id="statQuality">50</span></div></div>
+    <div class="status-item"><span class="status-icon">📈</span><div><span class="status-label">トレンド </span><span class="status-value" id="trendLabel">―</span></div></div>
+    <div class="status-item"><span class="status-icon">🏠</span><div><span class="status-label">店Lv.</span><span class="status-value" id="statShopLevel">1</span> <span class="status-label" id="statXpProgress" style="font-size:.55rem;opacity:.6">0/100</span></div></div>
+    <div class="status-item" id="retainerIndicators">
+      <span class="retainer-ind" id="indAce" title="弁護士法人エース">⚖️</span>
+      <span class="retainer-ind" id="indAceCrew" title="エースクルー">📋</span>
+    </div>
+  </header>
+  <div class="cash-short-banner" id="cashShortBanner">💀 資金ショート！ あと<span id="cashShortWeeksLeft">3</span>週以内に黒字化しないと倒産します…</div>
+
+  <!-- 店舗外観 -->
+  <div class="shop-exterior" id="shopExterior">
+    <div class="shop-scene" id="shopScene">
+      <div class="shop-ground-line"></div>
+      <div class="shop-bldg" id="shopBldg">
+        <div class="shop-sign-board shop-sign-hand" id="shopSignBoard">Hinano Coffee</div>
+        <div class="shop-roof" id="shopRoof"></div>
+        <div class="shop-walls" id="shopWalls">🚪</div>
+      </div>
+      <div id="shopDecorArea"></div>
+      <div class="shop-queue-area" id="shopQueueArea"></div>
+      <div class="shop-v" id="shopV">🚶</div>
+      <div class="shop-v-coffee" id="shopVCoffee" style="left:50%">☕</div>
+      <div class="shop-v-react" id="shopVReact" style="left:calc(50% + 12px)"></div>
+      <div class="shop-v-revenue" id="shopVRevenue"></div>
+      <div class="shop-v-regular" id="shopVRegular" style="left:calc(50% - 30px)"></div>
+      <div class="shop-v-label" id="shopVLabel"></div>
+      <div class="shop-v-skip">click to skip</div>
+      <div class="shop-tier-up" id="shopTierUp"></div>
+    </div>
+    <div class="shop-xp-bar"><span id="shopXpLabel">Lv.1</span><div class="shop-xp-outer"><div class="shop-xp-inner" id="shopXpBar" style="width:0%"></div></div><span id="shopXpText">0/100</span></div>
+    <div class="shop-tier-label" id="shopTierLabel"></div>
+  </div>
+
+  <div class="game-content">
+    <!-- 左: 焙煎 -->
+    <div class="panel panel-roast">
+      <div class="panel-title">🔥 焙煎</div>
+      <div class="bean-selector" id="beanSelector">
+        <button class="bean-btn active" data-bean="brazil">ブラジル</button>
+        <button class="bean-btn" data-bean="mocha">モカ</button>
+        <button class="bean-btn" data-bean="panama">パナマ</button>
+      </div>
+      <div class="bean-info" id="beanInfo"><strong>ブラジル</strong>（仕入: 500円/ロット）<br>難易度: ★☆☆　品質上限: 70</div>
+      <div class="inventory-display">
+        <div class="inv-item"><div class="inv-item-value" id="invRaw">1</div><div class="inv-item-label">生豆(ロット)</div></div>
+        <div class="inv-item"><div class="inv-item-value" id="invRoasted">0</div><div class="inv-item-label">焙煎済(杯)</div></div>
+      </div>
+      <button class="btn-buy" id="btnBuyBean">🛒 1ロット仕入れる（500円）</button>
+      <div class="lot-selector">
+        <label class="lot-label">焙煎ロット数:</label>
+        <button class="lot-btn" id="lotMinus">−</button>
+        <span class="lot-value" id="lotValue">1</span>
+        <button class="lot-btn" id="lotPlus">＋</button>
+        <span class="lot-max" id="lotMax">/ 1</span>
+      </div>
+      <div class="roaster">
+        <div class="smoke-container"><div class="smoke" id="smoke0"></div><div class="smoke" id="smoke1"></div><div class="smoke" id="smoke2"></div><div class="smoke" id="smoke3"></div><div class="smoke" id="smoke4"></div></div>
+        <div class="roaster-body" id="roasterBody"><div class="roaster-overlay" id="roasterOverlay"></div><span class="roaster-bean">🫘</span></div>
+      </div>
+      <div class="roast-controls">
+        <button class="btn-start" id="btnRoastStart">START</button>
+        <button class="btn-stop" id="btnRoastStop" disabled>STOP</button>
+      </div>
+      <div class="roast-result" id="roastResult"></div>
+    </div>
+
+    <!-- 中央: ダッシュボード -->
+    <div class="panel panel-dashboard">
+      <div class="panel-title">📊 経営ダッシュボード</div>
+      <div class="daily-summary">
+        <div class="summary-card"><div class="summary-card-icon">🧾</div><div class="summary-card-value" id="dashRevenue">0</div><div class="summary-card-label">今週の売上</div></div>
+        <div class="summary-card"><div class="summary-card-icon">💸</div><div class="summary-card-value" id="dashCost">0</div><div class="summary-card-label">今週のコスト</div></div>
+        <div class="summary-card"><div class="summary-card-icon">📈</div><div class="summary-card-value" id="dashProfit">0</div><div class="summary-card-label">今週の利益</div></div>
+        <div class="summary-card"><div class="summary-card-icon">👥</div><div class="summary-card-value" id="dashCustomers">0</div><div class="summary-card-label">週間来客数</div></div>
+      </div>
+      <div class="cost-breakdown">
+        <div class="cost-item"><div class="cost-item-value" id="costRent">0</div><div class="cost-item-label">家賃/週</div></div>
+        <div class="cost-item"><div class="cost-item-value" id="costUtility">0</div><div class="cost-item-label">光熱費/週</div></div>
+        <div class="cost-item"><div class="cost-item-value" id="costStaff">0</div><div class="cost-item-label">人件費/週</div></div>
+        <div class="cost-item"><div class="cost-item-value" id="costBean">0</div><div class="cost-item-label">原価</div></div>
+      </div>
+      <div class="bar-section"><div class="bar-label"><span>⭐ 人気度</span><span id="popValue">30</span></div><div class="bar-outer"><div class="bar-inner bar-pop" id="popBar" style="width:30%"></div></div></div>
+      <div class="bar-section"><div class="bar-label"><span>☕ 平均品質</span><span id="qualValue">50</span></div><div class="bar-outer"><div class="bar-inner bar-qual" id="qualBar" style="width:50%"></div></div></div>
+      <div class="panel-title" style="margin-top:6px">📝 ログ</div>
+      <div class="log-area" id="logArea"><div class="log-entry">☕ Hinano Coffee オープン！まず豆を焙煎しよう！</div></div>
+    </div>
+
+    <!-- 右: メニュー・ブレンド・アクション -->
+    <div class="panel panel-info">
+      <div class="panel-title">☕ メニュー</div>
+      <div class="menu-list" id="menuList"></div>
+
+      <div class="panel-title">🧪 ブレンド開発 <span class="title-extra" id="blendCount">(0/5)</span></div>
+      <div class="blend-form" id="blendForm">
+        <div class="blend-slider-row"><label>ブラジル</label><input type="range" min="0" max="100" step="5" value="40" id="sliderBrazil"><span id="sliderBrazilVal">40%</span></div>
+        <div class="blend-slider-row"><label>モカ</label><input type="range" min="0" max="100" step="5" value="40" id="sliderMocha"><span id="sliderMochaVal">40%</span></div>
+        <div class="blend-slider-row"><label>パナマ</label><input type="range" min="0" max="100" step="5" value="20" id="sliderPanama"><span id="sliderPanamaVal">20%</span></div>
+        <div class="blend-total valid" id="blendTotal">合計: 100% ✓</div>
+        <div class="blend-preview" id="blendPreview"></div>
+        <input type="text" placeholder="ブレンド名を入力" maxlength="12" id="blendName" class="blend-name-input">
+        <button class="btn-action" id="btnCreateBlend"><span>☕ ブレンドを作る</span></button>
+      </div>
+
+      <div style="display:flex;gap:5px;margin-bottom:4px">
+        <button class="btn-action" id="btnOpenRecipeBook" style="flex:1"><span>📖 レシピブック</span><span class="action-cost" id="rcpCountLabel">0/10</span></button>
+      </div>
+      <div style="display:flex;gap:5px;margin-bottom:8px">
+        <button class="btn-action" id="btnOpenMenuMgr" style="flex:1"><span>🍽️ メニュー管理</span><span class="action-cost" id="menuSlotLabel">0/3</span></button>
+      </div>
+
+      <div class="panel-title">🏆 大会・対決</div>
+      <div style="margin-bottom:10px">
+        <button class="event-btn" id="btnOpenComp"><span>🏆 コーヒー大会</span><span class="action-cost" id="compRankLabel">ローカル</span></button>
+        <button class="event-btn" id="btnOpenPref"><span>🗾 隣県進出対決</span><span class="action-cost" id="prefLabel">1県</span></button>
+        <div class="brand-badge" id="brandBadge" style="margin-top:4px">🏅 ブランド補正: +<span id="brandBonusDisp">0</span>%</div>
+      </div>
+
+      <div class="panel-title">🛠 アクション</div>
+      <div class="action-section">
+        <button class="btn-action" id="btnHireStaff"><span>👤 スタッフ雇用</span><span class="action-cost">週給6,750円/人</span></button>
+        <button class="btn-action" id="btnFireStaff" style="display:none"><span>👤 スタッフ解雇</span><span class="action-cost">1人減らす</span></button>
+        <button class="btn-action" id="btnAdvertise"><span>📢 広告を出す</span><span class="action-cost">10,000円</span></button>
+        <div class="ad-active" id="adActiveLabel" style="display:none">📢 広告中（残り<span id="adWeeksLeft">0</span>週）</div>
+      </div>
+
+      <div class="panel-title">⚖️ 顧問契約</div>
+      <div class="retainer-section">
+        <button class="retainer-btn" id="btnRetainerAce"><span>⚖️ 弁護士法人エース</span><span class="retainer-cost">週額2,000円</span></button>
+        <div class="retainer-active" id="retainerAceStatus" style="display:none">⚖️ 契約中 ― 法務トラブル被害 90%カット</div>
+        <button class="retainer-btn" id="btnRetainerAceCrew"><span>📋 社労士法人エースクルー</span><span class="retainer-cost">週額1,500円</span></button>
+        <div class="retainer-active" id="retainerAceCrewStatus" style="display:none">📋 契約中 ― 助成金当選率 1.5倍</div>
+      </div>
+
+      <div class="panel-title">🎯 大型投資</div>
+      <div class="invest-section">
+        <button class="invest-btn" id="btnTrademark"><span>™️ 商標登録</span><span class="invest-cost">30,000円 / 17週</span></button>
+        <div class="invest-status invest-active" id="tmStatus" style="display:none"></div>
+        <button class="btn-invest-pay" id="btnTmPay">💰 追加費用20,000円を支払って継続</button>
+        <button class="invest-btn" id="btnGolfer"><span>⛳ ゴルファースポンサー</span><span class="invest-cost">120,000円 / 13週</span></button>
+        <div class="invest-status invest-active" id="golferStatus" style="display:none"></div>
+        <button class="invest-btn" id="btnYacht"><span>🛥️ ヨット広告</span><span class="invest-cost">500,000円 / 26週</span></button>
+        <div class="invest-status invest-active" id="yachtStatus" style="display:none"></div>
+      </div>
+
+      <div class="panel-title">🏪 店舗情報</div>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-value" id="infoSeats">10</div><div class="stat-label">座席数</div></div>
+        <div class="stat-item"><div class="stat-value" id="infoStaff">1</div><div class="stat-label">スタッフ</div></div>
+        <div class="stat-item"><div class="stat-value" id="infoCups">0</div><div class="stat-label">総在庫(杯)</div></div>
+        <div class="stat-item"><div class="stat-value" id="infoTotalWeeks">0</div><div class="stat-label">営業週数</div></div>
+        <div class="stat-item"><div class="stat-value" id="infoBrandPower">0</div><div class="stat-label">ブランド力</div></div>
+        <div class="stat-item"><div class="stat-value" id="infoCumulativeProfit">0</div><div class="stat-label">累計利益</div></div>
+      </div>
+
+      <div class="panel-title">💡 ヒント</div>
+      <div class="bean-info" style="margin-bottom:0" id="hintArea">豆を仕入れ→焙煎→メニューで販売！<br>ブレンドを開発して売上を伸ばそう。<br>季節やトレンドに合わせると需要UP！</div>
+    </div>
+
+    <!-- 常連客パネル -->
+    <div class="panel panel-regulars" id="panelRegulars">
+      <div class="panel-title">👥 常連客 <span class="title-extra" id="regActiveCount">0/5</span></div>
+      <button class="btn-collection" id="btnOpenCollection">📚 コレクション</button>
+      <div class="reg-section">
+        <div class="reg-section-title">☕ アクティブ常連</div>
+        <div id="regSlots"></div>
+      </div>
+      <div class="reg-section">
+        <div class="reg-section-title">📊 週間ボーナス</div>
+        <div class="reg-bonus-summary" id="regBonusSummary">常連がいません</div>
+      </div>
+      <div class="reg-section">
+        <div class="reg-section-title">📝 常連ログ</div>
+        <div class="reg-log" id="regLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="day-bar">
+    <span class="day-bar-label">⏩ 時間を進める：</span>
+    <button class="btn-day" id="btnWeek1">1週</button>
+    <button class="btn-day" id="btnWeek4">4週(1ヶ月)</button>
+    <button class="btn-day" id="btnWeek12">12週(1季節)</button>
+    <button class="btn-day" id="btnWeek48">48週(1年)</button>
+    <button class="btn-save" id="btnSave">💾 セーブ</button>
+  </div>
+</div>
+
+<!-- スコア -->
+<div class="screen screen--score" id="screenScore">
+  <div class="score-title">― 10年間の経営成績 ―</div>
+  <div class="title-icon">☕</div>
+  <div class="score-rank" id="scoreRank">B</div>
+  <div class="score-details">
+    <div class="score-detail"><div class="score-detail-value" id="scoreMoney">0</div><div class="score-detail-label">総資産</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreTotalSales">0</div><div class="score-detail-label">累計売上</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreTotalCustomers">0</div><div class="score-detail-label">累計来客数</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreMaxPop">0</div><div class="score-detail-label">最高人気度</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreAvgQuality">0</div><div class="score-detail-label">平均品質</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreWeeks">0</div><div class="score-detail-label">営業週数</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreBrandPower">0</div><div class="score-detail-label">ブランド力</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreCumulativeProfit">0</div><div class="score-detail-label">累計利益</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreShopLevel">1</div><div class="score-detail-label">店レベル</div></div>
+    <div class="score-detail"><div class="score-detail-value" id="scoreRegulars">0</div><div class="score-detail-label">常連客数</div></div>
+  </div>
+  <div class="score-actions">
+    <button class="btn btn-mint" id="btnContinue">☕ 続けてプレイ</button>
+    <button class="btn btn-outline" id="btnRetry">🔄 最初から</button>
+  </div>
+</div>
+
+<!-- 倒産モーダル -->
+<div class="modal-overlay" id="bankruptModal">
+  <div class="modal-box">
+    <div class="modal-icon">💀</div>
+    <div class="modal-title">倒産...</div>
+    <div class="modal-text">4週間の猶予期間を過ぎても資金を回復できず、<br>ついに営業を続けられなくなりました…。<br>経営を見直してもう一度挑戦しましょう！</div>
+    <button class="btn btn-primary" id="btnBankruptRetry">🔄 最初からやり直す</button>
+  </div>
+</div>
+
+<!-- レシピブック -->
+<div class="game-modal" id="recipeModal">
+  <div class="game-modal-box">
+    <div class="game-modal-title">📖 レシピブック <span style="font-size:.65rem;color:var(--text-dim);font-weight:400" id="rcpBookCount">(0/10)</span></div>
+    <div id="rcpBookList"><div class="game-modal-sub">保存済みレシピはありません</div></div>
+    <div class="game-modal-actions"><button class="btn btn-outline btn-sm" id="btnRcpClose">閉じる</button></div>
+  </div>
+</div>
+
+<!-- 大会 -->
+<div class="game-modal" id="compModal">
+  <div class="game-modal-box">
+    <div class="comp-phase active" id="compEntry">
+      <div class="game-modal-title">🏆 <span id="compRankName">ローカル大会</span></div>
+      <div class="game-modal-sub">参加費: <strong id="compFee">5,000</strong>円<br>保存レシピを選んでエントリーしてください。</div>
+      <div id="compRecipeList"></div>
+      <div class="game-modal-actions"><button class="btn btn-primary btn-sm" id="btnCompEnter" disabled>参加する</button><button class="btn btn-outline btn-sm" id="btnCompCancel">やめる</button></div>
+    </div>
+    <div class="comp-phase" id="compRoast">
+      <div class="game-modal-title">🔥 焙煎チャレンジ</div>
+      <div class="game-modal-sub">ターゲットゾーン（緑）でSTOP！</div>
+      <div class="timing-game"><div class="timing-bar"><div class="timing-zone" id="crZone" style="left:30%;width:25%"></div><div class="timing-cur" id="crCur"></div></div><button class="btn btn-primary btn-sm" id="btnCrStop">STOP</button><div class="timing-result" id="crResult"></div></div>
+    </div>
+    <div class="comp-phase" id="compDrip">
+      <div class="game-modal-title">💧 ドリップチャレンジ</div>
+      <div class="game-modal-sub">適量をドリップしよう！</div>
+      <div class="timing-game"><div class="timing-bar"><div class="timing-zone" id="cdZone" style="left:38%;width:20%"></div><div class="timing-cur" id="cdCur"></div></div><button class="btn btn-primary btn-sm" id="btnCdStop">STOP</button><div class="timing-result" id="cdResult"></div></div>
+    </div>
+    <div class="comp-phase" id="compResult">
+      <div class="game-modal-title" id="compResultIcon">🏆</div>
+      <div class="game-modal-sub" id="compResultText"></div>
+      <div class="game-modal-actions"><button class="btn btn-primary btn-sm" id="btnCompDone">閉じる</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 県対決 -->
+<div class="game-modal" id="prefModal">
+  <div class="game-modal-box">
+    <div class="comp-phase active" id="prefEntry">
+      <div class="game-modal-title">🗾 隣県進出対決</div>
+      <div class="game-modal-sub">現在の出店: <strong id="prefCount">1</strong>県<br>レシピを選んで対決に挑もう！</div>
+      <div id="prefRecipeList"></div>
+      <div class="game-modal-actions"><button class="btn btn-primary btn-sm" id="btnPrefEnter" disabled>挑戦する</button><button class="btn btn-outline btn-sm" id="btnPrefCancel">やめる</button></div>
+    </div>
+    <div class="comp-phase" id="prefGame">
+      <div class="game-modal-title">☕ 対決チャレンジ</div>
+      <div class="timing-game"><div class="timing-bar"><div class="timing-zone" id="pfZone" style="left:32%;width:28%"></div><div class="timing-cur" id="pfCur"></div></div><button class="btn btn-primary btn-sm" id="btnPfStop">STOP</button><div class="timing-result" id="pfResult"></div></div>
+    </div>
+    <div class="comp-phase" id="prefResult">
+      <div class="game-modal-title" id="prefResultIcon">結果</div>
+      <div class="game-modal-sub" id="prefResultText"></div>
+      <div class="game-modal-actions"><button class="btn btn-primary btn-sm" id="btnPrefDone">閉じる</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- イベントポップアップ -->
+<div class="evt-popup" id="evtPopup">
+  <div class="evt-popup-box">
+    <div class="evt-ace-anim" id="evtAceAnim"></div>
+    <div class="evt-crew-anim" id="evtCrewAnim"></div>
+    <div class="evt-icon" id="evtIcon"></div>
+    <div class="evt-title" id="evtTitle"></div>
+    <div class="evt-body" id="evtBody"></div>
+    <div class="evt-compare" id="evtCompare"></div>
+    <div class="evt-hint" id="evtHint"></div>
+    <div class="evt-actions">
+      <button class="btn btn-primary btn-sm" id="btnEvtNext">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- メニュー管理モーダル -->
+<div class="game-modal" id="menuMgrModal">
+  <div class="game-modal-box" style="max-width:520px">
+    <div class="game-modal-title">🍽️ 店頭メニュー管理 <span style="font-size:.65rem;color:var(--text-dim);font-weight:400">3枠にセットして売上UP</span></div>
+    <div class="game-modal-sub">開発したブレンドから3つまで店頭メニューに設定できます。<br>品質・人気度・安定性のバランスが経営に影響します。</div>
+    <div class="menu-mgr-layout">
+      <div class="menu-mgr-left" id="menuMgrList"><div class="game-modal-sub">レシピがありません</div></div>
+      <div class="menu-mgr-right">
+        <div class="menu-slot" id="menuSlot0"><span class="slot-label">枠1</span><span style="font-size:1.2rem">＋</span></div>
+        <div class="menu-slot" id="menuSlot1"><span class="slot-label">枠2</span><span style="font-size:1.2rem">＋</span></div>
+        <div class="menu-slot" id="menuSlot2"><span class="slot-label">枠3</span><span style="font-size:1.2rem">＋</span></div>
+        <div class="menu-strategy strategy-none" id="menuStrategyLabel">未設定</div>
+      </div>
+    </div>
+    <div class="game-modal-actions"><button class="btn btn-primary btn-sm" id="btnMenuMgrDone">決定</button><button class="btn btn-outline btn-sm" id="btnMenuMgrClose">閉じる</button></div>
+  </div>
+</div>
+
+<!-- コレクションモーダル -->
+<div class="game-modal" id="collectionModal">
+  <div class="game-modal-box" style="max-width:520px">
+    <div class="game-modal-title">📚 常連コレクション <span style="font-size:.65rem;color:var(--text-dim);font-weight:400" id="collCount">0/10</span></div>
+    <div class="coll-filter-bar" id="collFilters">
+      <button class="coll-filter-btn active" data-filter="all">すべて</button>
+      <button class="coll-filter-btn" data-filter="N">N</button>
+      <button class="coll-filter-btn" data-filter="R">R</button>
+      <button class="coll-filter-btn" data-filter="SR">SR</button>
+      <button class="coll-filter-btn" data-filter="active">アクティブ</button>
+    </div>
+    <div class="coll-grid" id="collGrid"></div>
+    <div class="game-modal-actions"><button class="btn btn-outline btn-sm" id="btnCollClose">閉じる</button></div>
+  </div>
+</div>
+
+<!-- 来店アニメーション -->
+<div class="visit-stage" id="visitStage">
+  <div class="visit-stage-inner">
+    <div class="visit-label">🏪 来店中…</div>
+    <div class="visit-customer" id="visitCustomer">🚶</div>
+    <div class="visit-coffee" id="visitCoffee">☕</div>
+    <div class="visit-reaction" id="visitReaction"></div>
+    <div class="visit-stars" id="visitStars"></div>
+    <div class="visit-revenue" id="visitRevenue"></div>
+    <div class="visit-skip">click to skip</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+(function(){
+
+/* ===========================================
+   定数
+   =========================================== */
+var C={
+  CUPS_PER_LOT:50,
+  DAYS_IN_WEEK:7, // 週→日換算（客数スケーリング用）
+  BASE_CUSTOMERS:6, POP_COEFF:0.5, QUALITY_COEFF:0.6, QUALITY_DIVISOR:100,
+  BASE_PRICE:450,
+  // コスト（週額に統一 — 序盤は固定費重く、成長で吸収）
+  RENT:8000, UTILITY:2000, STAFF_WAGE:6000, BEAN_COST_CUP:45,
+  MAX_STAFF:5, SEATS_PER_STAFF:5, BASE_SEATS:10,
+  AD_COST:10000, AD_DURATION:2, AD_POP_BOOST:10, // 2週間
+  TOTAL_YEARS:10, WEEKS_PER_YEAR:48,
+  INIT_MONEY:50000, INIT_POP:25, INIT_QUALITY:50,
+  MAX_BLENDS:5,
+  RAIN_CHANCE:0.25, RAIN_PENALTY:0.82,
+  CASH_SHORT_GRACE:4, // 4週猶予
+  TM_COST:30000, TM_DURATION:17, TM_REJECTION:0.10, TM_EXTRA:20000, TM_REJECTION_WEEK:6,
+  GOLFER_COST:120000, GOLFER_DURATION:13,
+  YACHT_COST:500000, YACHT_DURATION:26, YACHT_MAINT:80000,
+  // 顧問契約（週額）
+  RETAINER_ACE_COST:2000, RETAINER_ACECREW_COST:1500,
+  ACE_DAMAGE_MULT:0.1,
+  ACECREW_SUBSIDY_MULT:1.5,
+  // イベント確率（週あたり — 月20%→週5%相当）
+  EVENT_REPUTATION_CHANCE:0.05,
+  EVENT_COMPLAINER_CHANCE:0.06,
+  EVENT_SUPPLIER_CHANCE:0.04,
+  EVENT_SUBSIDY_CHANCE:0.03,
+  // イベント影響値
+  REPUTATION_POP:-6, REPUTATION_CUSTOMER_PENALTY:0.82, REPUTATION_REVENUE_PENALTY:0.88, REPUTATION_DURATION:2,
+  COMPLAINER_COST:12000, COMPLAINER_POP:-2,
+  SUPPLIER_PRICE_MULT:1.18, SUPPLIER_QUALITY_PENALTY:4, SUPPLIER_DURATION:3,
+  SUBSIDY_MIN:30000, SUBSIDY_MAX:100000,
+  // 季節修正（売上乗算）
+  SEASON_MULT:{spring:1.05,summer:1.10,autumn:1.00,winter:0.90},
+};
+C.TOTAL_WEEKS=C.TOTAL_YEARS*C.WEEKS_PER_YEAR;
+
+/* ===========================================
+   店レベル（XP制） — 定数はここに集約
+   =========================================== */
+var SHOP_LEVEL_TABLE=[
+  {level:1, xpReq:0},
+  {level:2, xpReq:100},
+  {level:3, xpReq:300},
+  {level:4, xpReq:700},
+  {level:5, xpReq:1500},
+  // 拡張：{level:6, xpReq:3000}, ...
+];
+var XP_GAIN={
+  DAILY_PROFIT:  10,  // 1ターン黒字
+  PERFECT_ROAST:  5,  // 焙煎PERFECT
+  HIT_BLEND:     50,  // 人気商品誕生（新ブレンド初週売上30杯以上）
+  REGULAR:       20,  // 常連客イベント（確率発生）
+};
+var LEVEL_EFFECTS={
+  // level: {priceMult, customerMult}  — 累積ではなく絶対値
+  1:{priceMult:1.00, customerMult:1.00},
+  2:{priceMult:1.00, customerMult:1.00},
+  3:{priceMult:1.02, customerMult:1.00},
+  4:{priceMult:1.02, customerMult:1.03},
+  5:{priceMult:1.02, customerMult:1.05},
+};
+C.REGULAR_CHANCE=0.12; // 常連客イベント発生率/週
+/* ===========================================
+   大会・県対決・ブランド — 定数
+   =========================================== */
+var COMP_RANKS=[
+  {name:'ローカル大会',fee:5000, opMin:35,opMax:60, brandReward:10,beanKey:'colombia',   pricePct:0, custPct:0},
+  {name:'県大会',      fee:15000,opMin:48,opMax:72, brandReward:20,beanKey:'bluemountain',pricePct:0, custPct:0},
+  {name:'全国大会',    fee:50000,opMin:58,opMax:82, brandReward:40,beanKey:'kopiluwak',   pricePct:10,custPct:0},
+  {name:'世界大会',    fee:200000,opMin:68,opMax:90,brandReward:70,beanKey:'sthelena',    pricePct:0, custPct:20},
+];
+var MAX_SAVED_RECIPES=10;
+var MAX_BRAND_BONUS=200;
+var PREF_OPPONENT_MIN=40;
+var PREF_OPPONENT_MAX=70;
+
+/* 特別豆（大会優勝で解放） */
+var SPECIAL_BEANS={
+  colombia:     {name:'コロンビア',      menuName:'コロンビア',      optimal:9.0, tolerance:1.2,maxQuality:80, cost:700, difficulty:'★★☆',stability:75,flavors:{aroma:1,body:2,acidity:1,bitter:0,sweet:1}},
+  bluemountain: {name:'ブルーマウンテン',menuName:'ブルーマウンテン',optimal:9.5, tolerance:0.6,maxQuality:95, cost:1200,difficulty:'★★★',stability:50,flavors:{aroma:2,body:1,acidity:1,bitter:0,sweet:2}},
+  kopiluwak:    {name:'コピ・ルアク',    menuName:'コピ・ルアク',    optimal:11.0,tolerance:0.35,maxQuality:100,cost:3000,difficulty:'★★★',stability:30,flavors:{aroma:3,body:2,acidity:0,bitter:1,sweet:2}},
+  sthelena:     {name:'セント・ヘレナ',  menuName:'セント・ヘレナ',  optimal:10.5,tolerance:0.3, maxQuality:100,cost:5000,difficulty:'★★★',stability:20,flavors:{aroma:3,body:1,acidity:2,bitter:0,sweet:3}},
+};
+
+var REGULAR_MSG=[
+  '☕ 常連客の鈴木さんがまた来てくれた。「ここのコーヒーじゃないとダメなんだよね」',
+  '☕ OL三人組が毎朝通ってくれている。ありがたい…',
+  '☕ 近所のおじいちゃんが孫を連れて来店。「ここのコーヒーは本物だ」',
+  '☕ 常連の田中さんが友達を5人連れてきた！口コミ効果！',
+];
+
+/* ===========================================
+   常連客データ
+   =========================================== */
+var REGULARS_DATA=[
+  {id:'reg01',name:'鈴木さん',icon:'👨‍💼',rarity:'N',type:'会社員',likes:['body','bitter'],dislikes:['acidity'],perk:{type:'revenue',value:0.03,label:'売上+3%'}},
+  {id:'reg02',name:'田中おばさん',icon:'👩‍🦳',rarity:'N',type:'主婦',likes:['sweet','aroma'],dislikes:['bitter'],perk:{type:'popularity',value:1,label:'人気+1/週'}},
+  {id:'reg03',name:'佐藤くん',icon:'👨‍🎓',rarity:'N',type:'学生',likes:['sweet','acidity'],dislikes:['body'],perk:{type:'customer',value:0.03,label:'来客+3%'}},
+  {id:'reg04',name:'中村先生',icon:'👨‍🏫',rarity:'N',type:'教師',likes:['aroma','body'],dislikes:['sweet'],perk:{type:'quality',value:1,label:'品質+1'}},
+  {id:'reg05',name:'山田さん',icon:'👩‍💻',rarity:'N',type:'リモートワーカー',likes:['aroma','sweet'],dislikes:['bitter'],perk:{type:'revenue',value:0.02,label:'売上+2%'}},
+  {id:'reg06',name:'木村夫妻',icon:'👫',rarity:'N',type:'カップル',likes:['sweet','aroma'],dislikes:['acidity'],perk:{type:'customer',value:0.02,label:'来客+2%'}},
+  {id:'reg07',name:'高橋シェフ',icon:'👨‍🍳',rarity:'R',type:'料理人',likes:['aroma','acidity'],dislikes:['sweet'],perk:{type:'quality',value:2,label:'品質+2'}},
+  {id:'reg08',name:'渡辺記者',icon:'👩‍💼',rarity:'R',type:'記者',likes:['body','aroma'],dislikes:['acidity'],perk:{type:'popularity',value:2,label:'人気+2/週'}},
+  {id:'reg09',name:'伊藤画伯',icon:'👩‍🎨',rarity:'R',type:'芸術家',likes:['acidity','sweet'],dislikes:['body'],perk:{type:'revenue',value:0.05,label:'売上+5%'}},
+  {id:'reg10',name:'松本社長',icon:'🧑‍💼',rarity:'SR',type:'経営者',likes:['body','bitter'],dislikes:[],perk:{type:'all',value:0.03,label:'全体+3%'}},
+];
+var REG_MAX_ACTIVE=5;
+var REG_ACQUIRE_BASE_CHANCE=0.06;
+var REG_LOYALTY_GAIN_MATCH=8;
+var REG_LOYALTY_GAIN_BASE=2;
+var REG_LOYALTY_LOSS_MISMATCH=5;
+var REG_LOYALTY_LOSS_ABSENT=3;
+var REG_DEPARTURE_THRESHOLD=10;
+var REG_DEPARTURE_CHANCE=0.40;
+var REG_RARITY_WEIGHT={N:10,R:3,SR:1};
+
+/* ===========================================
+   店舗Tier（レベル連動・拡張可能）
+   =========================================== */
+var SHOP_TIERS=[
+  {min:0,   name:'屋台同然',     signCls:'hand',    bw:55, bh:30, rh:12,
+   wallColor:'#b8956a',roofColor:'#7c5a3a',
+   windows:0, decor:[],                                         queueMax:0},
+  {min:40,  name:'小さなカフェ', signCls:'clean',   bw:70, bh:36, rh:14,
+   wallColor:'#c9a882',roofColor:'#6B4226',
+   windows:1, decor:[{e:'🌿',x:-38,y:0}],                      queueMax:0},
+  {min:100, name:'人気カフェ',   signCls:'neon',    bw:88, bh:42, rh:15,
+   wallColor:'#d4a574',roofColor:'#5c3d1e',
+   windows:2, decor:[{e:'🌿',x:-48,y:0},{e:'🌺',x:48,y:0},{e:'☂️',x:-56,y:18}], queueMax:2},
+  {min:200, name:'名店',         signCls:'elegant', bw:105,bh:48, rh:16,
+   wallColor:'#c49a6c',roofColor:'#3d2b1f',
+   windows:3, decor:[{e:'🌿',x:-58,y:0},{e:'🌺',x:58,y:0},{e:'💡',x:-30,y:42},{e:'💡',x:30,y:42},{e:'🪑',x:-68,y:0}], queueMax:3},
+  {min:350, name:'グランカフェ', signCls:'gold',    bw:125,bh:54, rh:18,
+   wallColor:'#c4a265',roofColor:'#2c1810',
+   windows:4, decor:[{e:'🌿',x:-70,y:0},{e:'🌺',x:70,y:0},{e:'💡',x:-35,y:50},{e:'💡',x:35,y:50},{e:'🪑',x:-80,y:0},{e:'🚩',x:62,y:48},{e:'⭐',x:-20,y:52},{e:'🏆',x:20,y:52}], queueMax:5},
+];
+
+function getTierIndex(){
+  // 店レベルとTierを1:1マッピング（Lv1→Tier0, Lv5→Tier4）
+  return Math.max(0,Math.min(SHOP_TIERS.length-1, state.shopLevel-1));
+}
+
+/* --- XPとレベル判定 --- */
+function calcShopLevel(xp){
+  var lv=1;
+  for(var i=SHOP_LEVEL_TABLE.length-1;i>=0;i--){
+    if(xp>=SHOP_LEVEL_TABLE[i].xpReq){lv=SHOP_LEVEL_TABLE[i].level;break}
+  }
+  return lv;
+}
+function getXpForNext(){
+  for(var i=0;i<SHOP_LEVEL_TABLE.length;i++){
+    if(SHOP_LEVEL_TABLE[i].level===state.shopLevel+1) return SHOP_LEVEL_TABLE[i].xpReq;
+  }
+  return null; // 最大レベル
+}
+function addXp(amount,reason,silent){
+  state.shopXp+=amount;
+  var newLv=calcShopLevel(state.shopXp);
+  if(newLv>state.shopLevel){
+    state.shopLevel=newLv;
+    if(!silent){
+      addLog('🎉 店レベルが '+newLv+' に上がった！「'+SHOP_TIERS[getTierIndex()].name+'」に進化！','log-highlight');
+    }
+  }
+}
+
+/* ===========================================
+   常連客システム — ヘルパー
+   =========================================== */
+function getRegData(id){
+  for(var i=0;i<REGULARS_DATA.length;i++){if(REGULARS_DATA[i].id===id) return REGULARS_DATA[i]}
+  return null;
+}
+function getActiveRegulars(){
+  return state.regulars.unlocked.filter(function(r){return r.active});
+}
+function addRegLog(text){
+  state.regulars.log.unshift(text);
+  if(state.regulars.log.length>15) state.regulars.log.length=15;
+}
+function getActiveMenuTags(){
+  var tags={};
+  var items=getActiveMenuItems();
+  items.forEach(function(item){
+    AXES.forEach(function(a){
+      if((item.flavors[a]||0)>=1) tags[a]=true;
+    });
+  });
+  return Object.keys(tags);
+}
+function calcRegularBonus(){
+  var bonus={revenue:0,popularity:0,customer:0,quality:0};
+  getActiveRegulars().forEach(function(r){
+    var data=getRegData(r.id);if(!data) return;
+    var scale=r.loyalty/100;
+    var v=data.perk.value*scale;
+    if(data.perk.type==='revenue') bonus.revenue+=v;
+    else if(data.perk.type==='popularity') bonus.popularity+=v;
+    else if(data.perk.type==='customer') bonus.customer+=v;
+    else if(data.perk.type==='quality') bonus.quality+=v;
+    else if(data.perk.type==='all'){bonus.revenue+=v;bonus.popularity+=v;bonus.customer+=v;bonus.quality+=v}
+  });
+  return bonus;
+}
+function getPerkLabel(perk){return perk.label}
+
+/* 常連 — 週次処理 */
+function updateRegularLoyalty(silent){
+  var tags=getActiveMenuTags();
+  getActiveRegulars().forEach(function(r){
+    var data=getRegData(r.id);if(!data) return;
+    var gain=REG_LOYALTY_GAIN_BASE;
+    var hasLike=false,hasDislike=false;
+    data.likes.forEach(function(t){if(tags.indexOf(t)>=0){gain+=REG_LOYALTY_GAIN_MATCH;hasLike=true}});
+    data.dislikes.forEach(function(t){if(tags.indexOf(t)>=0){gain-=REG_LOYALTY_LOSS_MISMATCH;hasDislike=true}});
+    if(!hasLike&&tags.length>0) gain-=REG_LOYALTY_LOSS_ABSENT;
+    var oldLoy=r.loyalty;
+    r.loyalty=Math.max(0,Math.min(100,r.loyalty+gain));
+    // レベルアップ判定
+    var oldLv=oldLoy<50?0:oldLoy<80?1:2;
+    var newLv=r.loyalty<50?0:r.loyalty<80?1:2;
+    if(newLv>oldLv&&!silent){
+      var lvNames=['','中級常連','VIP常連'];
+      addRegLog('⬆ '+data.name+'が'+lvNames[newLv]+'に！');
+      addLog('👥 '+data.name+'が'+lvNames[newLv]+'にランクアップ！','log-positive');
+    }
+  });
+}
+function checkRegularDeparture(silent){
+  var departed=[];
+  state.regulars.unlocked.forEach(function(r){
+    if(!r.active) return;
+    if(r.loyalty<=REG_DEPARTURE_THRESHOLD&&Math.random()<REG_DEPARTURE_CHANCE){
+      r.active=false;
+      var data=getRegData(r.id);
+      if(data){
+        addRegLog('😢 '+data.name+'が離れてしまった…');
+        if(!silent) addLog('👥 常連の'+data.name+'が離脱。メニューの味を見直そう…','log-negative');
+        eventQueue.push({id:'regular_leave',title:'😢 常連離脱（'+fmtDate(state.week)+'）',icon:data.icon,type:'negative',
+          description:data.name+'が離れてしまった…メニューの味を見直そう。',
+          effects:{},counterfactual:{},contracts:{}});
+      }
+      departed.push(r.id);
+    }
+  });
+  return departed;
+}
+function tryAcquireRegular(silent){
+  if(state.popularity<30) return;
+  var items=getActiveMenuItems();
+  if(items.length===0) return;
+  var chance=REG_ACQUIRE_BASE_CHANCE*(1+state.popularity/200);
+  if(Math.random()>=chance) return;
+  // 未解放の常連候補をレア度重み付きで抽選
+  var unlockedIds=state.regulars.unlocked.map(function(r){return r.id});
+  var candidates=REGULARS_DATA.filter(function(d){return unlockedIds.indexOf(d.id)<0});
+  if(candidates.length===0) return;
+  var totalW=0;
+  candidates.forEach(function(c){totalW+=(REG_RARITY_WEIGHT[c.rarity]||1)});
+  var roll=Math.random()*totalW,cum=0,picked=null;
+  for(var i=0;i<candidates.length;i++){
+    cum+=(REG_RARITY_WEIGHT[candidates[i].rarity]||1);
+    if(roll<cum){picked=candidates[i];break}
+  }
+  if(!picked) return;
+  var activeCount=getActiveRegulars().length;
+  var newReg={id:picked.id,loyalty:50,active:activeCount<REG_MAX_ACTIVE,level:0};
+  state.regulars.unlocked.push(newReg);
+  var rarityTag=picked.rarity==='SR'?'✨SR✨':picked.rarity==='R'?'🔵R':'';
+  addRegLog('🎉 '+picked.icon+' '+picked.name+'が常連に！'+rarityTag);
+  if(!silent) addLog('👥 新しい常連客！'+picked.icon+' '+picked.name+'（'+picked.type+'）が通い始めた！'+rarityTag,'log-highlight');
+  eventQueue.push({id:'regular_new',title:'👥 新常連！（'+fmtDate(state.week)+'）',icon:picked.icon,type:'positive',
+    description:picked.name+'（'+picked.type+'）が常連に！'+rarityTag+'\n効果: '+getPerkLabel(picked.perk),
+    effects:{},counterfactual:{},contracts:{}});
+}
+
+/* 常連 — UI描画 */
+function renderRegularsPanel(){
+  if(!dom.regSlots) return;
+  var actives=getActiveRegulars();
+  dom.regActiveCount.textContent=actives.length+'/'+REG_MAX_ACTIVE;
+  // スロット描画
+  var html='';
+  for(var i=0;i<REG_MAX_ACTIVE;i++){
+    if(i<actives.length){
+      var r=actives[i];
+      var data=getRegData(r.id);
+      if(!data) continue;
+      var loyColor=r.loyalty>=60?'var(--green)':r.loyalty>=30?'var(--gold)':'var(--red)';
+      var warnCls=r.loyalty<=REG_DEPARTURE_THRESHOLD?' reg-warn':'';
+      var rarityCls='reg-rarity-'+data.rarity.toLowerCase();
+      html+='<div class="reg-slot'+warnCls+'">'+
+        '<span class="reg-slot-icon">'+data.icon+'</span>'+
+        '<span class="reg-slot-name">'+data.name+'</span>'+
+        '<span class="'+rarityCls+'">'+data.rarity+'</span>'+
+        '<div class="reg-loyalty-bar"><div class="reg-loyalty-fill" style="width:'+r.loyalty+'%;background:'+loyColor+'"></div></div>'+
+        '</div>';
+    }else{
+      html+='<div class="reg-slot-empty">― 空き枠 ―</div>';
+    }
+  }
+  dom.regSlots.innerHTML=html;
+  // ボーナスサマリ
+  if(actives.length===0){
+    dom.regBonusSummary.textContent='常連がいません';
+  }else{
+    var b=calcRegularBonus();
+    var parts=[];
+    if(b.revenue>0) parts.push('売上+'+Math.round(b.revenue*100)+'%');
+    if(b.customer>0) parts.push('来客+'+Math.round(b.customer*100)+'%');
+    if(b.popularity>0) parts.push('人気+'+b.popularity.toFixed(1)+'/週');
+    if(b.quality>0) parts.push('品質+'+b.quality.toFixed(1));
+    dom.regBonusSummary.textContent=parts.length>0?parts.join(' / '):'ボーナスなし';
+  }
+  // ログ
+  if(dom.regLog){
+    var logHtml='';
+    state.regulars.log.forEach(function(t){logHtml+='<div class="reg-log-entry">'+t+'</div>'});
+    dom.regLog.innerHTML=logHtml||'<span style="opacity:.5">まだログはありません</span>';
+  }
+}
+
+var collFilterState='all';
+function renderCollection(){
+  if(!dom.collGrid) return;
+  var unlockedIds=state.regulars.unlocked.map(function(r){return r.id});
+  dom.collCount.textContent=unlockedIds.length+'/'+REGULARS_DATA.length;
+  // フィルターボタン
+  dom.collFilters.querySelectorAll('.coll-filter-btn').forEach(function(b){
+    b.classList.toggle('active',b.getAttribute('data-filter')===collFilterState);
+  });
+  var html='';
+  REGULARS_DATA.forEach(function(data){
+    var unlocked=unlockedIds.indexOf(data.id)>=0;
+    var regState=null;
+    if(unlocked){
+      for(var i=0;i<state.regulars.unlocked.length;i++){if(state.regulars.unlocked[i].id===data.id){regState=state.regulars.unlocked[i];break}}
+    }
+    // フィルター
+    if(collFilterState==='active'&&(!unlocked||!regState||!regState.active)) return;
+    if(collFilterState==='N'&&data.rarity!=='N') return;
+    if(collFilterState==='R'&&data.rarity!=='R') return;
+    if(collFilterState==='SR'&&data.rarity!=='SR') return;
+
+    var rarityCls='reg-rarity-'+data.rarity.toLowerCase();
+    if(!unlocked){
+      html+='<div class="coll-card locked">'+
+        '<div class="coll-icon locked">'+data.icon+'</div>'+
+        '<div class="coll-name">？？？</div>'+
+        '<div class="coll-type"><span class="'+rarityCls+'">'+data.rarity+'</span> '+data.type+'</div>'+
+        '<div class="coll-tags"><span class="coll-tag-like">???</span></div>'+
+        '<div class="coll-perk">???</div>'+
+        '</div>';
+    }else{
+      var tagHtml='';
+      data.likes.forEach(function(t){tagHtml+='<span class="coll-tag-like">♥'+AXIS_NAME[t]+'</span>'});
+      data.dislikes.forEach(function(t){tagHtml+='<span class="coll-tag-dislike">✗'+AXIS_NAME[t]+'</span>'});
+      var isActive=regState&&regState.active;
+      var toggleCls=isActive?'deactivate':'activate';
+      var toggleTxt=isActive?'外す':'セットする';
+      var loyaltyInfo=regState?' (忠誠:'+regState.loyalty+'%)':'';
+      html+='<div class="coll-card">'+
+        '<div class="coll-icon">'+data.icon+'</div>'+
+        '<div class="coll-name">'+data.name+loyaltyInfo+'</div>'+
+        '<div class="coll-type"><span class="'+rarityCls+'">'+data.rarity+'</span> '+data.type+'</div>'+
+        '<div class="coll-tags">'+tagHtml+'</div>'+
+        '<div class="coll-perk">'+getPerkLabel(data.perk)+'</div>'+
+        '<button class="coll-toggle '+toggleCls+'" data-reg-id="'+data.id+'">'+toggleTxt+'</button>'+
+        '</div>';
+    }
+  });
+  dom.collGrid.innerHTML=html||'<div style="grid-column:1/-1;text-align:center;color:var(--text-dim);font-size:.72rem">該当する常連はいません</div>';
+}
+
+function toggleRegularActive(id){
+  var reg=null;
+  for(var i=0;i<state.regulars.unlocked.length;i++){
+    if(state.regulars.unlocked[i].id===id){reg=state.regulars.unlocked[i];break}
+  }
+  if(!reg) return;
+  if(reg.active){
+    reg.active=false;
+  }else{
+    if(getActiveRegulars().length>=REG_MAX_ACTIVE){
+      addLog('👥 アクティブ枠が満杯です（最大'+REG_MAX_ACTIVE+'人）。','log-negative');
+      return;
+    }
+    reg.active=true;
+  }
+  renderCollection();
+  renderRegularsPanel();
+}
+
+/* ===========================================
+   イベントポップアップキュー
+   =========================================== */
+var eventQueue=[];
+
+function showNextEvent(){
+  if(eventQueue.length===0) return;
+  var evt=eventQueue.shift();
+
+  // アニメリセット
+  dom.evtAceAnim.className='evt-ace-anim';
+  dom.evtAceAnim.textContent='';
+  dom.evtCrewAnim.className='evt-crew-anim';
+  dom.evtCrewAnim.textContent='';
+
+  // アイコン・タイトル
+  dom.evtIcon.textContent=evt.icon;
+  dom.evtTitle.textContent=evt.title;
+  dom.evtTitle.className='evt-title '+(evt.type==='negative'?'negative':'positive');
+  dom.evtBody.textContent=evt.description;
+
+  // 比較ブロック構築
+  var compareHtml='';
+  var hintHtml='';
+
+  if(evt.type==='negative'){
+    if(evt.contracts&&evt.contracts.ace){
+      // パターンA: マイナスイベント + エース契約中
+      dom.evtAceAnim.textContent='🧑‍⚖️';
+      dom.evtAceAnim.className='evt-ace-anim show';
+      compareHtml+='<div class="evt-compare-header ace">⚖️ 弁護士法人エースが対応！</div>';
+      // 通常ダメージ行
+      var normalParts=[];
+      var actualParts=[];
+      var savedParts=[];
+      if(evt.counterfactual.money){normalParts.push(fmt(evt.counterfactual.money)+'円');actualParts.push(fmt(evt.effects.money)+'円');savedParts.push('💰 '+(fmt(Math.abs(evt.counterfactual.money)-Math.abs(evt.effects.money)))+'円')}
+      if(evt.counterfactual.popularity){normalParts.push('人気'+evt.counterfactual.popularity);actualParts.push('人気'+evt.effects.popularity);var popSaved=Math.abs(evt.counterfactual.popularity)-Math.abs(evt.effects.popularity);if(popSaved>0)savedParts.push('⭐ 人気+'+popSaved)}
+      if(evt.counterfactual.quality){normalParts.push('品質-'+Math.abs(evt.counterfactual.quality));actualParts.push('品質-'+Math.abs(evt.effects.quality));var qualSaved=Math.abs(evt.counterfactual.quality)-Math.abs(evt.effects.quality);if(qualSaved>0)savedParts.push('☕ 品質+'+qualSaved)}
+      if(evt.counterfactual.duration){normalParts.push(evt.counterfactual.duration+'週間');actualParts.push(evt.effects.duration+'週間')}
+      compareHtml+='<div class="evt-compare-row"><span class="evt-compare-normal">通常: '+normalParts.join(' / ')+'</span></div>';
+      compareHtml+='<div class="evt-compare-row"><span class="evt-compare-actual">契約適用後: '+actualParts.join(' / ')+'</span></div>';
+      if(savedParts.length>0) compareHtml+='<div class="evt-compare-saved">🛡️ 防げた損失: '+savedParts.join('　')+'</div>';
+      // SE
+      playAceSE();
+    }else{
+      // パターンB: マイナスイベント + エース未契約
+      compareHtml+='<div class="evt-compare-header damage">被害発生</div>';
+      var dmgParts=[];
+      if(evt.effects.money) dmgParts.push(fmt(evt.effects.money)+'円');
+      if(evt.effects.popularity) dmgParts.push('人気'+evt.effects.popularity);
+      if(evt.effects.quality) dmgParts.push('品質'+evt.effects.quality);
+      if(evt.effects.duration) dmgParts.push(evt.effects.duration+'週間');
+      compareHtml+='<div class="evt-compare-row"><span class="evt-compare-actual negative">'+dmgParts.join(' / ')+'</span></div>';
+      hintHtml='💡 顧問契約（弁護士法人エース）があれば被害を90%カットできます';
+    }
+  }else{
+    // 助成金系
+    if(evt.contracts&&evt.contracts.aceCrew){
+      // パターンC: 助成金 + エースクルー契約中
+      dom.evtCrewAnim.textContent='📄📄📄 ✅';
+      dom.evtCrewAnim.className='evt-crew-anim show';
+      compareHtml+='<div class="evt-compare-header subsidy">助成金当選！</div>';
+      compareHtml+='<div class="evt-compare-row"><span class="evt-compare-actual boost">獲得: +'+fmt(evt.effects.money)+'円</span></div>';
+      if(evt.contracts.grantBoost){
+        compareHtml+='<div class="evt-compare-saved" style="color:#2563eb;background:#eff6ff">✨ 顧問ブーストで当選！ 発生率 3% → 4.5% (1.5倍)</div>';
+      }
+    }else{
+      // パターンD: 助成金 + エースクルー未契約
+      compareHtml+='<div class="evt-compare-header subsidy">助成金当選！</div>';
+      compareHtml+='<div class="evt-compare-row"><span class="evt-compare-actual boost">獲得: +'+fmt(evt.effects.money)+'円</span></div>';
+      hintHtml='💡 顧問契約（エースクルー）で助成金の発生率が1.5倍になります';
+    }
+  }
+
+  dom.evtCompare.innerHTML=compareHtml;
+  dom.evtHint.textContent=hintHtml;
+  dom.evtHint.style.display=hintHtml?'':'none';
+
+  // ボタンラベル
+  dom.btnEvtNext.textContent=eventQueue.length>0?'次へ（残り'+eventQueue.length+'件）':'閉じる';
+  dom.evtPopup.classList.add('active');
+}
+
+function closeEventPopup(){
+  dom.evtPopup.classList.remove('active');
+  if(eventQueue.length>0){
+    setTimeout(showNextEvent,200);
+  }
+}
+
+function playAceSE(){
+  try{
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    var osc=ctx.createOscillator();var gain=ctx.createGain();
+    osc.type='sine';osc.frequency.setValueAtTime(880,ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(1760,ctx.currentTime+0.1);
+    gain.gain.setValueAtTime(0.15,ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.15);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.15);
+  }catch(e){}
+}
+
+/* ===========================================
+   味軸
+   =========================================== */
+var AXES=['aroma','body','acidity','bitter','sweet'];
+var AXIS_NAME={aroma:'香り',body:'コク',acidity:'酸味',bitter:'苦味',sweet:'甘み'};
+
+/* ===========================================
+   豆データ
+   =========================================== */
+var BEANS={
+  brazil:{name:'ブラジル',menuName:'ブラジルブレンド',optimal:10.0,tolerance:1.5,maxQuality:70,cost:500,difficulty:'★☆☆',stability:90,
+    flavors:{aroma:0,body:2,acidity:0,bitter:1,sweet:0}},
+  mocha:{name:'モカ',menuName:'モカブレンド',optimal:8.0,tolerance:0.7,maxQuality:90,cost:800,difficulty:'★★☆',stability:70,
+    flavors:{aroma:2,body:0,acidity:2,bitter:0,sweet:0}},
+  panama:{name:'パナマ ゲイシャ',menuName:'パナマ ゲイシャ',optimal:10.2,tolerance:0.4,maxQuality:100,cost:1500,difficulty:'★★★',stability:45,
+    flavors:{aroma:3,body:0,acidity:1,bitter:0,sweet:2}},
+};
+var BEAN_KEYS=['brazil','mocha','panama'];
+
+/* ===========================================
+   コミカルメッセージ
+   =========================================== */
+var TREND_MSG={
+  aroma:['SNSで「香り高いカフェ」が話題に。バズるチャンス！','「このカフェ、ドアを開けた瞬間いい香り」…レビューが増えている。'],
+  body:['「コクのあるコーヒー」が今アツい。おじさん雑誌にも特集された。','コーヒー通の間で「ボディ感」がキーワードになっている。'],
+  acidity:['フルーティーな酸味が流行中。おしゃれカフェの定番に。','「酸味のあるコーヒーって実は美味しい」TVで特集された。'],
+  bitter:['「苦味こそ正義」SNSでバリスタが熱弁して話題に。','ビターなコーヒーが再ブーム。大人の味が求められている。'],
+  sweet:['「甘みのあるコーヒー」が密かなブーム。スイーツ男子も来店中。','自然な甘みのコーヒーがインスタで大人気。映える。'],
+};
+var RAIN_MSG=['雨で客足が鈍い…店先の看板がしょんぼりしている。','雨音とコーヒーの相性は抜群だが、お客さんは少ない。','しとしと雨。猫が軒先で雨宿りしている。'];
+var CASH_SHORT_MSG=['銀行から着信…居留守を使った。','通帳を開いたら涙が出た。','財布の中身より心が軽い…いや重い。','経理の田中さんが泣いてる。','ATMの前で佇む人生。','督促状がポストに溜まっている。','「お金って何だろう」と哲学的になってきた。'];
+var GOLFER_EXPOSURE_MSG=['⛳ ゴルフコンペで「あのカフェ良いよ」と社長たちが話題に！','⛳ プロゴルファーがSNSで来店報告！フォロワー歓喜。'];
+var GOLFER_SCANDAL_MSG=['⛳ スポンサー選手がバンカーでブチギレて炎上…とばっちり。','⛳ ゴルフ雑誌に「あのカフェ、微妙」とコメントが…'];
+var YACHT_LUXURY_MSG=['🛥️ 港にヨット広告が輝く！セレブ客が増加中。','🛥️ 「あのヨットのカフェ」と話題に。高単価の波が来た！'];
+var YACHT_MAINT_MSG=['🛥️ ヨットのエンジンが壊れた。修理費が…','🛥️ 嵐でヨットが揺れすぎて看板が落ちた。修理だ…'];
+var REPUTATION_MSG=['⚠️ 匿名掲示板に「あのカフェ、虫が入ってた」と書き込みが…完全にデマだが拡散中。','⚠️ SNSで「店員の態度が最悪」と炎上。身に覚えがないのに…','⚠️ 競合店の工作か？「コーヒーがまずい」とGoogleレビューが荒らされた。'];
+var COMPLAINER_MSG=['👹 「店長を出せ！」モンスタークレーマー降臨。3時間の対応で精神が削れた。','👹 「コーヒーに髪の毛が！」…お客様の髪の毛でしたが、お詫びに…','👹 「慰謝料払え！」と怒鳴り込まれた。とりあえず菓子折りで…'];
+var SUPPLIER_MSG=['📦 取引先の倉庫が浸水！仕入れ値が高騰中…','📦 豆の産地で天候不良。仕入れルートが混乱している。','📦 輸送コンテナが港で止まっている。仕入れコストが上昇中…'];
+var SUBSIDY_MSG=['🏛️ 「小規模事業者持続化補助金」に当選！やったー！','🏛️ 地域活性化助成金の審査を通過！ありがたい…','🏛️ カフェ振興助成金の申請が通りました！'];
+var ACE_BLOCK_MSG=['⚖️ 弁護士法人エースが即座に対応。「法的根拠を示してください」の一言で沈静化。','⚖️ 顧問弁護士の内容証明が効いた。被害はほぼゼロに抑えられた。','⚖️ エースの弁護士が冷静に交渉。「うちの顧問舐めないでください」'];
+var SEASON_MSG={spring:'🌸 春がやってきた。花見コーヒーの季節！',summer:'☀️ 夏到来！アイスコーヒーが飛ぶように売れそう。',autumn:'🍂 秋の風。読書とコーヒーが似合う季節。',winter:'❄️ 冬本番。温かいコーヒーが恋しい季節。'};
+var SEASON_DATA={spring:{name:'春',icon:'🌸'},summer:{name:'夏',icon:'☀️'},autumn:{name:'秋',icon:'🍂'},winter:{name:'冬',icon:'❄️'}};
+
+/* ===========================================
+   ゲーム状態
+   =========================================== */
+var state={};
+function initState(){
+  state={
+    money:C.INIT_MONEY, week:0, staff:1, popularity:C.INIT_POP, avgQuality:C.INIT_QUALITY,
+    selectedBean:'brazil',
+    inventory:{
+      brazil:{raw:1,roasted:0,quality:0},
+      mocha:{raw:0,roasted:0,quality:0},
+      panama:{raw:0,roasted:0,quality:0},
+    },
+    blends:[],
+    roasting:false, roastStartTime:0,
+    adWeeksLeft:0,
+    weatherToday:'sunny', season:'spring', weeklyTrendAxis:'aroma',
+    lastRevenue:0,lastCost:0,lastProfit:0,lastCustomers:0,
+    lastCostRent:0,lastCostUtility:0,lastCostStaff:0,lastCostBean:0,
+    lastSalesBreakdown:{},
+    totalSales:0,totalCustomers:0,maxPopularity:C.INIT_POP,
+    totalQualitySum:0,totalRoastCount:0,
+    scoreShown:false,
+    cashShortWeeks:0,
+    trademark:{active:false,weeksLeft:0,rejected:false,pendingPay:false,blendBonus:false},
+    golfer:{active:false,weeksLeft:0},
+    yacht:{active:false,weeksLeft:0,yachtFlag:false},
+    cumulativeProfit:0,bestBlendQuality:0,brandPower:0,
+    isAnimating:false, shopTier:0, shopXp:0, shopLevel:1,
+    savedRecipes:[], compMaxRank:0, compWonThisYear:false,
+    prefectures:1, prefChallengedThisYear:false,
+    brandBonus:0, unlockedBeans:[],
+    compPriceBonus:0, compCustBonus:0,
+    retainers:{ace:false,aceCrew:false},
+    debuff:{reputationWeeks:0,supplierWeeks:0},
+    regulars:{unlocked:[],log:[]},
+  };
+}
+
+/* ===========================================
+   DOM
+   =========================================== */
+var dom={};
+function cacheDom(){
+  ['screenTitle','screenGame','screenScore','btnGameStart','btnLoad',
+   'statYear','statMonth','statWeek','statMoney','statPopularity','statQuality',
+   'weatherIcon','seasonLabel','weatherLabel','trendLabel',
+   'beanSelector','beanInfo','invRaw','invRoasted','btnBuyBean',
+   'roasterBody','roasterOverlay','btnRoastStart','btnRoastStop','roastResult',
+   'lotMinus','lotPlus','lotValue','lotMax',
+   'dashRevenue','dashCost','dashProfit','dashCustomers',
+   'costRent','costUtility','costStaff','costBean',
+   'popValue','popBar','qualValue','qualBar','logArea',
+   'menuList','blendCount',
+   'sliderBrazil','sliderMocha','sliderPanama',
+   'sliderBrazilVal','sliderMochaVal','sliderPanamaVal',
+   'blendTotal','blendPreview','blendName','btnCreateBlend',
+   'btnHireStaff','btnFireStaff','btnAdvertise','adActiveLabel','adWeeksLeft',
+   'infoSeats','infoStaff','infoCups','infoTotalWeeks',
+   'btnWeek1','btnWeek4','btnWeek12','btnWeek48','btnSave',
+   'scoreRank','scoreMoney','scoreTotalSales','scoreTotalCustomers','scoreMaxPop','scoreAvgQuality','scoreWeeks',
+   'scoreBrandPower','scoreCumulativeProfit','scoreShopLevel',
+   'cashShortBanner','cashShortWeeksLeft',
+   'btnRetainerAce','retainerAceStatus','btnRetainerAceCrew','retainerAceCrewStatus',
+   'btnTrademark','tmStatus','btnTmPay',
+   'btnGolfer','golferStatus',
+   'btnYacht','yachtStatus',
+   'infoBrandPower','infoCumulativeProfit',
+   'statShopLevel','statXpProgress',
+   'btnOpenRecipeBook','rcpCountLabel','recipeModal','rcpBookCount','rcpBookList','btnRcpClose',
+   'btnOpenComp','compRankLabel','compModal','compRankName','compFee','compRecipeList',
+   'btnCompEnter','btnCompCancel','compEntry','compRoast','compDrip','compResult',
+   'crZone','crCur','btnCrStop','crResult','cdZone','cdCur','btnCdStop','cdResult',
+   'compResultIcon','compResultText','btnCompDone',
+   'btnOpenPref','prefLabel','prefModal','prefCount','prefRecipeList',
+   'btnPrefEnter','btnPrefCancel','prefEntry','prefGame','prefResult',
+   'pfZone','pfCur','btnPfStop','pfResult','prefResultIcon','prefResultText','btnPrefDone',
+   'brandBadge','brandBonusDisp',
+   'btnOpenMenuMgr','menuSlotLabel','menuMgrModal','menuMgrList',
+   'menuSlot0','menuSlot1','menuSlot2','menuStrategyLabel',
+   'btnMenuMgrDone','btnMenuMgrClose',
+   'shopExterior','shopScene','shopBldg','shopRoof','shopWalls','shopSignBoard',
+   'shopDecorArea','shopQueueArea','shopTierLabel','shopTierUp',
+   'shopXpLabel','shopXpBar','shopXpText',
+   'shopV','shopVCoffee','shopVReact','shopVRevenue','shopVLabel',
+   'btnContinue','btnRetry','bankruptModal','btnBankruptRetry',
+   'evtPopup','evtIcon','evtTitle','evtBody','evtCompare','evtHint','btnEvtNext','evtAceAnim','evtCrewAnim',
+   'indAce','indAceCrew',
+   'panelRegulars','regSlots','regActiveCount','regBonusSummary','regLog',
+   'btnOpenCollection','collectionModal','collCount','collGrid','collFilters','btnCollClose',
+   'shopVRegular','scoreRegulars',
+  ].forEach(function(id){dom[id]=document.getElementById(id);});
+}
+var smokes=[];
+
+/* ===========================================
+   ユーティリティ
+   =========================================== */
+function fmt(n){return Math.floor(n).toLocaleString('ja-JP')}
+function fmtDate(week){
+  var y=Math.floor(week/C.WEEKS_PER_YEAR)+1;
+  var wiy=(week%C.WEEKS_PER_YEAR)+1;
+  var m=Math.floor((wiy-1)/4)+1;
+  var wim=((wiy-1)%4)+1;
+  return y+'年'+m+'月'+wim+'週';
+}
+function getSeats(){return C.BASE_SEATS+(state.staff-1)*C.SEATS_PER_STAFF}
+function getTotalCups(){var t=0;getAvailableBeanKeys().forEach(function(k){if(state.inventory[k])t+=state.inventory[k].roasted});return t}
+function showScreen(name){
+  dom.screenTitle.classList.remove('active');dom.screenGame.classList.remove('active');dom.screenScore.classList.remove('active');
+  if(name==='title')dom.screenTitle.classList.add('active');
+  if(name==='game')dom.screenGame.classList.add('active');
+  if(name==='score')dom.screenScore.classList.add('active');
+}
+
+/* ===========================================
+   季節・天候・トレンド
+   =========================================== */
+function getSeason(week){
+  var w=week%48;
+  // 1年=48週: 冬(1-8,45-48) 春(9-20) 夏(21-32) 秋(33-44)
+  if(w<8||w>=44) return 'winter';
+  if(w<20) return 'spring';
+  if(w<32) return 'summer';
+  return 'autumn';
+}
+
+function getSeasonalMult(flavors,season){
+  var bonus=0;
+  if(season==='summer'){
+    bonus=((flavors.acidity||0)+(flavors.aroma||0))*0.025;
+  }else if(season==='winter'){
+    bonus=((flavors.body||0)+(flavors.sweet||0))*0.025;
+  }else{
+    var sum=0;AXES.forEach(function(a){sum+=(flavors[a]||0)});
+    var avg=sum/5;var dev=0;AXES.forEach(function(a){dev+=Math.abs((flavors[a]||0)-avg)});dev/=5;
+    bonus=Math.max(0,(1.5-dev)*0.04);
+  }
+  return Math.max(0.85,Math.min(1.15,1.0+bonus));
+}
+
+function getTrendMult(flavors,axis){
+  return 1.0+(flavors[axis]||0)*0.033;
+}
+
+function getPriceResist(price){
+  return Math.max(0.85,Math.min(1.15,1.0-(price-450)*0.0003));
+}
+
+/* ===========================================
+   味計算
+   =========================================== */
+function calcFlavors(recipe){
+  var f={aroma:0,body:0,acidity:0,bitter:0,sweet:0};
+  BEAN_KEYS.forEach(function(k){
+    var r=(recipe[k]||0)/100;
+    if(r>0){var bf=BEANS[k].flavors;AXES.forEach(function(a){f[a]+=bf[a]*r})}
+  });
+  return f;
+}
+
+function getTag(flavors){
+  var mx=0,tag='body';
+  AXES.forEach(function(a){if((flavors[a]||0)>mx){mx=flavors[a];tag=a}});
+  return AXIS_NAME[tag];
+}
+
+function calcBlendPrice(recipe){
+  var p=420+(recipe.panama||0)*2.5+(recipe.mocha||0)*1.5+(recipe.brazil||0)*0.8;
+  return Math.max(350,Math.min(950,Math.round(p)));
+}
+
+/* ===========================================
+   加重平均品質
+   =========================================== */
+function calcAvgQuality(){
+  var tc=0,tq=0;
+  getAvailableBeanKeys().forEach(function(k){var inv=state.inventory[k];if(inv&&inv.roasted>0){tc+=inv.roasted;tq+=inv.roasted*inv.quality}});
+  return tc>0?tq/tc:state.avgQuality;
+}
+
+/* ===========================================
+   メニューアイテム取得
+   =========================================== */
+function getAllMenuItems(){
+  var items=[];
+  // デフォルト単品（解放済み含む）— 在庫がある場合のみ店頭に載る
+  getAvailableBeanKeys().forEach(function(k){
+    var bean=BEANS[k];var inv=state.inventory[k];
+    var q=inv.quality||0;
+    var mult=0.5+(q/100)*1.0;
+    var hasStock=inv.roasted>0;
+    items.push({
+      name:bean.menuName, type:'single', beanKey:k,
+      price:Math.max(350,Math.min(950,Math.round(C.BASE_PRICE*mult))),
+      quality:q, flavors:bean.flavors, tag:getTag(bean.flavors),
+      available:hasStock, onMenu:hasStock, isNew:false,
+    });
+  });
+  // カスタムブレンド — onMenu フラグで店頭掲載を制御
+  state.blends.forEach(function(bl,idx){
+    var bq=0;var hasAll=true;
+    BEAN_KEYS.forEach(function(k){
+      if((bl.recipe[k]||0)>0){
+        bq+=state.inventory[k].quality*(bl.recipe[k]/100);
+        if(state.inventory[k].roasted<=0) hasAll=false;
+      }
+    });
+    items.push({
+      name:bl.name, type:'blend', blendIndex:idx, recipe:bl.recipe,
+      price:bl.basePrice, quality:bq, flavors:bl.flavors, tag:bl.tag,
+      available:hasAll, onMenu:!!bl.onMenu, isNew:(state.week-bl.createdWeek)<=1,
+    });
+  });
+  return items;
+}
+function getActiveMenuItems(){
+  return getAllMenuItems().filter(function(it){return it.onMenu&&it.available});
+}
+function countActiveBlends(){
+  var c=0;state.blends.forEach(function(bl){if(bl.onMenu) c++});return c;
+}
+
+/* ===========================================
+   メニュー描画
+   =========================================== */
+function renderMenu(){
+  var items=getAllMenuItems();
+  var active=[],potential=[];
+  items.forEach(function(item){
+    if(item.onMenu&&item.available) active.push(item);
+    else potential.push(item);
+  });
+  var html='';
+  // 店頭メニュー（実際に販売される）
+  html+='<div class="menu-section-label">🍽️ 店頭メニュー</div>';
+  if(active.length===0){
+    html+='<div style="font-size:.68rem;color:var(--text-dim);padding:4px 6px">販売中のメニューがありません</div>';
+  }else{
+    active.forEach(function(item){
+      var del=item.type==='blend'?'<button class="menu-delete" data-bi="'+item.blendIndex+'">×</button>':'';
+      var save=item.type==='blend'?'<button class="rcp-save" data-bi="'+item.blendIndex+'" title="レシピ保存">📖</button>':'';
+      var toggle=item.type==='blend'?'<button class="menu-toggle on" data-bi="'+item.blendIndex+'" title="メニューから外す">📋</button>':'';
+      var newBadge=item.isNew?'<span class="menu-tag" style="background:#fef3c7;color:#b45309">NEW</span>':'';
+      html+='<div class="menu-item menu-active">'+
+        '<span class="menu-item-name">☕ '+item.name+' <span class="menu-tag">'+item.tag+'</span>'+newBadge+'</span>'+
+        '<span class="menu-item-price">'+fmt(item.price)+'円</span>'+toggle+save+del+'</div>';
+    });
+  }
+  // 開発済み（潜在メニュー）
+  if(potential.length>0){
+    html+='<div class="menu-section-label" style="margin-top:6px">📦 開発済み（未掲載）</div>';
+    potential.forEach(function(item){
+      var del=item.type==='blend'?'<button class="menu-delete" data-bi="'+item.blendIndex+'">×</button>':'';
+      var save=item.type==='blend'?'<button class="rcp-save" data-bi="'+item.blendIndex+'" title="レシピ保存">📖</button>':'';
+      var canToggle=item.type==='blend'&&item.available;
+      var toggle=canToggle?'<button class="menu-toggle off" data-bi="'+item.blendIndex+'" title="メニューに載せる">➕</button>':'';
+      var reason='';
+      if(item.type==='single'&&!item.available) reason='<span class="menu-tag" style="background:#fee2e2;color:#991b1b">在庫なし</span>';
+      else if(item.type==='blend'&&!item.available) reason='<span class="menu-tag" style="background:#fee2e2;color:#991b1b">材料不足</span>';
+      html+='<div class="menu-item menu-inactive">'+
+        '<span class="menu-item-name" style="opacity:.6">☕ '+item.name+' <span class="menu-tag">'+item.tag+'</span>'+reason+'</span>'+
+        '<span class="menu-item-price" style="opacity:.6">'+fmt(item.price)+'円</span>'+toggle+save+del+'</div>';
+    });
+  }
+  dom.menuList.innerHTML=html;
+}
+
+/* ===========================================
+   在庫消費
+   =========================================== */
+function consumeItem(item){
+  if(item.type==='single'){
+    if(state.inventory[item.beanKey].roasted<=0) return false;
+    state.inventory[item.beanKey].roasted--;
+    return true;
+  }
+  // ブレンド: 各成分の在庫チェック → 最多在庫の成分から1杯消費
+  var recipe=item.recipe;
+  for(var i=0;i<BEAN_KEYS.length;i++){
+    if((recipe[BEAN_KEYS[i]]||0)>0 && state.inventory[BEAN_KEYS[i]].roasted<=0) return false;
+  }
+  var best=null,bestStock=0;
+  BEAN_KEYS.forEach(function(k){
+    if((recipe[k]||0)>0 && state.inventory[k].roasted>bestStock){bestStock=state.inventory[k].roasted;best=k}
+  });
+  if(!best) return false;
+  state.inventory[best].roasted--;
+  return true;
+}
+
+/* ===========================================
+   UI更新
+   =========================================== */
+/* ===========================================
+   店舗外観更新
+   =========================================== */
+function updateShopExterior(){
+  var prevTier=state.shopTier;
+  state.shopTier=getTierIndex();
+  var t=SHOP_TIERS[state.shopTier];
+  // 建物サイズ
+  dom.shopWalls.style.width=t.bw+'px';
+  dom.shopWalls.style.height=t.bh+'px';
+  dom.shopWalls.style.background=t.wallColor;
+  // 屋根
+  dom.shopRoof.style.borderLeftWidth=(t.bw/2+4)+'px';
+  dom.shopRoof.style.borderRightWidth=(t.bw/2+4)+'px';
+  dom.shopRoof.style.borderBottomWidth=t.rh+'px';
+  dom.shopRoof.style.borderBottomColor=t.roofColor;
+  // 看板
+  dom.shopSignBoard.className='shop-sign-board shop-sign-'+t.signCls;
+  // 窓＋ドア
+  var wh='';
+  for(var wi=0;wi<t.windows;wi++){
+    if(wi===Math.floor(t.windows/2)) wh+='<span class="shop-door">🚪</span>';
+    wh+='<span class="shop-window">🪟</span>';
+  }
+  if(t.windows===0) wh='<span class="shop-door">🚪</span>';
+  else if(t.windows%2===0&&wh.indexOf('🚪')<0) wh='<span class="shop-door">🚪</span>'+wh;
+  dom.shopWalls.innerHTML=wh;
+  // デコレーション
+  var dh='';
+  t.decor.forEach(function(d){
+    dh+='<div class="shop-decor-item" style="left:calc(50% + '+d.x+'px);bottom:'+(24+d.y)+'px">'+d.e+'</div>';
+  });
+  dom.shopDecorArea.innerHTML=dh;
+  // 行列
+  var pop=Math.min(t.queueMax,Math.floor(state.popularity/25));
+  var qh='';
+  for(var qi=0;qi<pop;qi++) qh+='<span>🧍</span>';
+  dom.shopQueueArea.innerHTML=qh;
+  dom.shopQueueArea.style.left='calc(50% + '+(t.bw/2+16)+'px)';
+  // Tier ラベル
+  dom.shopTierLabel.textContent='Tier '+(state.shopTier+1)+' — '+t.name;
+  // Tier UP 演出
+  if(state.shopTier>prevTier&&state.week>0){
+    dom.shopTierUp.textContent='⬆ Tier '+(state.shopTier+1)+'！'+t.name;
+    dom.shopTierUp.className='shop-tier-up show';
+    addLog('🏪 店舗が発展！Tier '+(state.shopTier+1)+'「'+t.name+'」に昇格！','log-highlight');
+    setTimeout(function(){dom.shopTierUp.className='shop-tier-up'},1900);
+  }
+}
+
+function updateUI(){
+  var year=Math.floor(state.week/C.WEEKS_PER_YEAR)+1;
+  var weekInYear=(state.week%C.WEEKS_PER_YEAR)+1;
+  var month=Math.floor((weekInYear-1)/4)+1;
+  var weekInMonth=((weekInYear-1)%4)+1;
+  dom.statYear.textContent=year;dom.statMonth.textContent=month;dom.statWeek.textContent=weekInMonth;
+  dom.statMoney.textContent=fmt(state.money);
+  dom.statPopularity.textContent=Math.round(state.popularity);
+  dom.statQuality.textContent=Math.round(state.avgQuality);
+
+  // 天候・季節・トレンド
+  var sd=SEASON_DATA[state.season]||SEASON_DATA.spring;
+  dom.seasonLabel.textContent=sd.name;
+  dom.weatherIcon.textContent=state.weatherToday==='rainy'?'🌧️':sd.icon;
+  dom.weatherLabel.textContent=state.weatherToday==='rainy'?' 雨':' 晴れ';
+  dom.trendLabel.textContent=AXIS_NAME[state.weeklyTrendAxis]||'―';
+
+  // Dashboard
+  dom.dashRevenue.textContent=fmt(state.lastRevenue)+'円';
+  dom.dashCost.textContent=fmt(state.lastCost)+'円';
+  dom.dashProfit.textContent=(state.lastProfit>=0?'+':'')+fmt(state.lastProfit)+'円';
+  dom.dashProfit.className='summary-card-value '+(state.lastProfit>=0?'positive':'negative');
+  dom.dashCustomers.textContent=state.lastCustomers+'人';
+  dom.costRent.textContent=fmt(state.lastCostRent);
+  dom.costUtility.textContent=fmt(state.lastCostUtility);
+  dom.costStaff.textContent=fmt(state.lastCostStaff);
+  dom.costBean.textContent=fmt(state.lastCostBean);
+
+  // Bars
+  dom.popValue.textContent=Math.round(state.popularity);
+  dom.popBar.style.width=Math.round(state.popularity)+'%';
+  dom.qualValue.textContent=Math.round(state.avgQuality);
+  dom.qualBar.style.width=Math.round(state.avgQuality)+'%';
+
+  // Info
+  dom.infoSeats.textContent=getSeats();dom.infoStaff.textContent=state.staff;
+  dom.infoCups.textContent=getTotalCups();dom.infoTotalWeeks.textContent=state.week;
+
+  // Inventory for selected bean
+  var inv=state.inventory[state.selectedBean];
+  dom.invRaw.textContent=inv.raw;dom.invRoasted.textContent=inv.roasted;
+  updateLotSelector();
+  var bean=BEANS[state.selectedBean];
+  var beanCost=getBeanCost(bean);
+  dom.btnBuyBean.textContent='🛒 1ロット仕入れる（'+fmt(beanCost)+'円）'+(state.debuff.supplierWeeks>0?' ⚠':'');
+
+  // Staff
+  dom.btnHireStaff.disabled=state.staff>=C.MAX_STAFF;
+  dom.btnFireStaff.style.display=state.staff>1?'':'none';
+  // Ad
+  if(state.adWeeksLeft>0){dom.adActiveLabel.style.display='';dom.adWeeksLeft.textContent=state.adWeeksLeft;dom.btnAdvertise.disabled=true}
+  else{dom.adActiveLabel.style.display='none';dom.btnAdvertise.disabled=false}
+
+  // Blend count
+  dom.blendCount.textContent='('+state.blends.length+'/'+C.MAX_BLENDS+')';
+
+  // Retainer status
+  if(state.retainers.ace){dom.btnRetainerAce.classList.add('contracted');dom.retainerAceStatus.style.display=''}
+  else{dom.btnRetainerAce.classList.remove('contracted');dom.retainerAceStatus.style.display='none'}
+  if(state.retainers.aceCrew){dom.btnRetainerAceCrew.classList.add('contracted');dom.retainerAceCrewStatus.style.display=''}
+  else{dom.btnRetainerAceCrew.classList.remove('contracted');dom.retainerAceCrewStatus.style.display='none'}
+  // Retainer indicators in status bar
+  dom.indAce.className='retainer-ind'+(state.retainers.ace?' active':'');
+  dom.indAceCrew.className='retainer-ind'+(state.retainers.aceCrew?' active':'');
+
+  // Cash short banner
+  if(state.cashShortWeeks>0){
+    dom.cashShortBanner.classList.add('active');
+    dom.cashShortWeeksLeft.textContent=C.CASH_SHORT_GRACE-state.cashShortWeeks;
+  }else{dom.cashShortBanner.classList.remove('active')}
+
+  // Investment buttons & status
+  dom.btnTrademark.disabled=state.trademark.active;
+  if(state.trademark.active){
+    dom.tmStatus.style.display='';
+    dom.tmStatus.textContent='™️ 商標申請中（残り'+state.trademark.weeksLeft+'週）人気度+1.5/週';
+    dom.tmStatus.className='invest-status '+(state.trademark.pendingPay?'invest-danger':'invest-active');
+    if(state.trademark.pendingPay) dom.tmStatus.textContent='™️ ⚠ 拒絶通知！追加費用を支払ってください';
+  }else{dom.tmStatus.style.display='none'}
+  if(state.trademark.pendingPay){dom.btnTmPay.classList.add('active')}else{dom.btnTmPay.classList.remove('active')}
+
+  dom.btnGolfer.disabled=state.golfer.active;
+  if(state.golfer.active){dom.golferStatus.style.display='';dom.golferStatus.textContent='⛳ スポンサー契約中（残り'+state.golfer.weeksLeft+'週）'}
+  else{dom.golferStatus.style.display='none'}
+
+  dom.btnYacht.disabled=state.yacht.active;
+  if(state.yacht.active){dom.yachtStatus.style.display='';dom.yachtStatus.textContent='🛥️ ヨット広告掲載中（残り'+state.yacht.weeksLeft+'週）'}
+  else{dom.yachtStatus.style.display='none'}
+
+  // Brand power & cumulative profit
+  dom.infoBrandPower.textContent=state.brandPower;
+  dom.infoCumulativeProfit.textContent=fmt(state.cumulativeProfit)+'円';
+
+  // レシピ・大会・県・ブランド補正
+  dom.rcpCountLabel.textContent=state.savedRecipes.length+'/'+MAX_SAVED_RECIPES;
+  dom.compRankLabel.textContent=state.compMaxRank>=COMP_RANKS.length?'全制覇':COMP_RANKS[state.compMaxRank].name;
+  dom.prefLabel.textContent=state.prefectures+'県';
+  dom.brandBonusDisp.textContent=state.brandBonus;
+  if(state.brandBonus>0){dom.brandBadge.style.display=''}else{dom.brandBadge.style.display='none'}
+  // メニュー枠
+  dom.menuSlotLabel.textContent=countActiveBlends()+'/3';
+
+  // Shop level / XP
+  dom.statShopLevel.textContent=state.shopLevel;
+  var nxt=getXpForNext();
+  if(nxt!==null){
+    var curReq=SHOP_LEVEL_TABLE[state.shopLevel-1].xpReq;
+    var prog=state.shopXp-curReq, total=nxt-curReq;
+    var pct=total>0?Math.round(prog/total*100):100;
+    dom.statXpProgress.textContent=state.shopXp+'/'+nxt;
+    dom.shopXpBar.style.width=pct+'%';
+    dom.shopXpText.textContent=state.shopXp+'/'+nxt;
+  }else{
+    dom.statXpProgress.textContent=state.shopXp+' MAX';
+    dom.shopXpBar.style.width='100%';
+    dom.shopXpText.textContent='MAX';
+  }
+  dom.shopXpLabel.textContent='Lv.'+state.shopLevel;
+
+  renderMenu();
+  renderRegularsPanel();
+  updateShopExterior();
+}
+
+/* ===========================================
+   ログ
+   =========================================== */
+function addLog(text,cls){
+  var e=document.createElement('div');e.className='log-entry'+(cls?' '+cls:'');e.textContent=text;
+  dom.logArea.prepend(e);
+  while(dom.logArea.children.length>60) dom.logArea.removeChild(dom.logArea.lastChild);
+}
+
+/* ===========================================
+   豆選択・仕入れ
+   =========================================== */
+function selectBean(key){
+  if(state.roasting) return;
+  state.selectedBean=key;
+  dom.beanSelector.querySelectorAll('.bean-btn').forEach(function(b){b.classList.remove('active')});
+  dom.beanSelector.querySelector('[data-bean="'+key+'"]').classList.add('active');
+  var bean=BEANS[key];
+  dom.beanInfo.innerHTML='<strong>'+bean.name+'</strong>（仕入: '+fmt(bean.cost)+'円/ロット）<br>難易度: '+bean.difficulty+'　品質上限: '+bean.maxQuality;
+  updateUI();
+}
+function getBeanCost(bean){
+  var cost=bean.cost;
+  if(state.debuff.supplierWeeks>0) cost=Math.round(cost*C.SUPPLIER_PRICE_MULT);
+  return cost;
+}
+function buyBean(){
+  if(state.roasting) return;
+  var k=state.selectedBean,bean=BEANS[k];
+  var cost=getBeanCost(bean);
+  if(state.money<cost){addLog('💸 資金不足！'+bean.name+'の仕入れに'+fmt(cost)+'円必要。','log-negative');return}
+  state.money-=cost;state.inventory[k].raw++;
+  addLog('🛒 '+bean.name+' 1ロット仕入れ（-'+fmt(cost)+'円）'+(state.debuff.supplierWeeks>0?' ⚠高騰中':''));
+  updateUI();
+}
+
+/* ===========================================
+   Web Audio SE
+   =========================================== */
+var audioCtx=null;
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
+var crackleInt=null;
+function startCrackle(){stopCrackle();crackleInt=setInterval(function(){try{var c=getAudio(),o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=200+Math.random()*600;g.gain.value=.03;g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.05);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.05)}catch(e){}},80+Math.random()*120)}
+function stopCrackle(){if(crackleInt){clearInterval(crackleInt);crackleInt=null}}
+function playSE(type){try{var c=getAudio(),o=c.createOscillator(),g=c.createGain();if(type==='good'){o.type='sine';o.frequency.value=880;g.gain.value=.1}else{o.type='sawtooth';o.frequency.value=220;g.gain.value=.08}g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.3);o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.3)}catch(e){}}
+
+/* ===========================================
+   焙煎ミニゲーム
+   =========================================== */
+var roastTimer=null;
+var roastLots=1; // 焙煎ロット数（1〜10）
+function updateLotSelector(){
+  var inv=state.inventory[state.selectedBean];
+  var maxLots=Math.min(10,inv?inv.raw:0);
+  roastLots=Math.max(1,Math.min(roastLots,maxLots));
+  dom.lotValue.textContent=roastLots;
+  dom.lotMax.textContent='/ '+maxLots;
+}
+function startRoast(){
+  if(state.roasting) return;
+  var k=state.selectedBean,inv=state.inventory[k];
+  if(inv.raw<=0){addLog('🫘 生豆がありません！先に仕入れてください。','log-negative');return}
+  var lots=Math.min(roastLots,inv.raw);
+  inv.raw-=lots;state.roasting=true;state.roastStartTime=Date.now();
+  state._roastLots=lots; // 今回の焙煎ロット数を記憶
+  dom.btnRoastStart.disabled=true;dom.btnRoastStop.disabled=false;dom.roastResult.innerHTML='';
+  dom.roasterBody.classList.add('roasting');
+  smokes.forEach(function(s){s.classList.add('active')});
+  startCrackle();
+  var bean=BEANS[k];
+  roastTimer=setInterval(function(){
+    var el=(Date.now()-state.roastStartTime)/1000,mx=bean.optimal+bean.tolerance+3,ratio=Math.min(el/mx,1);
+    var r,g,b;
+    if(ratio<.2){r=120+ratio*300;g=160-ratio*200;b=80-ratio*200}
+    else if(ratio<.5){r=180-(ratio-.2)*150;g=120-(ratio-.2)*150;b=40}
+    else if(ratio<.8){r=135-(ratio-.5)*200;g=75-(ratio-.5)*150;b=30-(ratio-.5)*50}
+    else{r=75-(ratio-.8)*200;g=30-(ratio-.8)*100;b=15}
+    r=Math.max(20,Math.min(255,Math.round(r)));g=Math.max(10,Math.min(255,Math.round(g)));b=Math.max(5,Math.min(255,Math.round(b)));
+    dom.roasterOverlay.style.background='rgb('+r+','+g+','+b+')';dom.roasterOverlay.style.opacity='.7';
+    if(el>mx+2) stopRoast();
+  },50);
+  updateUI();addLog('🔥 '+bean.name+'の焙煎を開始！（生豆'+lots+'ロット投入）');
+}
+function stopRoast(){
+  if(!state.roasting) return;
+  state.roasting=false;
+  var el=(Date.now()-state.roastStartTime)/1000,k=state.selectedBean,bean=BEANS[k];
+  var lots=state._roastLots||1;
+  clearInterval(roastTimer);roastTimer=null;
+  dom.roasterBody.classList.remove('roasting');smokes.forEach(function(s){s.classList.remove('active')});stopCrackle();
+  dom.btnRoastStart.disabled=false;dom.btnRoastStop.disabled=true;
+  var result=evaluateRoast(el,bean);
+  var inv=state.inventory[k],nc=C.CUPS_PER_LOT*lots;
+  if(inv.roasted>0){inv.quality=(inv.quality*inv.roasted+result.quality*nc)/(inv.roasted+nc)}
+  else{inv.quality=result.quality}
+  inv.roasted+=nc;
+  state.avgQuality=calcAvgQuality();
+  state.totalQualitySum+=result.quality;state.totalRoastCount++;
+  dom.roastResult.innerHTML='<div class="result-anim"><div class="result-grade '+result.cls+'">'+result.grade+'</div><div class="result-quality">品質: '+Math.round(result.quality)+' / '+bean.maxQuality+'（'+lots+'ロット → +'+nc+'杯）</div></div>';
+  if(result.grade==='PERFECT'){playSE('good');addXp(XP_GAIN.PERFECT_ROAST,'',false);addLog('✨ PERFECT焙煎！+'+XP_GAIN.PERFECT_ROAST+'XP','log-positive')}
+  else if(result.grade==='GREAT') playSE('good');
+  else if(result.grade==='UNDER'||result.grade==='BURNT') playSE('bad');
+  addLog('☕ 焙煎結果: '+result.grade+'（品質'+Math.round(result.quality)+'）→ '+bean.name+' '+lots+'ロット +'+nc+'杯',result.quality>=60?'log-positive':'log-negative');
+  updateUI();
+}
+function evaluateRoast(el,bean){
+  var diff=Math.abs(el-bean.optimal),ratio=diff/bean.tolerance;
+  if(el<bean.optimal-bean.tolerance) return{grade:'UNDER',quality:bean.maxQuality*.35,cls:'under'};
+  if(el>bean.optimal+bean.tolerance) return{grade:'BURNT',quality:bean.maxQuality*.25,cls:'burnt'};
+  if(ratio<=.3) return{grade:'PERFECT',quality:bean.maxQuality,cls:'perfect'};
+  if(ratio<=.6) return{grade:'GREAT',quality:bean.maxQuality*.85,cls:'great'};
+  return{grade:'GOOD',quality:bean.maxQuality*.70,cls:'good'};
+}
+
+/* ===========================================
+   ブレンド開発
+   =========================================== */
+function updateBlendForm(){
+  var b=+dom.sliderBrazil.value,m=+dom.sliderMocha.value,p=+dom.sliderPanama.value;
+  var total=b+m+p;
+  dom.sliderBrazilVal.textContent=b+'%';dom.sliderMochaVal.textContent=m+'%';dom.sliderPanamaVal.textContent=p+'%';
+  if(total===100){
+    var recipe={brazil:b,mocha:m,panama:p};
+    var fl=calcFlavors(recipe),tag=getTag(fl),price=calcBlendPrice(recipe);
+    dom.blendTotal.textContent='合計: 100% ✓';dom.blendTotal.className='blend-total valid';
+    dom.blendPreview.textContent='特徴: '+tag+'　予想価格: '+price+'円';
+  }else{
+    dom.blendTotal.textContent='合計: '+total+'%（100%にしてください）';dom.blendTotal.className='blend-total invalid';
+    dom.blendPreview.textContent='';
+  }
+  var nameOk=dom.blendName.value.trim().length>0;
+  dom.btnCreateBlend.disabled=!(total===100&&nameOk&&state.blends.length<C.MAX_BLENDS);
+}
+function createBlend(){
+  var b=+dom.sliderBrazil.value,m=+dom.sliderMocha.value,p=+dom.sliderPanama.value;
+  if(b+m+p!==100) return;
+  var name=dom.blendName.value.trim();
+  if(!name||state.blends.length>=C.MAX_BLENDS) return;
+  var recipe={brazil:b,mocha:m,panama:p};
+  var fl=calcFlavors(recipe);
+  state.blends.push({
+    name:name, recipe:recipe, createdWeek:state.week,
+    basePrice:calcBlendPrice(recipe), flavors:fl, tag:getTag(fl),
+  });
+  dom.blendName.value='';
+  addLog('🧪 新ブレンド「'+name+'」を開発！メニュー管理から店頭に載せよう。','log-highlight');
+  updateUI();updateBlendForm();
+}
+function deleteBlend(idx){
+  var name=state.blends[idx].name;
+  state.blends.splice(idx,1);
+  addLog('☕ 「'+name+'」を削除。');
+  updateUI();
+}
+function toggleBlendMenu(idx){
+  var bl=state.blends[idx];if(!bl) return;
+  if(bl.onMenu){
+    bl.onMenu=false;
+    addLog('📋 「'+bl.name+'」を店頭メニューから外しました。');
+  }else{
+    if(countActiveBlends()>=3){addLog('🍽️ メニュー枠は最大3つです。先に外してから追加してください。','log-negative');return}
+    bl.onMenu=true;
+    addLog('🍽️ 「'+bl.name+'」を店頭メニューに追加！','log-positive');
+  }
+  updateUI();
+}
+
+/* ===========================================
+   スタッフ・広告
+   =========================================== */
+function hireStaff(){
+  if(state.staff>=C.MAX_STAFF){addLog('👤 上限('+C.MAX_STAFF+'人)です。','log-negative');return}
+  state.staff++;addLog('👤 スタッフ雇用！('+state.staff+'人) 座席数: '+getSeats(),'log-positive');updateUI();
+}
+function fireStaff(){if(state.staff<=1) return;state.staff--;addLog('👤 スタッフ解雇。残り'+state.staff+'人 座席数: '+getSeats());updateUI()}
+function advertise(){
+  if(state.adWeeksLeft>0) return;
+  if(state.money<C.AD_COST){addLog('💸 広告費用が足りません（'+fmt(C.AD_COST)+'円必要）','log-negative');return}
+  state.money-=C.AD_COST;state.adWeeksLeft=C.AD_DURATION;
+  addLog('📢 広告を出しました！(-'+fmt(C.AD_COST)+'円) '+C.AD_DURATION+'週間、人気度+'+C.AD_POP_BOOST,'log-highlight');
+  updateUI();
+}
+
+/* ===========================================
+   顧問契約
+   =========================================== */
+function toggleRetainerAce(){
+  if(state.retainers.ace){
+    state.retainers.ace=false;
+    addLog('⚖️ 弁護士法人エースとの顧問契約を解除しました。');
+  }else{
+    state.retainers.ace=true;
+    addLog('⚖️ 弁護士法人エースと顧問契約を締結！法務トラブルの被害を90%カットします。','log-positive');
+  }
+  updateUI();
+}
+function toggleRetainerAceCrew(){
+  if(state.retainers.aceCrew){
+    state.retainers.aceCrew=false;
+    addLog('📋 社労士法人エースクルーとの顧問契約を解除しました。');
+  }else{
+    state.retainers.aceCrew=true;
+    addLog('📋 社労士法人エースクルーと顧問契約を締結！助成金の当選率が1.5倍に。','log-positive');
+  }
+  updateUI();
+}
+
+/* ===========================================
+   投資
+   =========================================== */
+function buyTrademark(){
+  if(state.trademark.active){addLog('™️ 商標は既に申請中です。','log-negative');return}
+  if(state.money<C.TM_COST){addLog('💸 資金不足！商標登録には'+fmt(C.TM_COST)+'円必要。','log-negative');return}
+  state.money-=C.TM_COST;
+  state.trademark={active:true,weeksLeft:C.TM_DURATION,rejected:false,pendingPay:false,blendBonus:false};
+  addLog('™️ 商標登録を申請！(-'+fmt(C.TM_COST)+'円) ブランド力が毎週上昇します。','log-highlight');
+  updateUI();
+}
+function payTrademarkExtra(){
+  if(!state.trademark.pendingPay) return;
+  if(state.money<C.TM_EXTRA){addLog('💸 追加費用が足りません（'+fmt(C.TM_EXTRA)+'円必要）','log-negative');return}
+  state.money-=C.TM_EXTRA;
+  state.trademark.pendingPay=false;state.trademark.rejected=false;
+  addLog('™️ 追加費用を支払い、商標審査を継続！(-'+fmt(C.TM_EXTRA)+'円)','log-positive');
+  updateUI();
+}
+function buyGolfer(){
+  if(state.golfer.active){addLog('⛳ ゴルファースポンサーは既に契約中。','log-negative');return}
+  if(state.money<C.GOLFER_COST){addLog('💸 資金不足！ゴルファースポンサーには'+fmt(C.GOLFER_COST)+'円必要。','log-negative');return}
+  state.money-=C.GOLFER_COST;
+  state.golfer={active:true,weeksLeft:C.GOLFER_DURATION};
+  addLog('⛳ ゴルファースポンサー契約！(-'+fmt(C.GOLFER_COST)+'円) 毎週イベント発生。','log-highlight');
+  updateUI();
+}
+function buyYacht(){
+  if(state.yacht.active){addLog('🛥️ ヨット広告は既に掲載中。','log-negative');return}
+  if(state.money<C.YACHT_COST){addLog('💸 資金不足！ヨット広告には'+fmt(C.YACHT_COST)+'円必要。','log-negative');return}
+  state.money-=C.YACHT_COST;
+  state.yacht={active:true,weeksLeft:C.YACHT_DURATION,yachtFlag:true};
+  addLog('🛥️ ヨット広告を掲載！(-'+fmt(C.YACHT_COST)+'円) 4週ごとにラグジュアリー波＆メンテイベント。','log-highlight');
+  updateUI();
+}
+
+function calcBrandPower(){
+  var bp=0;
+  bp+=state.popularity*0.3;
+  bp+=state.blends.length*5;
+  if(state.trademark.active) bp+=15;
+  if(state.golfer.active) bp+=10;
+  if(state.yacht.active) bp+=20;
+  if(state.yacht.yachtFlag) bp+=5;
+  bp+=Math.min(20,state.totalCustomers/500);
+  return Math.round(Math.min(100,bp));
+}
+
+/* ===========================================
+   動的豆セレクタ
+   =========================================== */
+function getAvailableBeanKeys(){
+  var keys=BEAN_KEYS.slice();
+  state.unlockedBeans.forEach(function(k){if(keys.indexOf(k)<0) keys.push(k)});
+  return keys;
+}
+function renderBeanSelector(){
+  var keys=getAvailableBeanKeys();
+  var html='';
+  keys.forEach(function(k){
+    var b=BEANS[k]||SPECIAL_BEANS[k];if(!b) return;
+    html+='<button class="bean-btn'+(k===state.selectedBean?' active':'')+'" data-bean="'+k+'">'+b.name+'</button>';
+  });
+  dom.beanSelector.innerHTML=html;
+}
+function unlockBean(key){
+  if(state.unlockedBeans.indexOf(key)>=0) return;
+  state.unlockedBeans.push(key);
+  var b=SPECIAL_BEANS[key];if(!b) return;
+  // BEANSに登録 + 在庫初期化
+  BEANS[key]=b;
+  state.inventory[key]={raw:0,roasted:0,quality:0};
+  renderBeanSelector();
+  addLog('🫘 特別豆「'+b.name+'」が解放された！仕入れ可能に。','log-highlight');
+}
+
+/* ===========================================
+   レシピブック
+   =========================================== */
+function saveRecipeFromBlend(idx){
+  if(state.savedRecipes.length>=MAX_SAVED_RECIPES){addLog('📖 レシピブックが満杯です(最大'+MAX_SAVED_RECIPES+')。','log-negative');return}
+  var bl=state.blends[idx];if(!bl) return;
+  var year=Math.floor(state.week/C.WEEKS_PER_YEAR)+1;
+  state.savedRecipes.push({
+    name:bl.name, beans:JSON.parse(JSON.stringify(bl.recipe)),
+    qualityScore:Math.round(bl.flavors?((bl.flavors.aroma||0)+(bl.flavors.body||0)+(bl.flavors.acidity||0)+(bl.flavors.bitter||0)+(bl.flavors.sweet||0))*10:50),
+    popularityScore:Math.round(state.popularity), createdYear:year,
+  });
+  addLog('📖 「'+bl.name+'」をレシピブックに保存！','log-positive');
+  updateUI();
+}
+function deleteRecipe(idx){
+  var name=state.savedRecipes[idx].name;
+  state.savedRecipes.splice(idx,1);
+  addLog('📖 「'+name+'」をレシピブックから削除。');
+  renderRecipeBook();updateUI();
+}
+function renderRecipeBook(){
+  var list=state.savedRecipes;
+  dom.rcpBookCount.textContent='('+list.length+'/'+MAX_SAVED_RECIPES+')';
+  if(list.length===0){dom.rcpBookList.innerHTML='<div class="game-modal-sub">保存済みレシピはありません</div>';return}
+  var h='';
+  list.forEach(function(r,i){
+    var bk=Object.keys(r.beans).filter(function(k){return r.beans[k]>0}).map(function(k){return(BEANS[k]?BEANS[k].name:k)+r.beans[k]+'%'}).join('/');
+    h+='<div class="rcp-item"><span class="rcp-item-name">'+r.name+'</span><span class="rcp-item-sub">'+bk+' Q:'+r.qualityScore+' Y:'+r.createdYear+'</span><button class="rcp-del" data-ri="'+i+'">×</button></div>';
+  });
+  dom.rcpBookList.innerHTML=h;
+}
+function renderRecipeSelect(container,onSelect){
+  var list=state.savedRecipes;
+  if(list.length===0){container.innerHTML='<div class="game-modal-sub">保存レシピがありません。先にブレンドを保存してください。</div>';return}
+  var h='';
+  list.forEach(function(r,i){
+    var bk=Object.keys(r.beans).filter(function(k){return r.beans[k]>0}).map(function(k){return(BEANS[k]?BEANS[k].name:k)+r.beans[k]+'%'}).join('/');
+    h+='<div class="rcp-item" data-idx="'+i+'"><span class="rcp-item-name">'+r.name+'</span><span class="rcp-item-sub">Q:'+r.qualityScore+'</span></div>';
+  });
+  container.innerHTML=h;
+  container.onclick=function(e){
+    var it=e.target.closest('.rcp-item');if(!it) return;
+    container.querySelectorAll('.rcp-item').forEach(function(el){el.classList.remove('selected')});
+    it.classList.add('selected');
+    onSelect(+it.getAttribute('data-idx'));
+  };
+}
+
+/* ===========================================
+   タイミングミニゲーム（共用）
+   =========================================== */
+var tg={active:false,interval:null,pos:0,dir:1,speed:1.8,callback:null};
+function startTimingGame(curEl,speed,cb){
+  tg.active=true;tg.pos=0;tg.dir=1;tg.speed=speed||1.8;tg.callback=cb;
+  curEl.style.left='0%';
+  tg.interval=setInterval(function(){
+    tg.pos+=tg.dir*tg.speed;
+    if(tg.pos>=100){tg.pos=100;tg.dir=-1}
+    if(tg.pos<=0){tg.pos=0;tg.dir=1}
+    curEl.style.left=tg.pos+'%';
+  },20);
+}
+function stopTimingGame(zoneEl){
+  if(!tg.active) return;
+  tg.active=false;clearInterval(tg.interval);
+  var zl=parseFloat(zoneEl.style.left),zw=parseFloat(zoneEl.style.width||getComputedStyle(zoneEl).width);
+  // zoneEl width from style e.g. "25%"
+  var s=zoneEl.style;
+  zl=parseFloat(s.left);zw=parseFloat(s.width);
+  var center=zl+zw/2, dist=Math.abs(tg.pos-center);
+  var accuracy=Math.max(0,Math.round(100-dist*2.5));
+  if(tg.callback) tg.callback(accuracy);
+}
+
+/* ===========================================
+   店頭メニュー管理（3枠システム）
+   =========================================== */
+function calcRecipeStability(recipe){
+  // ブレンドレシピの安定性＝各豆のstability×配合比の加重平均
+  var total=0,sum=0;
+  var allBeanKeys=getAvailableBeanKeys();
+  allBeanKeys.forEach(function(k){
+    var pct=recipe.recipe?recipe.recipe[k]:0;
+    if(!pct) return;
+    var bean=BEANS[k];
+    if(bean&&bean.stability!==undefined){
+      sum+=bean.stability*(pct/100);total+=pct;
+    }
+  });
+  return total>0?Math.round(sum/(total/100)):50;
+}
+function calcRecipePopularity(recipe){
+  // レシピ人気度＝品質×0.6 + 味の多様性×10
+  var q=recipe.quality||50;
+  var f=recipe.flavors||{};
+  var axes=0;AXES.forEach(function(a){if(f[a]&&f[a]>0) axes++});
+  return Math.min(100,Math.round(q*0.6+axes*10));
+}
+function getMenuAverages(){
+  // 店頭メニューに載っているブレンドからquality/popularity/stabilityの平均を返す
+  var filled=0,qSum=0,pSum=0,sSum=0;
+  state.blends.forEach(function(bl){
+    if(!bl.onMenu) return;
+    var bq=0;
+    BEAN_KEYS.forEach(function(k){
+      if((bl.recipe[k]||0)>0) bq+=state.inventory[k].quality*(bl.recipe[k]/100);
+    });
+    qSum+=bq;
+    pSum+=calcRecipePopularity({quality:bq,flavors:bl.flavors,recipe:bl.recipe});
+    sSum+=calcRecipeStability({recipe:bl.recipe});
+    filled++;
+  });
+  if(filled===0) return null;
+  return {quality:Math.round(qSum/filled),popularity:Math.round(pSum/filled),stability:Math.round(sSum/filled),count:filled};
+}
+function getMenuStrategy(avg){
+  if(!avg||avg.count===0) return {type:'none',label:'未設定',cls:'strategy-none'};
+  if(avg.stability>=70&&avg.quality>=60) return {type:'stable',label:'🛡️ 安定型',cls:'strategy-stable'};
+  if(avg.quality>=80&&avg.stability<50) return {type:'aggressive',label:'🔥 攻め型',cls:'strategy-aggressive'};
+  if(avg.popularity>=70) return {type:'trendy',label:'✨ トレンド型',cls:'strategy-trendy'};
+  return {type:'balanced',label:'⚖️ バランス型',cls:'strategy-none'};
+}
+function renderMenuMgr(){
+  // 左: ブレンドリスト
+  var html='';
+  if(state.blends.length===0){
+    html='<div class="game-modal-sub">ブレンドがまだありません。<br>ブレンドを開発してからメニュー管理しましょう。</div>';
+  }else{
+    state.blends.forEach(function(bl,bi){
+      var bq=0;
+      BEAN_KEYS.forEach(function(k){if((bl.recipe[k]||0)>0) bq+=state.inventory[k].quality*(bl.recipe[k]/100)});
+      var stab=calcRecipeStability({recipe:bl.recipe});
+      var pop=calcRecipePopularity({quality:bq,flavors:bl.flavors,recipe:bl.recipe});
+      var isOn=!!bl.onMenu;
+      html+='<div class="menu-rcp-item" data-bi="'+bi+'">'+
+        '<div class="rcp-info"><strong>'+bl.name+'</strong><div class="rcp-stats">品質:'+Math.round(bq)+' 人気:'+pop+' 安定:'+stab+'</div></div>'+
+        (isOn?'<span style="font-size:.6rem;color:#059669;font-weight:700">掲載中</span>':'<span style="font-size:.7rem;color:var(--brown)">➕</span>')+
+        '</div>';
+    });
+  }
+  dom.menuMgrList.innerHTML=html;
+  // 右: 掲載中スロット表示
+  var onMenuBlends=[];
+  state.blends.forEach(function(bl,bi){if(bl.onMenu) onMenuBlends.push({bl:bl,bi:bi})});
+  for(var si=0;si<3;si++){
+    var slot=dom['menuSlot'+si];
+    if(si<onMenuBlends.length){
+      var ob=onMenuBlends[si];
+      var bq=0;
+      BEAN_KEYS.forEach(function(k){if((ob.bl.recipe[k]||0)>0) bq+=state.inventory[k].quality*(ob.bl.recipe[k]/100)});
+      var stab=calcRecipeStability({recipe:ob.bl.recipe});
+      var pop=calcRecipePopularity({quality:bq,flavors:ob.bl.flavors,recipe:ob.bl.recipe});
+      slot.innerHTML='<span class="slot-label">枠'+(si+1)+'</span><span class="slot-name">'+ob.bl.name+'</span><span class="slot-stats">品質:'+Math.round(bq)+' 人気:'+pop+' 安定:'+stab+'</span><button class="slot-remove" data-bi="'+ob.bi+'">✕</button>';
+      slot.className='menu-slot filled';
+    }else{
+      slot.innerHTML='<span class="slot-label">枠'+(si+1)+'</span><span style="font-size:1.2rem">＋</span>';
+      slot.className='menu-slot';
+    }
+  }
+  // 戦略タイプ
+  var avg=getMenuAverages();
+  var st=getMenuStrategy(avg);
+  dom.menuStrategyLabel.textContent=st.label+(avg?' (Q:'+avg.quality+' P:'+avg.popularity+' S:'+avg.stability+')':'');
+  dom.menuStrategyLabel.className='menu-strategy '+st.cls;
+}
+function toggleBlendMenuFromMgr(bi){
+  var bl=state.blends[bi];if(!bl) return;
+  if(bl.onMenu){bl.onMenu=false}
+  else{if(countActiveBlends()>=3) return;bl.onMenu=true}
+  renderMenuMgr();
+}
+function removeBlendFromMgr(bi){
+  var bl=state.blends[bi];if(bl) bl.onMenu=false;
+  renderMenuMgr();
+}
+
+/* ===========================================
+   大会システム
+   =========================================== */
+var compState={rank:0,recipeIdx:-1,roastScore:0,dripScore:0};
+function openCompetition(){
+  var rank=state.compMaxRank;
+  if(rank>=COMP_RANKS.length){addLog('🏆 全ランク制覇済み！','log-highlight');return}
+  if(state.compWonThisYear){addLog('🏆 今年は既に優勝しました。来年の大会をお待ちください。','log-negative');return}
+  var cr=COMP_RANKS[rank];
+  compState.rank=rank;compState.recipeIdx=-1;compState.roastScore=0;compState.dripScore=0;
+  dom.compRankName.textContent=cr.name;
+  dom.compFee.textContent=fmt(cr.fee);
+  dom.btnCompEnter.disabled=true;
+  renderRecipeSelect(dom.compRecipeList,function(idx){compState.recipeIdx=idx;dom.btnCompEnter.disabled=false});
+  showCompPhase('compEntry');
+  dom.compModal.classList.add('active');
+}
+function showCompPhase(id){
+  ['compEntry','compRoast','compDrip','compResult'].forEach(function(p){
+    document.getElementById(p).classList.remove('active');
+  });
+  document.getElementById(id).classList.add('active');
+}
+function enterCompetition(){
+  var cr=COMP_RANKS[compState.rank];
+  if(state.money<cr.fee){addLog('💸 参加費が足りません（'+fmt(cr.fee)+'円必要）','log-negative');dom.compModal.classList.remove('active');return}
+  if(compState.recipeIdx<0) return;
+  state.money-=cr.fee;
+  addLog('🏆 '+cr.name+'に参加！(-'+fmt(cr.fee)+'円)','log-highlight');
+  // Phase: Roast
+  showCompPhase('compRoast');
+  dom.crResult.textContent='';
+  startTimingGame(dom.crCur,1.8,function(acc){
+    compState.roastScore=acc;
+    var cls=acc>=70?'s-good':acc>=40?'s-ok':'s-bad';
+    dom.crResult.textContent='焙煎精度: '+acc+'点';dom.crResult.className='timing-result '+cls;
+    setTimeout(function(){
+      // Phase: Drip
+      showCompPhase('compDrip');
+      dom.cdResult.textContent='';
+      startTimingGame(dom.cdCur,2.2,function(acc2){
+        compState.dripScore=acc2;
+        var cls2=acc2>=70?'s-good':acc2>=40?'s-ok':'s-bad';
+        dom.cdResult.textContent='ドリップ精度: '+acc2+'点';dom.cdResult.className='timing-result '+cls2;
+        setTimeout(resolveCompetition,800);
+      });
+    },800);
+  });
+}
+function resolveCompetition(){
+  var cr=COMP_RANKS[compState.rank];
+  var recipe=state.savedRecipes[compState.recipeIdx];
+  var recipeQ=recipe?recipe.qualityScore:50;
+  var finalScore=Math.round(recipeQ*0.4+compState.roastScore*0.2+compState.dripScore*0.4);
+  var opponent=Math.round(cr.opMin+Math.random()*(cr.opMax-cr.opMin));
+  var won=finalScore>opponent;
+  var h='あなた: <strong>'+finalScore+'点</strong>（レシピ'+recipeQ+' 焙煎'+compState.roastScore+' ドリップ'+compState.dripScore+'）<br>対戦相手: <strong>'+opponent+'点</strong><br><br>';
+  if(won){
+    dom.compResultIcon.innerHTML='🏆 優勝！';
+    state.brandBonus=Math.min(MAX_BRAND_BONUS,state.brandBonus+cr.brandReward);
+    state.compPriceBonus+=cr.pricePct;
+    state.compCustBonus+=cr.custPct;
+    state.compWonThisYear=true;
+    state.compMaxRank=Math.min(COMP_RANKS.length,compState.rank+1);
+    h+='🎉 ブランド補正 +'+cr.brandReward+'%！';
+    if(cr.beanKey){unlockBean(cr.beanKey);h+='<br>🫘 特別豆「'+(SPECIAL_BEANS[cr.beanKey]?SPECIAL_BEANS[cr.beanKey].name:cr.beanKey)+'」解放！'}
+    if(cr.pricePct) h+='<br>💰 客単価 +'+cr.pricePct+'%';
+    if(cr.custPct) h+='<br>👥 来客 +'+cr.custPct+'%';
+    addLog('🏆 '+cr.name+'優勝！ブランド+'+cr.brandReward+'%','log-highlight');
+    addXp(100,'comp',false);
+  }else{
+    dom.compResultIcon.innerHTML='😢 惜敗…';
+    h+='参加費のみ消費。来年また挑戦しよう！';
+    addLog('🏆 '+cr.name+'惜しくも敗北…（'+finalScore+' vs '+opponent+'）','log-negative');
+  }
+  dom.compResultText.innerHTML=h;
+  showCompPhase('compResult');
+  updateUI();
+}
+
+/* ===========================================
+   県対決システム
+   =========================================== */
+var prefState={recipeIdx:-1};
+function openPrefBattle(){
+  if(state.prefChallengedThisYear){addLog('🗾 今年は既に挑戦済み。来年再挑戦できます。','log-negative');return}
+  prefState.recipeIdx=-1;
+  dom.prefCount.textContent=state.prefectures;
+  dom.btnPrefEnter.disabled=true;
+  renderRecipeSelect(dom.prefRecipeList,function(idx){prefState.recipeIdx=idx;dom.btnPrefEnter.disabled=false});
+  showPrefPhase('prefEntry');
+  dom.prefModal.classList.add('active');
+}
+function showPrefPhase(id){
+  ['prefEntry','prefGame','prefResult'].forEach(function(p){document.getElementById(p).classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+}
+function enterPrefBattle(){
+  if(prefState.recipeIdx<0) return;
+  state.prefChallengedThisYear=true;
+  showPrefPhase('prefGame');
+  dom.pfResult.textContent='';
+  startTimingGame(dom.pfCur,2.0,function(acc){
+    var recipe=state.savedRecipes[prefState.recipeIdx];
+    var recipeQ=recipe?recipe.qualityScore:50;
+    var finalScore=Math.round(recipeQ*0.5+acc*0.5);
+    var opponent=Math.round(PREF_OPPONENT_MIN+Math.random()*(PREF_OPPONENT_MAX-PREF_OPPONENT_MIN));
+    var won=finalScore>opponent;
+    var cls=acc>=70?'s-good':acc>=40?'s-ok':'s-bad';
+    dom.pfResult.textContent='精度: '+acc+'点';dom.pfResult.className='timing-result '+cls;
+    setTimeout(function(){
+      var h='あなた: <strong>'+finalScore+'点</strong><br>対戦相手: <strong>'+opponent+'点</strong><br><br>';
+      if(won){
+        dom.prefResultIcon.innerHTML='🎉 勝利！進出成功！';
+        state.prefectures++;
+        state.brandBonus=Math.min(MAX_BRAND_BONUS,state.brandBonus+5);
+        h+='🗾 '+state.prefectures+'県目に進出！ブランド+5%';
+        addLog('🗾 隣県進出成功！現在'+state.prefectures+'県で営業中。','log-highlight');
+        addXp(30,'pref',false);
+      }else{
+        dom.prefResultIcon.innerHTML='😢 敗北…来年また挑戦！';
+        h+='次は来年再挑戦できます。';
+        addLog('🗾 隣県対決に敗北…（'+finalScore+' vs '+opponent+'）','log-negative');
+      }
+      dom.prefResultText.innerHTML=h;
+      showPrefPhase('prefResult');
+      updateUI();
+    },800);
+  });
+}
+
+/* ===========================================
+   週次シミュレーション
+   =========================================== */
+function simulateWeek(silent){
+  // 天候（週単位で判定）
+  state.weatherToday=Math.random()<C.RAIN_CHANCE?'rainy':'sunny';
+  // 季節
+  var prevSeason=state.season;
+  state.season=getSeason(state.week);
+  if(state.season!==prevSeason&&state.week>0&&!silent){
+    addLog(SEASON_MSG[state.season],'log-highlight');
+  }
+  // トレンド（4週ごと＝月替わり）
+  if(state.week%4===0){
+    state.weeklyTrendAxis=AXES[Math.floor(Math.random()*AXES.length)];
+    if(!silent){
+      var msgs=TREND_MSG[state.weeklyTrendAxis];
+      addLog('📈 '+msgs[Math.floor(Math.random()*msgs.length)],'log-highlight');
+    }
+  }
+  // --- 常連客システム ---
+  var weeklyRegBonus=calcRegularBonus();
+  tryAcquireRegular(silent);
+  updateRegularLoyalty(silent);
+  if(weeklyRegBonus.popularity>0) state.popularity=Math.min(100,state.popularity+weeklyRegBonus.popularity);
+  if(weeklyRegBonus.quality>0) state.avgQuality=Math.min(100,state.avgQuality+weeklyRegBonus.quality);
+  checkRegularDeparture(silent);
+  if(getActiveRegulars().length>0) addXp(XP_GAIN.REGULAR,'',silent);
+  // 20%確率で常連来店ログ
+  if(!silent&&getActiveRegulars().length>0&&Math.random()<0.20){
+    addLog(REGULAR_MSG[Math.floor(Math.random()*REGULAR_MSG.length)],'log-positive');
+  }
+
+  // 広告
+  var effectivePop=state.popularity;
+  if(state.adWeeksLeft>0){effectivePop=Math.min(100,state.popularity+C.AD_POP_BOOST);state.adWeeksLeft--}
+  // 客数（日次ベース×7日分＝週の来客数）
+  var lvEffect=LEVEL_EFFECTS[state.shopLevel]||LEVEL_EFFECTS[1];
+  var popMod=1+(effectivePop/200); // 人気度修正: pop50→1.25, pop100→1.50
+  var dailyC=Math.floor(C.BASE_CUSTOMERS*(C.POP_COEFF+effectivePop/100)*(C.QUALITY_COEFF+state.avgQuality/C.QUALITY_DIVISOR)*lvEffect.customerMult);
+  var dailyCap=getSeats();
+  var dailyServe=Math.min(dailyC,dailyCap);
+  var customers=dailyServe*C.DAYS_IN_WEEK; // 週の総来客数
+  // 季節修正
+  var seasonMult=C.SEASON_MULT[state.season]||1.0;
+  customers=Math.floor(customers*seasonMult);
+  // 天候修正
+  if(state.weatherToday==='rainy'){
+    customers=Math.floor(customers*C.RAIN_PENALTY);
+    if(!silent&&Math.random()<0.3){addLog('🌧️ '+RAIN_MSG[Math.floor(Math.random()*RAIN_MSG.length)])}
+  }
+  // 風評被害デバフ
+  if(state.debuff.reputationWeeks>0){
+    customers=Math.floor(customers*C.REPUTATION_CUSTOMER_PENALTY);
+  }
+  // メニュー枠修正（3スロット平均人気度）
+  var menuAvg=getMenuAverages();
+  var menuPopMod=menuAvg?1+(menuAvg.popularity/200):1.0;
+  customers=Math.floor(customers*menuPopMod);
+  // 常連客ボーナス（来客数）
+  if(weeklyRegBonus.customer>0) customers=Math.floor(customers*(1+weeklyRegBonus.customer));
+  // メニュー+重み（店頭メニューのみ販売対象）
+  var menu=getActiveMenuItems();
+  if(lvEffect.priceMult!==1) menu.forEach(function(it){it.price=Math.round(it.price*lvEffect.priceMult)});
+  var weights=[];var totalW=0;
+  menu.forEach(function(item){
+    if(!item.available){weights.push(0);return}
+    var w=1.0;
+    w*=getSeasonalMult(item.flavors,state.season);
+    w*=getTrendMult(item.flavors,state.weeklyTrendAxis);
+    w*=getPriceResist(item.price);
+    if(item.isNew) w*=1.15;
+    weights.push(w);totalW+=w;
+  });
+  // 販売シミュレーション
+  var salesCount={},revenue=0,qualWSum=0,served=0,attempts=0,maxAttempts=customers*3;
+  while(served<customers&&totalW>0&&attempts<maxAttempts){
+    attempts++;
+    var roll=Math.random()*totalW,cum=0,picked=-1;
+    for(var j=0;j<menu.length;j++){cum+=weights[j];if(roll<cum){picked=j;break}}
+    if(picked<0) break;
+    if(consumeItem(menu[picked])){
+      salesCount[picked]=(salesCount[picked]||0)+1;
+      revenue+=menu[picked].price;qualWSum+=menu[picked].quality;served++;
+    }else{
+      totalW-=weights[picked];weights[picked]=0;menu[picked].available=false;
+    }
+  }
+  // 風評被害デバフ
+  if(state.debuff.reputationWeeks>0){
+    revenue=Math.floor(revenue*C.REPUTATION_REVENUE_PENALTY);
+  }
+  // ブランドボーナス＋大会ボーナス適用
+  var brandMult=1+(state.brandBonus||0)/100;
+  var compPriceMult=1+(state.compPriceBonus||0)/100;
+  revenue=Math.round(revenue*brandMult*compPriceMult*seasonMult*popMod);
+  // 県ボーナス（県数×3%売上ブースト）
+  if(state.prefectures>1){
+    revenue=Math.round(revenue*(1+(state.prefectures-1)*0.03));
+  }
+  // 常連客ボーナス（売上）
+  if(weeklyRegBonus.revenue>0) revenue=Math.round(revenue*(1+weeklyRegBonus.revenue));
+  // メニュー枠品質修正（満足度→リピーター効果）
+  if(menuAvg){
+    var satisfaction=(menuAvg.quality*0.5+menuAvg.stability*0.5)/100;
+    revenue=Math.round(revenue*(0.85+satisfaction*0.30)); // 0.85〜1.15
+  }
+  // コスト（週次支払い — 毎週固定費）
+  var rc=C.RENT,uc=C.UTILITY,sc=(state.staff-1)*C.STAFF_WAGE,bc=served*C.BEAN_COST_CUP;
+  // 顧問料（週額）
+  var retainerCost=0;
+  if(state.retainers.ace){
+    if(state.money-rc-uc-sc>=C.RETAINER_ACE_COST){
+      retainerCost+=C.RETAINER_ACE_COST;
+    }else{
+      state.retainers.ace=false;
+      if(!silent) addLog('⚖️ 資金不足のため弁護士法人エースとの契約が自動解除されました…','log-negative');
+    }
+  }
+  if(state.retainers.aceCrew){
+    if(state.money-rc-uc-sc-retainerCost>=C.RETAINER_ACECREW_COST){
+      retainerCost+=C.RETAINER_ACECREW_COST;
+    }else{
+      state.retainers.aceCrew=false;
+      if(!silent) addLog('📋 資金不足のため社労士法人エースクルーとの契約が自動解除されました…','log-negative');
+    }
+  }
+
+  // デバフ消化
+  if(state.debuff.reputationWeeks>0) state.debuff.reputationWeeks--;
+  if(state.debuff.supplierWeeks>0) state.debuff.supplierWeeks--;
+
+  // 基本利益
+  var baseCost=rc+uc+sc+bc+retainerCost;
+  var profit=revenue-baseCost;
+  var eventCost=0;
+
+  // ランダムイベント（週あたり確率）
+  var aceMult=state.retainers.ace?C.ACE_DAMAGE_MULT:1.0;
+  // 風評被害
+  if(Math.random()<C.EVENT_REPUTATION_CHANCE){
+    var rpPop=Math.round(C.REPUTATION_POP*aceMult);
+    var rpDur=state.retainers.ace?1:C.REPUTATION_DURATION;
+    state.popularity=Math.max(0,state.popularity+rpPop);
+    state.debuff.reputationWeeks=Math.max(state.debuff.reputationWeeks,rpDur);
+    var rpMsg=state.retainers.ace?ACE_BLOCK_MSG[Math.floor(Math.random()*ACE_BLOCK_MSG.length)]:REPUTATION_MSG[Math.floor(Math.random()*REPUTATION_MSG.length)];
+    if(!silent) addLog(rpMsg,state.retainers.ace?'log-positive':'log-negative');
+    eventQueue.push({
+      id:'reputation',title:'⚠️ 風評被害（'+fmtDate(state.week)+'）',icon:'⚠️',type:'negative',
+      description:rpMsg,
+      effects:{popularity:rpPop,duration:rpDur},
+      counterfactual:{popularity:C.REPUTATION_POP,duration:C.REPUTATION_DURATION},
+      contracts:{ace:state.retainers.ace}
+    });
+  }
+  // モンスタークレーマー
+  if(Math.random()<C.EVENT_COMPLAINER_CHANCE){
+    var cmCost=Math.round(C.COMPLAINER_COST*aceMult);
+    var cmPop=Math.round(C.COMPLAINER_POP*aceMult);
+    eventCost+=cmCost;
+    state.popularity=Math.max(0,state.popularity+cmPop);
+    var cmMsg=state.retainers.ace?ACE_BLOCK_MSG[Math.floor(Math.random()*ACE_BLOCK_MSG.length)]:COMPLAINER_MSG[Math.floor(Math.random()*COMPLAINER_MSG.length)];
+    if(!silent) addLog(cmMsg+'（-'+fmt(cmCost)+'円 / 人気度'+cmPop+'）',state.retainers.ace?'log-positive':'log-negative');
+    eventQueue.push({
+      id:'complainer',title:'👹 モンスタークレーマー（'+fmtDate(state.week)+'）',icon:'👹',type:'negative',
+      description:cmMsg,
+      effects:{money:-cmCost,popularity:cmPop},
+      counterfactual:{money:-C.COMPLAINER_COST,popularity:C.COMPLAINER_POP},
+      contracts:{ace:state.retainers.ace}
+    });
+  }
+  // 取引先トラブル
+  if(Math.random()<C.EVENT_SUPPLIER_CHANCE){
+    var spQual=Math.round(C.SUPPLIER_QUALITY_PENALTY*aceMult);
+    var spDur=state.retainers.ace?1:C.SUPPLIER_DURATION;
+    state.avgQuality=Math.max(0,state.avgQuality-spQual);
+    state.debuff.supplierWeeks=Math.max(state.debuff.supplierWeeks,spDur);
+    var spMsg=state.retainers.ace?ACE_BLOCK_MSG[Math.floor(Math.random()*ACE_BLOCK_MSG.length)]:SUPPLIER_MSG[Math.floor(Math.random()*SUPPLIER_MSG.length)];
+    if(!silent) addLog(spMsg,state.retainers.ace?'log-positive':'log-negative');
+    eventQueue.push({
+      id:'supplier',title:'📦 取引先トラブル（'+fmtDate(state.week)+'）',icon:'📦',type:'negative',
+      description:spMsg,
+      effects:{quality:-spQual,duration:spDur},
+      counterfactual:{quality:-C.SUPPLIER_QUALITY_PENALTY,duration:C.SUPPLIER_DURATION},
+      contracts:{ace:state.retainers.ace}
+    });
+  }
+  // 助成金
+  var baseSubsidyRoll=Math.random();
+  var subsidyChance=C.EVENT_SUBSIDY_CHANCE*(state.retainers.aceCrew?C.ACECREW_SUBSIDY_MULT:1.0);
+  subsidyChance=Math.min(subsidyChance,0.10);
+  var baseHit=baseSubsidyRoll<C.EVENT_SUBSIDY_CHANCE;
+  var boostedHit=!baseHit&&state.retainers.aceCrew&&baseSubsidyRoll<subsidyChance;
+  var subsidyHit=baseHit||boostedHit;
+  if(subsidyHit){
+    var subsidyAmt=Math.floor(C.SUBSIDY_MIN+Math.random()*(C.SUBSIDY_MAX-C.SUBSIDY_MIN));
+    eventCost-=subsidyAmt;
+    var subMsg=SUBSIDY_MSG[Math.floor(Math.random()*SUBSIDY_MSG.length)];
+    if(!silent) addLog(subMsg+'（+'+fmt(subsidyAmt)+'円）','log-positive');
+    eventQueue.push({
+      id:'subsidy',title:'🏛️ 助成金当選！（'+fmtDate(state.week)+'）',icon:'🏛️',type:'positive',
+      description:subMsg,
+      effects:{money:subsidyAmt},
+      counterfactual:{},
+      contracts:{aceCrew:state.retainers.aceCrew,grantBoost:boostedHit}
+    });
+  }
+
+  profit-=eventCost;
+  var totalCost=baseCost+eventCost;
+
+  // 投資イベント処理
+  // 商標
+  if(state.trademark.active){
+    state.trademark.weeksLeft--;
+    if(!state.trademark.pendingPay) state.popularity=Math.min(100,state.popularity+1.5);
+    var tmElapsed=C.TM_DURATION-state.trademark.weeksLeft;
+    if(tmElapsed===C.TM_REJECTION_WEEK&&!state.trademark.rejected&&Math.random()<C.TM_REJECTION){
+      state.trademark.rejected=true;state.trademark.pendingPay=true;
+      if(!silent) addLog('™️ 商標審査で一部拒絶！追加費用'+fmt(C.TM_EXTRA)+'円を払えば継続できます。','log-negative');
+      eventQueue.push({id:'trademark',title:'™️ 商標拒絶通知（'+fmtDate(state.week)+'）',icon:'™️',type:'negative',description:'商標審査で一部拒絶！追加費用'+fmt(C.TM_EXTRA)+'円を払えば継続できます。',effects:{},counterfactual:{},contracts:{}});
+    }
+    if(state.trademark.pendingPay&&tmElapsed>C.TM_REJECTION_WEEK+1){
+      state.trademark.active=false;state.trademark.pendingPay=false;
+      if(!silent) addLog('™️ 追加費用未払いのため商標申請は取り下げに…','log-negative');
+      eventQueue.push({id:'trademark',title:'™️ 商標取り下げ（'+fmtDate(state.week)+'）',icon:'™️',type:'negative',description:'追加費用未払いのため商標申請は取り下げに…',effects:{},counterfactual:{},contracts:{}});
+    }
+    if(state.trademark.weeksLeft<=0&&state.trademark.active){
+      state.trademark.active=false;
+      if(!state.trademark.blendBonus){state.trademark.blendBonus=true;C.MAX_BLENDS=Math.min(6,C.MAX_BLENDS+1)}
+      if(!silent) addLog('™️ 商標登録完了！ブレンド枠+1（最大'+C.MAX_BLENDS+'）','log-highlight');
+      eventQueue.push({id:'trademark',title:'™️ 商標登録完了！（'+fmtDate(state.week)+'）',icon:'™️',type:'positive',description:'商標登録完了！ブレンド枠+1（最大'+C.MAX_BLENDS+'）',effects:{},counterfactual:{},contracts:{}});
+    }
+  }
+  // ゴルファー（毎週イベント）
+  if(state.golfer.active){
+    state.golfer.weeksLeft--;
+    var gRoll=Math.random();
+    if(gRoll<0.65){
+      state.popularity=Math.min(100,state.popularity+2);
+      var gMsg=GOLFER_EXPOSURE_MSG[Math.floor(Math.random()*GOLFER_EXPOSURE_MSG.length)];
+      if(!silent) addLog(gMsg,'log-positive');
+      eventQueue.push({id:'golfer',title:'⛳ ゴルファー効果（'+fmtDate(state.week)+'）',icon:'⛳',type:'positive',description:gMsg+' 人気度+2',effects:{},counterfactual:{},contracts:{}});
+    }else if(gRoll<0.90){
+      // 平穏 — ポップアップなし
+    }else{
+      state.popularity=Math.max(0,state.popularity-5);
+      var gBadMsg=GOLFER_SCANDAL_MSG[Math.floor(Math.random()*GOLFER_SCANDAL_MSG.length)];
+      if(!silent) addLog(gBadMsg,'log-negative');
+      eventQueue.push({id:'golfer',title:'⛳ ゴルファー炎上（'+fmtDate(state.week)+'）',icon:'⛳',type:'negative',description:gBadMsg+' 人気度-5',effects:{popularity:-5},counterfactual:{popularity:-5},contracts:{}});
+    }
+    if(state.golfer.weeksLeft<=0){
+      state.golfer.active=false;
+      if(!silent) addLog('⛳ ゴルファースポンサー契約が満了。お疲れ様でした！');
+      eventQueue.push({id:'golfer',title:'⛳ スポンサー契約満了（'+fmtDate(state.week)+'）',icon:'⛳',type:'positive',description:'ゴルファースポンサー契約が満了しました。',effects:{},counterfactual:{},contracts:{}});
+    }
+  }
+  // ヨット（4週ごとのイベント）
+  if(state.yacht.active){
+    state.yacht.weeksLeft--;
+    if(state.week%4===0){
+      var yRoll=Math.random();
+      if(yRoll<0.80){
+        var luxuryBonus=Math.round(revenue*0.15);
+        profit+=luxuryBonus;revenue+=luxuryBonus;
+        var yMsg=YACHT_LUXURY_MSG[Math.floor(Math.random()*YACHT_LUXURY_MSG.length)];
+        if(!silent) addLog(yMsg+'(+'+fmt(luxuryBonus)+'円)','log-positive');
+        eventQueue.push({id:'yacht',title:'🛥️ ヨット効果（'+fmtDate(state.week)+'）',icon:'🛥️',type:'positive',description:yMsg+' +'+fmt(luxuryBonus)+'円',effects:{money:luxuryBonus},counterfactual:{},contracts:{}});
+      }else{
+        if(state.money+profit>=C.YACHT_MAINT){
+          profit-=C.YACHT_MAINT;
+          var yBadMsg=YACHT_MAINT_MSG[Math.floor(Math.random()*YACHT_MAINT_MSG.length)];
+          if(!silent) addLog(yBadMsg+'(-'+fmt(C.YACHT_MAINT)+'円)','log-negative');
+          eventQueue.push({id:'yacht',title:'🛥️ ヨット修理費（'+fmtDate(state.week)+'）',icon:'🛥️',type:'negative',description:yBadMsg+' -'+fmt(C.YACHT_MAINT)+'円',effects:{money:-C.YACHT_MAINT},counterfactual:{money:-C.YACHT_MAINT},contracts:{}});
+        }else{
+          state.yacht.active=false;state.popularity=Math.max(0,state.popularity-8);
+          if(!silent) addLog('🛥️ メンテ費用が払えず広告を撤去…人気度-8。','log-negative');
+          eventQueue.push({id:'yacht',title:'🛥️ ヨット広告撤去（'+fmtDate(state.week)+'）',icon:'🛥️',type:'negative',description:'メンテ費用が払えず広告を撤去…人気度-8。',effects:{popularity:-8},counterfactual:{popularity:-8},contracts:{}});
+        }
+      }
+    }
+    if(state.yacht.weeksLeft<=0&&state.yacht.active){
+      state.yacht.active=false;
+      if(!silent) addLog('🛥️ ヨット広告の掲載期間が終了。セレブ効果も一段落。');
+      eventQueue.push({id:'yacht',title:'🛥️ ヨット広告終了（'+fmtDate(state.week)+'）',icon:'🛥️',type:'positive',description:'ヨット広告の掲載期間が終了しました。',effects:{},counterfactual:{},contracts:{}});
+    }
+  }
+
+  state.money+=profit;
+  state.lastRevenue=revenue;state.lastCost=totalCost;state.lastProfit=profit;state.lastCustomers=served;
+  state.lastCostRent=rc;state.lastCostUtility=uc;state.lastCostStaff=sc;state.lastCostBean=bc;
+  // 累計
+  state.cumulativeProfit+=profit;
+  state.totalSales+=revenue;state.totalCustomers+=served;
+  if(state.popularity>state.maxPopularity) state.maxPopularity=state.popularity;
+  state.brandPower=calcBrandPower();
+  // 販売内訳保存
+  state.lastSalesBreakdown={};
+  for(var si in salesCount) state.lastSalesBreakdown[menu[si].name]=salesCount[si];
+  // 人気度変動（成長カーブ: 序盤は伸びやすく、高くなると鈍化）
+  if(served>0){
+    var pq=qualWSum/served;
+    var popGrowthDamp=state.popularity>60?0.6:1.0; // 高人気帯は成長鈍化
+    if(pq>=80) state.popularity+=0.8*popGrowthDamp;
+    else if(pq>=60) state.popularity+=0.2*popGrowthDamp;
+    else if(pq<40) state.popularity-=0.8;
+    else if(pq<60) state.popularity-=0.3;
+    // 新ブレンド初週ボーナス
+    state.blends.forEach(function(bl,bi){
+      if((state.week-bl.createdWeek)<=1){
+        for(var mi=0;mi<menu.length;mi++){
+          if(menu[mi].type==='blend'&&menu[mi].blendIndex===bi&&salesCount[mi]){
+            state.popularity+=1;break;
+          }
+        }
+      }
+    });
+  }
+  if(served<customers) state.popularity-=0.3;
+  state.popularity=Math.max(0,Math.min(100,state.popularity));
+  state.avgQuality=calcAvgQuality();
+
+  // --- XP加算 ---
+  if(profit>0) addXp(XP_GAIN.DAILY_PROFIT,'',silent);
+  // ヒットブレンド判定（初週ブレンド累計売上30杯以上）
+  state.blends.forEach(function(bl,bi){
+    if(!bl._hitAwarded&&(state.week-bl.createdWeek)<=1){
+      var sold=0;
+      for(var mi=0;mi<menu.length;mi++){
+        if(menu[mi].type==='blend'&&menu[mi].blendIndex===bi) sold+=(salesCount[mi]||0);
+      }
+      bl._weekSales=(bl._weekSales||0)+sold;
+      if(bl._weekSales>=30){
+        bl._hitAwarded=true;
+        addXp(XP_GAIN.HIT_BLEND,'',silent);
+        if(!silent) addLog('🎉 「'+bl.name+'」が人気商品に！お客さんの行列が止まらない。','log-highlight');
+      }
+    }
+  });
+
+  // 年末リセット（48週ごと）
+  if(state.week>0&&state.week%C.WEEKS_PER_YEAR===0){
+    state.compWonThisYear=false;
+    state.prefChallengedThisYear=false;
+    if(!silent) addLog('🎍 新年！今年も大会・隣県対決に挑戦できます。','log-highlight');
+  }
+  // 年末リマインダー（46週目＝12月上旬相当）
+  if(state.week%C.WEEKS_PER_YEAR===46&&!state.compWonThisYear&&state.compMaxRank<COMP_RANKS.length){
+    if(!silent) addLog('🏆 年末が近づいています。今年の大会にまだ参加していません！','log-highlight');
+  }
+
+  state.week++;
+}
+
+/* ===========================================
+   来店アニメーション
+   =========================================== */
+var visitTimer=null;
+function playVisitAnimation(info,callback){
+  state.isAnimating=true;
+  var profit=info.profit;
+  var quality=info.quality;
+  var label=info.label||'🏪 来店中…';
+
+  // リアクション決定
+  var face;
+  if(quality>80) face='😊';
+  else if(quality>=50) face='🙂';
+  else if(quality>=30) face='😐';
+  else face='😖';
+
+  // DOM リセット（店舗外観エリア上で再生）
+  dom.shopV.className='shop-v';dom.shopV.style.right='-20px';
+  dom.shopVCoffee.className='shop-v-coffee';
+  dom.shopVReact.className='shop-v-react';
+  dom.shopVRevenue.className='shop-v-revenue';
+  dom.shopVReact.textContent=face+(quality>80?' ⭐':'');
+  dom.shopVRevenue.textContent=(profit>=0?'+':'')+fmt(profit)+'円';
+  dom.shopVRevenue.classList.add(profit>=0?'positive':'negative');
+  dom.shopVLabel.textContent=label;
+
+  // 常連顔表示(40%確率)
+  dom.shopVRegular.className='shop-v-regular';
+  dom.shopVRegular.textContent='';
+  var actRegs=getActiveRegulars();
+  if(actRegs.length>0&&Math.random()<0.40){
+    var rr=actRegs[Math.floor(Math.random()*actRegs.length)];
+    var rd=getRegData(rr.id);
+    if(rd){dom.shopVRegular.textContent=rd.icon;void dom.shopVRegular.offsetWidth;dom.shopVRegular.classList.add('show')}
+  }
+
+  // リフロー強制してからアニメクラス付与
+  void dom.shopV.offsetWidth;
+  dom.shopV.classList.add('walk-in');
+  dom.shopVCoffee.classList.add('show');
+  dom.shopVReact.classList.add('show');
+  dom.shopVRevenue.classList.add('show');
+
+  function finish(){
+    if(visitTimer){clearTimeout(visitTimer);visitTimer=null}
+    state.isAnimating=false;
+    // リセット
+    dom.shopV.className='shop-v';dom.shopV.style.right='-20px';
+    dom.shopVCoffee.className='shop-v-coffee';
+    dom.shopVReact.className='shop-v-react';
+    dom.shopVRevenue.className='shop-v-revenue';
+    dom.shopVRegular.className='shop-v-regular';dom.shopVRegular.textContent='';
+    dom.shopVLabel.textContent='';
+    callback();
+  }
+  visitTimer=setTimeout(finish,2000);
+  // スキップ（クリック）
+  dom.shopExterior.onclick=function(){dom.shopExterior.onclick=null;finish()};
+}
+
+/* ===========================================
+   週数進行
+   =========================================== */
+function advanceWeeks(n){
+  if(state.roasting||state.isAnimating) return;
+  if(state.trademark.pendingPay){addLog('™️ 商標の追加費用を支払うか、放棄してください。','log-negative');return}
+
+  // シミュレーション先行実行
+  var totalProfit=0,totalCustomers=0,bankrupt=false,scoreReached=false,qualSum=0;
+  for(var i=0;i<n;i++){
+    simulateWeek(n>1);
+    totalProfit+=state.lastProfit;
+    totalCustomers+=state.lastCustomers;
+    qualSum+=state.avgQuality;
+    // 資金ショート猶予
+    if(state.money<0){
+      state.cashShortWeeks++;
+      if(n===1) addLog('💀 '+CASH_SHORT_MSG[Math.min(state.cashShortWeeks-1,CASH_SHORT_MSG.length-1)],'log-negative');
+      if(state.cashShortWeeks>=C.CASH_SHORT_GRACE){bankrupt=true;break}
+    }else{
+      if(state.cashShortWeeks>0&&n===1) addLog('💰 黒字回復！資金ショートを脱出。','log-positive');
+      state.cashShortWeeks=0;
+    }
+    if(state.week>=C.TOTAL_WEEKS&&!state.scoreShown){scoreReached=true;break}
+  }
+  var avgQual=n>0?qualSum/Math.min(n,i+1):state.avgQuality;
+
+  // アニメ用ラベル
+  var label=n===1?'🏪 今週の営業…':'🏪 '+n+'週間の営業…';
+
+  // アニメーション → 完了後にログ＆UI更新
+  playVisitAnimation({profit:totalProfit,quality:avgQual,label:label},function(){
+    if(bankrupt){dom.bankruptModal.classList.add('active');updateUI();return}
+    if(scoreReached){state.scoreShown=true;updateUI();showScoreScreen();return}
+    var dateStr=fmtDate(state.week-1);
+    if(n===1){
+      var bd=state.lastSalesBreakdown,bk=Object.keys(bd).sort(function(a,b){return bd[b]-bd[a]});
+      var top=bk.slice(0,2).map(function(nm){return nm+' '+bd[nm]+'杯'}).join(' / ');
+      var lt='📅 '+dateStr+'｜来客'+state.lastCustomers+'人 利益'+(state.lastProfit>=0?'+':'')+fmt(state.lastProfit)+'円';
+      if(top) lt+='｜'+top;
+      addLog(lt,state.lastProfit>=0?'':'log-negative');
+    }else{
+      addLog('📅 '+n+'週経過 → '+dateStr+'｜来客計'+totalCustomers+'人 利益'+(totalProfit>=0?'+':'')+fmt(totalProfit)+'円｜所持金: '+fmt(state.money)+'円');
+    }
+    updateUI();
+    if(eventQueue.length>0){
+      showNextEvent();
+    }
+  });
+}
+
+/* ===========================================
+   スコア
+   =========================================== */
+function showScoreScreen(){
+  var m=state.money,rank,rc;
+  if(m>=5000000){rank='S';rc='rank-s'}else if(m>=2000000){rank='A';rc='rank-a'}else if(m>=1000000){rank='B';rc='rank-b'}else if(m>=500000){rank='C';rc='rank-c'}else{rank='D';rc='rank-d'}
+  dom.scoreRank.textContent=rank;dom.scoreRank.className='score-rank '+rc;
+  dom.scoreMoney.textContent=fmt(m)+'円';dom.scoreTotalSales.textContent=fmt(state.totalSales)+'円';
+  dom.scoreTotalCustomers.textContent=fmt(state.totalCustomers)+'人';dom.scoreMaxPop.textContent=Math.round(state.maxPopularity);
+  dom.scoreAvgQuality.textContent=state.totalRoastCount>0?Math.round(state.totalQualitySum/state.totalRoastCount):'---';
+  dom.scoreWeeks.textContent=state.week+'週';
+  dom.scoreBrandPower.textContent=state.brandPower;
+  dom.scoreCumulativeProfit.textContent=fmt(state.cumulativeProfit)+'円';
+  dom.scoreShopLevel.textContent='Lv.'+state.shopLevel+' ('+state.shopXp+'XP)';
+  dom.scoreRegulars.textContent=state.regulars.unlocked.length+'人';
+  showScreen('score');
+}
+
+/* ===========================================
+   セーブ/ロード
+   =========================================== */
+var SAVE_KEY='hinano_coffee_save_v3'; // v3: 週単位システム
+function saveGame(){
+  try{var d=JSON.parse(JSON.stringify(state));d.roasting=false;localStorage.setItem(SAVE_KEY,JSON.stringify(d));addLog('💾 セーブしました！','log-positive')}
+  catch(e){addLog('💾 セーブ失敗。','log-negative')}
+}
+function loadGame(){
+  try{
+    var d=localStorage.getItem(SAVE_KEY);if(!d) return false;
+    state=JSON.parse(d);
+    // マイグレーション
+    if(state.week===undefined) state.week=0;
+    if(state.savedRecipes===undefined) state.savedRecipes=[];
+    if(state.compMaxRank===undefined) state.compMaxRank=0;
+    if(state.compWonThisYear===undefined) state.compWonThisYear=false;
+    if(state.prefectures===undefined) state.prefectures=1;
+    if(state.prefChallengedThisYear===undefined) state.prefChallengedThisYear=false;
+    if(state.brandBonus===undefined) state.brandBonus=0;
+    if(state.unlockedBeans===undefined) state.unlockedBeans=[];
+    if(state.compPriceBonus===undefined) state.compPriceBonus=0;
+    if(state.compCustBonus===undefined) state.compCustBonus=0;
+    if(state.shopXp===undefined) state.shopXp=0;
+    if(state.shopLevel===undefined) state.shopLevel=1;
+    if(state.shopTier===undefined) state.shopTier=0;
+    if(state.isAnimating===undefined) state.isAnimating=false;
+    if(state.cashShortWeeks===undefined) state.cashShortWeeks=0;
+    if(state.adWeeksLeft===undefined) state.adWeeksLeft=0;
+    if(!state.debuff) state.debuff={reputationWeeks:0,supplierWeeks:0};
+    if(state.debuff.reputationWeeks===undefined) state.debuff.reputationWeeks=0;
+    if(state.debuff.supplierWeeks===undefined) state.debuff.supplierWeeks=0;
+    if(!state.regulars) state.regulars={unlocked:[],log:[]};
+    // ブレンドにonMenuフラグがない場合の互換
+    (state.blends||[]).forEach(function(bl){if(bl.onMenu===undefined) bl.onMenu=false});
+    // 特別豆の再登録
+    (state.unlockedBeans||[]).forEach(function(key){
+      if(SPECIAL_BEANS[key]&&!BEANS[key]){
+        BEANS[key]=SPECIAL_BEANS[key];
+        if(!state.inventory[key]) state.inventory[key]={raw:0,roasted:0,quality:0};
+      }
+    });
+    return true;
+  }catch(e){return false}
+}
+function hasSave(){return!!localStorage.getItem(SAVE_KEY)}
+
+/* ===========================================
+   ゲーム開始
+   =========================================== */
+function startGame(){
+  initState();
+  dom.logArea.innerHTML='<div class="log-entry">☕ Hinano Coffee オープン！まず豆を焙煎しよう！</div>';
+  dom.roastResult.innerHTML='';dom.roasterOverlay.style.opacity='0';
+  dom.btnRoastStart.disabled=false;dom.btnRoastStop.disabled=true;
+  dom.bankruptModal.classList.remove('active');dom.cashShortBanner.classList.remove('active');
+  selectBean('brazil');updateUI();updateBlendForm();showScreen('game');
+}
+function loadAndStart(){
+  if(loadGame()){
+    dom.logArea.innerHTML='<div class="log-entry">💾 セーブデータをロードしました！</div>';
+    dom.roastResult.innerHTML='';dom.roasterOverlay.style.opacity='0';
+    dom.btnRoastStart.disabled=false;dom.btnRoastStop.disabled=true;
+    dom.bankruptModal.classList.remove('active');dom.cashShortBanner.classList.remove('active');
+    renderBeanSelector();
+    selectBean(state.selectedBean);updateUI();updateBlendForm();showScreen('game');
+  }
+}
+function continueGame(){state.scoreShown=true;showScreen('game')}
+
+/* ===========================================
+   初期化
+   =========================================== */
+function init(){
+  cacheDom();
+  for(var i=0;i<5;i++) smokes.push(document.getElementById('smoke'+i));
+  if(hasSave()) dom.btnLoad.style.display='';
+
+  dom.btnGameStart.addEventListener('click',startGame);
+  dom.btnLoad.addEventListener('click',loadAndStart);
+  dom.btnRetry.addEventListener('click',startGame);
+  dom.btnContinue.addEventListener('click',continueGame);
+  dom.btnBankruptRetry.addEventListener('click',function(){dom.bankruptModal.classList.remove('active');startGame()});
+
+  dom.beanSelector.addEventListener('click',function(e){var b=e.target.closest('.bean-btn');if(b) selectBean(b.getAttribute('data-bean'))});
+  dom.btnBuyBean.addEventListener('click',buyBean);
+  dom.lotMinus.addEventListener('click',function(){if(roastLots>1){roastLots--;updateLotSelector()}});
+  dom.lotPlus.addEventListener('click',function(){var mx=Math.min(10,state.inventory[state.selectedBean].raw);if(roastLots<mx){roastLots++;updateLotSelector()}});
+  dom.btnRoastStart.addEventListener('click',startRoast);
+  dom.btnRoastStop.addEventListener('click',stopRoast);
+
+  // ブレンドスライダー
+  dom.sliderBrazil.addEventListener('input',updateBlendForm);
+  dom.sliderMocha.addEventListener('input',updateBlendForm);
+  dom.sliderPanama.addEventListener('input',updateBlendForm);
+  dom.blendName.addEventListener('input',updateBlendForm);
+  dom.btnCreateBlend.addEventListener('click',createBlend);
+  // ブレンド削除（委任）
+  dom.menuList.addEventListener('click',function(e){var b=e.target.closest('.menu-delete');if(b) deleteBlend(+b.getAttribute('data-bi'))});
+  dom.menuList.addEventListener('click',function(e){var b=e.target.closest('.menu-toggle');if(b){e.stopPropagation();toggleBlendMenu(+b.getAttribute('data-bi'))}});
+
+  dom.btnHireStaff.addEventListener('click',hireStaff);
+  dom.btnFireStaff.addEventListener('click',fireStaff);
+  dom.btnAdvertise.addEventListener('click',advertise);
+  dom.btnRetainerAce.addEventListener('click',toggleRetainerAce);
+  dom.btnRetainerAceCrew.addEventListener('click',toggleRetainerAceCrew);
+  dom.btnTrademark.addEventListener('click',buyTrademark);
+  dom.btnTmPay.addEventListener('click',payTrademarkExtra);
+  dom.btnGolfer.addEventListener('click',buyGolfer);
+  dom.btnYacht.addEventListener('click',buyYacht);
+
+  // レシピブック
+  dom.btnOpenRecipeBook.addEventListener('click',function(){renderRecipeBook();dom.recipeModal.classList.add('active')});
+  dom.btnRcpClose.addEventListener('click',function(){dom.recipeModal.classList.remove('active')});
+  // メニュー管理
+  dom.btnOpenMenuMgr.addEventListener('click',function(){renderMenuMgr();dom.menuMgrModal.classList.add('active')});
+  dom.btnMenuMgrClose.addEventListener('click',function(){dom.menuMgrModal.classList.remove('active')});
+  dom.btnMenuMgrDone.addEventListener('click',function(){dom.menuMgrModal.classList.remove('active');updateUI()});
+  dom.menuMgrList.addEventListener('click',function(e){var b=e.target.closest('.menu-rcp-item');if(b){toggleBlendMenuFromMgr(+b.getAttribute('data-bi'))}});
+  // スロット除去（委任）
+  document.addEventListener('click',function(e){var b=e.target.closest('.slot-remove');if(b){e.stopPropagation();removeBlendFromMgr(+b.getAttribute('data-bi'))}});
+  dom.rcpBookList.addEventListener('click',function(e){var b=e.target.closest('.rcp-del');if(b) deleteRecipe(+b.getAttribute('data-ri'))});
+  // メニューの保存ボタン（委任）
+  dom.menuList.addEventListener('click',function(e){var b=e.target.closest('.rcp-save');if(b){e.stopPropagation();saveRecipeFromBlend(+b.getAttribute('data-bi'))}});
+  // 大会
+  dom.btnOpenComp.addEventListener('click',openCompetition);
+  dom.btnCompEnter.addEventListener('click',enterCompetition);
+  dom.btnCompCancel.addEventListener('click',function(){dom.compModal.classList.remove('active')});
+  dom.btnCrStop.addEventListener('click',function(){stopTimingGame(dom.crZone)});
+  dom.btnCdStop.addEventListener('click',function(){stopTimingGame(dom.cdZone)});
+  dom.btnCompDone.addEventListener('click',function(){dom.compModal.classList.remove('active');updateUI()});
+  // 県対決
+  dom.btnOpenPref.addEventListener('click',openPrefBattle);
+  dom.btnPrefEnter.addEventListener('click',enterPrefBattle);
+  dom.btnPrefCancel.addEventListener('click',function(){dom.prefModal.classList.remove('active')});
+  dom.btnPfStop.addEventListener('click',function(){stopTimingGame(dom.pfZone)});
+  dom.btnPrefDone.addEventListener('click',function(){dom.prefModal.classList.remove('active');updateUI()});
+
+  dom.btnWeek1.addEventListener('click',function(){advanceWeeks(1)});
+  dom.btnWeek4.addEventListener('click',function(){advanceWeeks(4)});
+  dom.btnWeek12.addEventListener('click',function(){advanceWeeks(12)});
+  dom.btnWeek48.addEventListener('click',function(){advanceWeeks(48)});
+  dom.btnSave.addEventListener('click',saveGame);
+
+  // 常連コレクション
+  dom.btnOpenCollection.addEventListener('click',function(){renderCollection();dom.collectionModal.classList.add('active')});
+  dom.btnCollClose.addEventListener('click',function(){dom.collectionModal.classList.remove('active');renderRegularsPanel()});
+  dom.collFilters.addEventListener('click',function(e){var b=e.target.closest('.coll-filter-btn');if(b){collFilterState=b.getAttribute('data-filter');renderCollection()}});
+  dom.collGrid.addEventListener('click',function(e){var b=e.target.closest('.coll-toggle');if(b){toggleRegularActive(b.getAttribute('data-reg-id'))}});
+
+  // イベントポップアップ
+  dom.btnEvtNext.addEventListener('click',closeEventPopup);
+
+  document.addEventListener('keydown',function(e){
+    // イベントポップアップが開いていればEscで閉じる
+    if(e.key==='Escape'&&dom.evtPopup.classList.contains('active')){closeEventPopup();return}
+    if(dom.screenTitle.classList.contains('active')){if(e.key==='Enter') startGame();return}
+    if(dom.screenScore.classList.contains('active')){if(e.key==='Enter') continueGame();return}
+    if(!dom.screenGame.classList.contains('active')) return;
+    if(document.activeElement&&(document.activeElement.tagName==='INPUT')) return; // テキスト入力中はスキップ
+    if(e.key===' '||e.key==='Enter'){e.preventDefault();if(state.roasting) stopRoast();else startRoast()}
+    if(e.key==='1') selectBean('brazil');
+    if(e.key==='2') selectBean('mocha');
+    if(e.key==='3') selectBean('panama');
+    if(e.key==='ArrowRight') advanceWeeks(1);
+    if(e.key==='b'||e.key==='B') buyBean();
+  });
+
+  updateBlendForm();
+}
+init();
+})();
+</script>
+</body>
+</html>

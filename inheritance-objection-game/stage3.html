@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>そうは問屋がおろしませんよ！ — 交通事故尋問 第三話</title>
+<style>
+/* ========================================
+   Reset & Base
+   ======================================== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:        #0f1115;
+  --bg-surface:#161920;
+  --bg-modal:  #1a1d24;
+  --bg-card:   #1c1f28;
+  --border:    #2a2d35;
+  --text:      #e5e7eb;
+  --text-dim:  #6b7080;
+  --text-faint:#3e4250;
+  --accent:    #c8a44d;
+  --accent-dim:#9a7e34;
+  --crimson:   #8b0000;
+  --crimson-h: #a01010;
+  --red:       #943030;
+  --green:     #4a8c5c;
+  --font-serif:'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --font-sans: 'Noto Sans JP', 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+  --radius:    6px;
+  --transition:0.3s ease;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ========================================
+   Screens
+   ======================================== */
+.screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.screen.active {
+  display: flex;
+}
+
+/* ========================================
+   Title Screen
+   ======================================== */
+.screen--title {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--bg);
+}
+
+.title-kana {
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.35em;
+  margin-bottom: 20px;
+}
+
+.title-main {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 7vw, 3.2rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.title-episode {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  color: var(--accent-dim);
+  letter-spacing: 0.2em;
+  margin-bottom: 12px;
+}
+
+.title-desc {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  line-height: 1.9;
+  margin-bottom: 56px;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 14px 52px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: var(--font-serif);
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.14em;
+  transition: all var(--transition);
+}
+.btn-primary:hover {
+  background: #d4b45a;
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   Briefing Screen
+   ======================================== */
+.screen--briefing {
+  align-items: center;
+  padding: 48px 24px 64px;
+  background: var(--bg);
+}
+
+.briefing-inner {
+  max-width: 640px;
+  width: 100%;
+}
+
+.briefing-heading {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.briefing-section {
+  margin-bottom: 36px;
+}
+
+.briefing-label {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.briefing-text {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 2;
+  letter-spacing: 0.02em;
+}
+
+.briefing-text strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 証拠カード */
+.evidence-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.evidence-card {
+  padding: 20px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-dim);
+  border-radius: var(--radius);
+}
+
+.evidence-card-name {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+
+.evidence-card-body {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.8;
+}
+
+/* 任務 */
+.briefing-mission {
+  padding: 20px 22px;
+  background: rgba(200, 164, 77, 0.05);
+  border: 1px solid rgba(200, 164, 77, 0.15);
+  border-radius: var(--radius);
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 2;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.briefing-action {
+  text-align: center;
+  margin-top: 44px;
+}
+
+/* ========================================
+   Game Screen
+   ======================================== */
+.screen--game {
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* 3-column game layout */
+.game-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 20px 16px;
+  background: var(--bg-surface);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+
+.sidebar-left {
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-right {
+  border-left: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-family: var(--font-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-text {
+  font-size: 0.73rem;
+  color: var(--text-dim);
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+}
+
+.sidebar-text strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-evidence {
+  margin-bottom: 14px;
+}
+
+.sidebar-evidence-name {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.sidebar-evidence-body {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.game-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* HUD */
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.hud-left, .hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.hud-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-score { color: var(--accent); }
+
+/* Timer */
+.hud-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-timer {
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  min-width: 2em;
+  text-align: center;
+}
+
+.hud-timer.danger {
+  color: var(--red);
+}
+
+.timer-bar-wrap {
+  height: 3px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.timer-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+
+.timer-bar.danger {
+  background: var(--red);
+}
+
+/* Testimony area */
+.testimony-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  max-width: 700px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+}
+
+.testimony-speaker {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--accent-dim);
+  letter-spacing: 0.12em;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.testimony-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1.05rem, 2.6vw, 1.3rem);
+  color: var(--text);
+  line-height: 2.2;
+  text-align: center;
+  max-width: 560px;
+  min-height: 3.5em;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.testimony-text.entering {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.testimony-text.shake {
+  animation: correctShake 0.3s ease;
+}
+@keyframes correctShake {
+  0%, 100% { transform: translateX(0); }
+  20%  { transform: translateX(-4px); }
+  40%  { transform: translateX(4px); }
+  60%  { transform: translateX(-3px); }
+  80%  { transform: translateX(3px); }
+}
+
+/* Feedback */
+.feedback {
+  text-align: center;
+  padding: 10px 24px;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  min-height: 36px;
+  transition: opacity 0.4s ease;
+}
+.feedback.hidden { opacity: 0; }
+.feedback.correct { color: var(--accent); }
+.feedback.wrong { color: var(--red); }
+
+/* Action area */
+.action-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 24px;
+  flex-shrink: 0;
+}
+
+.btn-objection {
+  padding: 16px 40px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  color: #eee;
+  background: var(--crimson);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.12em;
+  transition: all var(--transition);
+}
+.btn-objection:hover:not(:disabled) {
+  background: var(--crimson-h);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(139, 0, 0, 0.3);
+}
+.btn-objection:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-next {
+  padding: 14px 32px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all var(--transition);
+}
+.btn-next:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+.btn-next:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   Evidence Modal
+   ======================================== */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.7);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.modal-backdrop.active {
+  display: flex;
+}
+
+.modal {
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 36px 32px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalIn 0.25s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.evidence-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  line-height: 1.6;
+}
+.evidence-btn:hover {
+  border-color: var(--accent-dim);
+  background: rgba(200, 164, 77, 0.06);
+}
+
+.evidence-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+
+.evidence-desc {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.modal-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: color var(--transition);
+}
+.modal-cancel:hover { color: var(--text); }
+
+/* ========================================
+   Flash overlay
+   ======================================== */
+.flash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.flash-overlay.flash-gold {
+  background: var(--accent);
+  animation: flashAnim 0.35s ease forwards;
+}
+
+.flash-overlay.flash-red {
+  background: var(--red);
+  animation: flashAnim 0.3s ease forwards;
+}
+
+@keyframes flashAnim {
+  0%   { opacity: 0.25; }
+  100% { opacity: 0; }
+}
+
+/* ========================================
+   Ending Screen
+   ======================================== */
+.screen--ending {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.ending-inner {
+  max-width: 520px;
+  opacity: 0;
+  animation: endingAppear 2s ease 0.5s forwards;
+}
+
+@keyframes endingAppear {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.ending-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: var(--text);
+  line-height: 2.4;
+  letter-spacing: 0.08em;
+  margin-bottom: 48px;
+  white-space: pre-line;
+}
+
+.ending-score {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 48px;
+}
+
+.btn-retry {
+  display: inline-block;
+  padding: 12px 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-serif);
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all var(--transition);
+}
+.btn-retry:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+@media (max-width: 960px) {
+  .sidebar { width: 180px; font-size: 0.7rem; }
+}
+
+@media (max-width: 740px) {
+  .sidebar { display: none; }
+}
+
+@media (max-width: 600px) {
+  .hud { padding: 14px 16px; }
+  .testimony-area { padding: 32px 20px; }
+
+
+  .action-area {
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 10px;
+  }
+  .btn-objection,
+  .btn-next {
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal { padding: 28px 20px; }
+
+  .screen--briefing { padding: 32px 16px 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Flash overlay -->
+<div class="flash-overlay" id="flashOverlay"></div>
+
+<!-- ===== タイトル画面 ===== -->
+<div class="screen screen--title active" id="screenTitle">
+  <p class="title-kana">― 交通事故尋問 ―</p>
+  <h1 class="title-main">そうは問屋がおろしませんよ！</h1>
+  <p class="title-episode">第三話</p>
+  <p class="title-desc">東京高等裁判所</p>
+  <button class="btn-primary" id="btnStart" type="button">開廷する</button>
+</div>
+
+<!-- ===== 事件ブリーフィング画面 ===== -->
+<div class="screen screen--briefing" id="screenBriefing">
+  <div class="briefing-inner">
+
+    <p class="briefing-heading">事件概要 ― 尋問前資料</p>
+
+    <!-- 事件の背景 -->
+    <div class="briefing-section">
+      <p class="briefing-label">事件の経緯</p>
+      <p class="briefing-text">
+        20XX年9月15日午後3時頃、都内の交差点で<strong>中村洋介</strong>（以下B）が運転する乗用車が、
+        直進していた<strong>藤田康弘</strong>（以下A・享年45歳）の車両に衝突。<br>
+        Aは搬送先の病院で死亡が確認された。<br><br>
+        Bは「<strong>Aが意識を失って車線を逸脱し、自分の車に衝突してきた</strong>」と主張。<br>
+        一審ではBの主張が採用され、<strong>Aの過失が大きい</strong>と認定された。<br>
+        Aの遺族は判決を不服として<strong>東京高等裁判所に控訴</strong>。<br>
+        あなたはAの遺族側の弁護士として、Bに対する証人尋問に臨む。<br>
+        真の事故原因は<strong>Bのスピード違反と信号無視</strong>にある。
+      </p>
+    </div>
+
+    <!-- 判明している事実 -->
+    <div class="briefing-section">
+      <p class="briefing-label">控訴審で新たに判明した事実</p>
+      <p class="briefing-text">
+        ・Bの車両に搭載されていたドライブレコーダーを解析した結果、<br>
+        　衝突直前のBの速度は<strong>時速82km</strong>（制限速度40km/h）だった。<br><br>
+        ・交差点の信号サイクル記録を照合したところ、<br>
+        　衝突時刻に<strong>Bの進行方向は赤信号</strong>、<strong>Aの進行方向は青信号</strong>だった。<br><br>
+        ・事故の目撃者が新たに名乗り出て、<br>
+        　「<strong>Aの車は普通にまっすぐ走っていた</strong>。蛇行などしていなかった」と証言した。<br><br>
+        ・Aの過去10年分の医療記録を調査したところ、てんかん・意識障害等の<br>
+        　<strong>診断歴は一切なく</strong>、司法解剖でも衝突前の意識喪失を示す所見はなかった。<br><br>
+        ・事故現場のブレーキ痕鑑定の結果、<strong>Aの車両には正常なブレーキ痕</strong>があったが、<br>
+        　Bの車両には<strong>ブレーキ痕がなく</strong>、むしろ<strong>加速した形跡</strong>が認められた。<br><br>
+        ・事故現場付近の防犯カメラに、事故の<strong>2分前</strong>にBの車両が<br>
+        　別の交差点でも<strong>赤信号を無視して通過</strong>する映像が記録されていた。
+      </p>
+    </div>
+
+    <!-- 手持ち証拠 -->
+    <div class="briefing-section">
+      <p class="briefing-label">あなたの手持ち証拠</p>
+      <div class="evidence-cards">
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠①：ドライブレコーダー映像</p>
+          <p class="evidence-card-body">
+            Bの車載ドラレコの解析結果。衝突直前のBの速度は時速82km。
+            制限速度40km/hの道路で倍以上の速度が出ていた。
+          </p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠②：信号サイクル記録</p>
+          <p class="evidence-card-body">
+            交差点の信号制御ログ。衝突時刻においてBの進行方向は赤信号。
+            Aの進行方向は青信号だった。
+          </p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠③：目撃者の証言調書</p>
+          <p class="evidence-card-body">
+            歩道にいた目撃者の供述調書。「Aの車はまっすぐ普通に走っていた。
+            蛇行などしていなかった」と証言。Aの意識喪失を否定する内容。
+          </p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠④：Aの医療記録</p>
+          <p class="evidence-card-body">
+            Aの過去10年分の通院記録および司法解剖結果。てんかん・意識障害等の
+            診断歴は一切なし。衝突前の意識喪失を示す所見もなかった。
+          </p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑤：ブレーキ痕鑑定書</p>
+          <p class="evidence-card-body">
+            事故現場の路面鑑定結果。Aの車両には正常なブレーキ痕が残っていた。
+            一方、Bの車両にはブレーキ痕がなく、加速した痕跡が確認された。
+          </p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑥：防犯カメラ映像</p>
+          <p class="evidence-card-body">
+            事故現場から約300m手前のコンビニの防犯カメラ映像。
+            事故の2分前、Bの車両が別の交差点で赤信号を無視して通過している。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- あなたの任務 -->
+    <div class="briefing-section">
+      <p class="briefing-label">あなたの任務</p>
+      <div class="briefing-mission">
+        Bの証言を聞き、事実と矛盾する証言を見つけたら<br>
+        「そうは問屋がおろしませんよ！」で証拠を突きつけよ。<br>
+        矛盾のない証言には異議を出してはならない。<br>
+        「Aの意識喪失」という虚偽の主張を崩し、Bの真の過失を立証せよ。
+      </div>
+    </div>
+
+    <div class="briefing-action">
+      <button class="btn-primary" id="btnBeginTrial" type="button">尋問を開始する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div class="screen screen--game" id="screenGame">
+
+  <!-- HUD -->
+  <header class="hud">
+    <div class="hud-left">
+      <span class="hud-label">第</span>
+      <span class="hud-value" id="stmtNum">1</span>
+      <span class="hud-label">証言</span>
+    </div>
+    <div class="hud-center">
+      <span class="hud-label">TIME</span>
+      <span class="hud-timer" id="timerDisplay">10</span>
+    </div>
+    <div class="hud-right">
+      <span class="hud-label">SCORE</span>
+      <span class="hud-value hud-score" id="scoreDisplay">100</span>
+    </div>
+  </header>
+  <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+
+  <div class="game-content">
+    <!-- 左：ストーリー -->
+    <aside class="sidebar sidebar-left">
+      <p class="sidebar-title">事件の経緯</p>
+      <p class="sidebar-text">
+        <strong>中村洋介</strong>（B）の乗用車が、直進中の<strong>藤田康弘</strong>（A・享年45歳）の車両に衝突。Aは死亡。<br><br>
+        Bは「<strong>Aが意識を失って車線を逸脱し衝突してきた</strong>」と主張。<br><br>
+        一審ではBの主張が採用され、<strong>Aの過失が大きい</strong>と認定された。<br><br>
+        Aの遺族が東京高裁に控訴。<br>
+        真の事故原因は<strong>Bのスピード違反と信号無視</strong>にある。
+      </p>
+    </aside>
+
+    <!-- 中央：尋問 -->
+    <div class="game-center">
+      <main class="testimony-area">
+        <div class="testimony-speaker" id="speaker">証人：加害者 中村洋介</div>
+        <div class="testimony-text" id="testimonyText"></div>
+        <div class="feedback hidden" id="feedback"></div>
+      </main>
+      <footer class="action-area">
+        <button class="btn-objection" id="btnObjection" type="button">そうは問屋がおろしませんよ！</button>
+        <button class="btn-next" id="btnNext" type="button">次へ</button>
+      </footer>
+    </div>
+
+    <!-- 右：証拠 -->
+    <aside class="sidebar sidebar-right">
+      <p class="sidebar-title">手持ち証拠</p>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">①ドラレコ映像</p>
+        <p class="sidebar-evidence-body">Bの速度は時速82km（制限40km/h）。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">②信号サイクル記録</p>
+        <p class="sidebar-evidence-body">衝突時、Bの方向は赤信号。Aは青。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">③目撃者の証言調書</p>
+        <p class="sidebar-evidence-body">Aの車はまっすぐ走っていた。蛇行なし。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">④Aの医療記録</p>
+        <p class="sidebar-evidence-body">意識障害の既往症なし。解剖でも所見なし。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑤ブレーキ痕鑑定書</p>
+        <p class="sidebar-evidence-body">Aは正常にブレーキ。Bはブレーキ痕なし・加速痕あり。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑥防犯カメラ映像</p>
+        <p class="sidebar-evidence-body">事故2分前にBが別の交差点で赤信号無視。</p>
+      </div>
+    </aside>
+  </div>
+
+</div>
+
+<!-- ===== 証拠モーダル ===== -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <p class="modal-title">どの証拠を突きつける？</p>
+    <button class="evidence-btn" id="evidDashcam" type="button">
+      <span class="evidence-name">①ドライブレコーダー映像</span>
+      <span class="evidence-desc">衝突直前の速度は時速82km（制限40km/h）</span>
+    </button>
+    <button class="evidence-btn" id="evidSignal" type="button">
+      <span class="evidence-name">②信号サイクル記録</span>
+      <span class="evidence-desc">衝突時、Bの進行方向は赤信号だった</span>
+    </button>
+    <button class="evidence-btn" id="evidWitness" type="button">
+      <span class="evidence-name">③目撃者の証言調書</span>
+      <span class="evidence-desc">Aの車はまっすぐ走っていた、蛇行していなかった</span>
+    </button>
+    <button class="evidence-btn" id="evidMedical" type="button">
+      <span class="evidence-name">④Aの医療記録</span>
+      <span class="evidence-desc">Aに意識障害の既往症なし、解剖でも意識喪失の所見なし</span>
+    </button>
+    <button class="evidence-btn" id="evidBrake" type="button">
+      <span class="evidence-name">⑤ブレーキ痕鑑定書</span>
+      <span class="evidence-desc">ブレーキ痕なし、衝突直前に加速した痕跡あり</span>
+    </button>
+    <button class="evidence-btn" id="evidCamera" type="button">
+      <span class="evidence-name">⑥防犯カメラ映像</span>
+      <span class="evidence-desc">事故2分前に別の交差点で赤信号を無視して通過</span>
+    </button>
+    <button class="modal-cancel" id="btnCancelModal" type="button">やめる</button>
+  </div>
+</div>
+
+<!-- ===== エンディング ===== -->
+<div class="screen screen--ending" id="screenEnding">
+  <div class="ending-inner" id="endingInner">
+    <p class="ending-text" id="endingText"></p>
+    <p class="ending-score" id="endingScore"></p>
+    <button class="btn-retry" id="btnRetry" type="button">最初からやり直す</button>
+  </div>
+</div>
+
+<script>
+/* ========================================
+   そうは問屋がおろしませんよ！ — 交通事故尋問 第三話
+   ======================================== */
+'use strict';
+
+(function () {
+
+  /* =============================================
+     証言データ（18文、矛盾6つ）
+     ============================================= */
+  var STATEMENTS = [
+    // ① 矛盾なし — 当日の行動
+    { text: 'あの日は普通に仕事に向かう途中でした。' },
+    // ② 矛盾あり — 「Aの車が蛇行していた」vs 目撃者の証言調書（Aはまっすぐ走っていた）
+    {
+      text: '藤田さんの車はふらふらと蛇行していました。意識を失っていたのだと思います。',
+      correctEvidence: 'witness',
+    },
+    // ③ 矛盾なし — 衝突の瞬間
+    { text: '衝突の瞬間は本当に一瞬のことでした。' },
+    // ④ 矛盾あり — 「制限速度を守っていた」vs ドライブレコーダー映像（時速82km）
+    {
+      text: '私は制限速度を守って安全に走っていました。',
+      correctEvidence: 'dashcam',
+    },
+    // ⑤ 矛盾なし — 藤田さんへの謝罪
+    { text: '藤田さんが亡くなったことは本当に残念に思っています。' },
+    // ⑥ 矛盾あり — 「自分の信号は青」vs 信号サイクル記録（赤だった）
+    {
+      text: '私の方の信号は青でした。藤田さんの方が赤だったはずです。',
+      correctEvidence: 'signal',
+    },
+    // ⑦ 矛盾なし — 事故のトラウマ
+    { text: '事故のことは今でも夢に見ます。' },
+    // ⑧ 矛盾なし — 交差点の見通し
+    { text: 'あの交差点は見通しの悪い場所ではありません。' },
+    // ⑨ 矛盾あり — 「Aには持病があった」vs Aの医療記録（既往症なし・解剖所見なし）
+    {
+      text: '藤田さんには持病があって、それで意識を失ったのだと思います。',
+      correctEvidence: 'medical',
+    },
+    // ⑩ 矛盾なし — 車の整備
+    { text: '私の車に整備不良はありませんでした。' },
+    // ⑪ 矛盾なし — 通勤路
+    { text: 'あの道は通勤でいつも使っていました。' },
+    // ⑫ 矛盾なし — 事故後の対応
+    { text: '事故後すぐに車を降りて救助に向かいました。' },
+    // ⑬ 矛盾あり — 「ブレーキを踏んだ」vs ブレーキ痕鑑定書（B側ブレーキ痕なし・加速痕あり）
+    {
+      text: '危険を感じてすぐにブレーキを踏みました。',
+      correctEvidence: 'brake',
+    },
+    // ⑭ 矛盾なし — 謝罪の意思
+    { text: '藤田さんのご遺族には直接謝罪したいと思っています。' },
+    // ⑮ 矛盾あり — 「交通違反なし」vs 防犯カメラ映像（2分前に別の赤信号無視）
+    {
+      text: 'あの日、事故の現場に着くまで交通違反は一切していません。',
+      correctEvidence: 'camera',
+    },
+    // ⑯ 矛盾なし — 免許
+    { text: '免許の更新は欠かさずしていました。' },
+    // ⑰ 矛盾なし — 事故後の運転
+    { text: '事故の後は怖くて運転していません。' },
+    // ⑱ 矛盾なし — 遺族への思い
+    { text: '藤田さんのご遺族の気持ちを思うと胸が痛みます。' },
+  ];
+
+  var PENALTY = -10;
+  var TOTAL_CONTRADICTIONS = 6;
+
+  /* =============================================
+     状態
+     ============================================= */
+  var currentStatementIndex = 0;
+  var score = 100;
+  var correctHits = {};
+  var mistakes = 0;
+  var MAX_MISTAKES = 2;
+  var gameActive = false;
+  var transitioning = false;
+
+  var TIME_LIMIT = 10;
+  var timeLeft = TIME_LIMIT;
+  var timerInterval = null;
+
+  /* =============================================
+     DOM
+     ============================================= */
+  var dom = {
+    flash:          document.getElementById('flashOverlay'),
+    screenTitle:    document.getElementById('screenTitle'),
+    screenBriefing: document.getElementById('screenBriefing'),
+    screenGame:     document.getElementById('screenGame'),
+    screenEnding:   document.getElementById('screenEnding'),
+    stmtNum:        document.getElementById('stmtNum'),
+    scoreDisplay:   document.getElementById('scoreDisplay'),
+    speaker:        document.getElementById('speaker'),
+    testimonyText:  document.getElementById('testimonyText'),
+    feedback:       document.getElementById('feedback'),
+    btnObjection:   document.getElementById('btnObjection'),
+    btnNext:        document.getElementById('btnNext'),
+    modalBackdrop:  document.getElementById('modalBackdrop'),
+    evidDashcam:    document.getElementById('evidDashcam'),
+    evidSignal:     document.getElementById('evidSignal'),
+    evidWitness:    document.getElementById('evidWitness'),
+    evidMedical:    document.getElementById('evidMedical'),
+    evidBrake:      document.getElementById('evidBrake'),
+    evidCamera:     document.getElementById('evidCamera'),
+    btnCancelModal: document.getElementById('btnCancelModal'),
+    endingText:     document.getElementById('endingText'),
+    endingScore:    document.getElementById('endingScore'),
+    endingInner:    document.getElementById('endingInner'),
+    btnStart:       document.getElementById('btnStart'),
+    btnBeginTrial:  document.getElementById('btnBeginTrial'),
+    btnRetry:       document.getElementById('btnRetry'),
+    timerDisplay:   document.getElementById('timerDisplay'),
+    timerBar:       document.getElementById('timerBar'),
+  };
+
+  /* =============================================
+     画面切替
+     ============================================= */
+  function showScreen(name) {
+    dom.screenTitle.classList.remove('active');
+    dom.screenBriefing.classList.remove('active');
+    dom.screenGame.classList.remove('active');
+    dom.screenEnding.classList.remove('active');
+
+    if (name === 'title')    dom.screenTitle.classList.add('active');
+    if (name === 'briefing') dom.screenBriefing.classList.add('active');
+    if (name === 'game')     dom.screenGame.classList.add('active');
+    if (name === 'ending')   dom.screenEnding.classList.add('active');
+  }
+
+  /* =============================================
+     HUD更新
+     ============================================= */
+  function updateHUD() {
+    dom.stmtNum.textContent = currentStatementIndex + 1;
+    dom.scoreDisplay.textContent = score;
+  }
+
+  /* =============================================
+     証言表示
+     ============================================= */
+  function showStatement() {
+    if (currentStatementIndex >= STATEMENTS.length) {
+      finishGame();
+      return;
+    }
+
+    var stmt = STATEMENTS[currentStatementIndex];
+
+    dom.testimonyText.classList.add('entering');
+    hideFeedback();
+
+    setTimeout(function () {
+      dom.testimonyText.textContent = '「' + stmt.text + '」';
+      dom.testimonyText.classList.remove('entering');
+      setButtons(true);
+      transitioning = false;
+      startTimer();
+    }, 80);
+
+    updateHUD();
+  }
+
+  /* =============================================
+     フィードバック
+     ============================================= */
+  function showFeedback(text, cls) {
+    dom.feedback.textContent = text;
+    dom.feedback.className = 'feedback ' + cls;
+  }
+
+  function hideFeedback() {
+    dom.feedback.className = 'feedback hidden';
+    dom.feedback.textContent = '';
+  }
+
+  /* =============================================
+     演出
+     ============================================= */
+  function flashGold() {
+    dom.flash.classList.remove('flash-gold', 'flash-red');
+    void dom.flash.offsetWidth;
+    dom.flash.classList.add('flash-gold');
+    setTimeout(function () { dom.flash.classList.remove('flash-gold'); }, 400);
+  }
+
+  function flashRed() {
+    dom.flash.classList.remove('flash-gold', 'flash-red');
+    void dom.flash.offsetWidth;
+    dom.flash.classList.add('flash-red');
+    setTimeout(function () { dom.flash.classList.remove('flash-red'); }, 350);
+  }
+
+  function shakeText() {
+    dom.testimonyText.classList.remove('shake');
+    void dom.testimonyText.offsetWidth;
+    dom.testimonyText.classList.add('shake');
+  }
+
+  /* =============================================
+     スコア
+     ============================================= */
+  function penalize() {
+    score = Math.max(0, score + PENALTY);
+    updateHUD();
+  }
+
+  /* =============================================
+     タイマー
+     ============================================= */
+  function updateTimerDisplay() {
+    dom.timerDisplay.textContent = timeLeft;
+    var pct = (timeLeft / TIME_LIMIT) * 100;
+    dom.timerBar.style.width = pct + '%';
+
+    if (timeLeft <= 3) {
+      dom.timerDisplay.classList.add('danger');
+      dom.timerBar.classList.add('danger');
+    } else {
+      dom.timerDisplay.classList.remove('danger');
+      dom.timerBar.classList.remove('danger');
+    }
+  }
+
+  function startTimer() {
+    clearTimer();
+    timeLeft = TIME_LIMIT;
+    updateTimerDisplay();
+    timerInterval = setInterval(function () {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearTimer();
+        onTimeout();
+      }
+    }, 1000);
+  }
+
+  function clearTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function pauseTimer() {
+    clearTimer();
+  }
+
+  function resumeTimer() {
+    if (!gameActive || transitioning || timeLeft <= 0) return;
+    clearTimer();
+    timerInterval = setInterval(function () {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearTimer();
+        onTimeout();
+      }
+    }, 1000);
+  }
+
+  function onTimeout() {
+    if (!gameActive || transitioning) return;
+    mistakes++;
+    penalize();
+    flashRed();
+    setButtons(false);
+    showFeedback('時間切れだ。判断が遅すぎる。', 'wrong');
+
+    if (mistakes >= MAX_MISTAKES) {
+      transitioning = true;
+      setTimeout(function () {
+        finishGame();
+      }, 1200);
+      return;
+    }
+
+    transitioning = true;
+    setTimeout(function () {
+      transitioning = false;
+      goNext();
+    }, 1200);
+  }
+
+  /* =============================================
+     モーダル
+     ============================================= */
+  function openModal() {
+    pauseTimer();
+    dom.modalBackdrop.classList.add('active');
+  }
+
+  function closeModal() {
+    dom.modalBackdrop.classList.remove('active');
+  }
+
+  /* =============================================
+     そうは問屋がおろしませんよ！ → 証拠提示
+     ============================================= */
+  function onObjection() {
+    if (!gameActive || transitioning) return;
+    setButtons(false);
+    openModal();
+  }
+
+  function submitEvidence(evidenceKey) {
+    closeModal();
+    clearTimer();
+
+    var stmt = STATEMENTS[currentStatementIndex];
+
+    if (stmt.correctEvidence && stmt.correctEvidence === evidenceKey) {
+      correctHits[currentStatementIndex] = true;
+
+      flashGold();
+      shakeText();
+      showFeedback('……矛盾が生じた。', 'correct');
+
+      transitioning = true;
+      setTimeout(function () {
+        transitioning = false;
+        goNext();
+      }, 1400);
+
+    } else {
+      mistakes++;
+      penalize();
+      flashRed();
+
+      if (!stmt.correctEvidence) {
+        showFeedback('この証言に矛盾はない。不用意な異議だ。', 'wrong');
+      } else {
+        showFeedback('証拠が違う。矛盾を証明できていない。', 'wrong');
+      }
+
+      if (mistakes >= MAX_MISTAKES) {
+        transitioning = true;
+        setTimeout(function () {
+          finishGame();
+        }, 1200);
+        return;
+      }
+
+      transitioning = true;
+      setTimeout(function () {
+        transitioning = false;
+        setButtons(true);
+      }, 800);
+    }
+  }
+
+  /* =============================================
+     次へ
+     ============================================= */
+  function goNext() {
+    if (!gameActive || transitioning) return;
+    clearTimer();
+    transitioning = true;
+
+    currentStatementIndex++;
+    if (currentStatementIndex >= STATEMENTS.length) {
+      finishGame();
+      return;
+    }
+
+    showStatement();
+  }
+
+  /* =============================================
+     ボタン制御
+     ============================================= */
+  function setButtons(enabled) {
+    dom.btnObjection.disabled = !enabled;
+    dom.btnNext.disabled = !enabled;
+  }
+
+  /* =============================================
+     ブリーフィング → ゲーム開始
+     ============================================= */
+  function showBriefing() {
+    showScreen('briefing');
+  }
+
+  function startGame() {
+    currentStatementIndex = 0;
+    score = 100;
+    correctHits = {};
+    mistakes = 0;
+    gameActive = true;
+    transitioning = false;
+
+    updateHUD();
+    hideFeedback();
+    showScreen('game');
+    showStatement();
+  }
+
+  /* =============================================
+     ゲーム終了・判定
+     ============================================= */
+  function finishGame() {
+    gameActive = false;
+    clearTimer();
+    setButtons(false);
+
+    var hitCount = Object.keys(correctHits).length;
+    var win = hitCount === TOTAL_CONTRADICTIONS && mistakes < MAX_MISTAKES;
+
+    setTimeout(function () {
+      if (mistakes >= MAX_MISTAKES) {
+        dom.endingText.textContent = '裁判官：「控訴人代理人、根拠のない主張はお控えください。\nこれ以上の尋問継続は認められません。」\n\n藤田恵子：「先生、何をやっているんですか……\n夫の無実を証明する最後のチャンスだったのに……」';
+      } else if (win) {
+        dom.endingText.textContent = '裁判官：「原審の認定を取り消す。\n本件事故の原因は被控訴人の速度超過および信号無視にある。」\n\n藤田恵子：「先生……夫の名誉が守られました。\n夫は何も悪くなかったんです。本当に、ありがとうございます。」';
+      } else {
+        dom.endingText.textContent = '裁判官：「控訴人の主張を覆すに足る立証はなされなかった。\n控訴を棄却する。」\n\n藤田恵子：「うそでしょう……夫は普通に運転していただけなのに。\nこのままじゃ、夫が加害者のままじゃないですか……」';
+      }
+
+      dom.endingScore.textContent = 'SCORE: ' + score + '　矛盾指摘: ' + hitCount + ' / ' + TOTAL_CONTRADICTIONS;
+
+      dom.endingInner.style.animation = 'none';
+      void dom.endingInner.offsetWidth;
+      dom.endingInner.style.animation = '';
+
+      showScreen('ending');
+    }, 600);
+  }
+
+  /* =============================================
+     イベント
+     ============================================= */
+  dom.btnStart.addEventListener('click', showBriefing);
+  dom.btnBeginTrial.addEventListener('click', startGame);
+  dom.btnRetry.addEventListener('click', showBriefing);
+
+  dom.btnObjection.addEventListener('click', onObjection);
+  dom.btnNext.addEventListener('click', goNext);
+
+  // 証拠選択
+  dom.evidDashcam.addEventListener('click', function () { submitEvidence('dashcam'); });
+  dom.evidSignal.addEventListener('click', function ()  { submitEvidence('signal'); });
+  dom.evidWitness.addEventListener('click', function () { submitEvidence('witness'); });
+  dom.evidMedical.addEventListener('click', function () { submitEvidence('medical'); });
+  dom.evidBrake.addEventListener('click', function ()   { submitEvidence('brake'); });
+  dom.evidCamera.addEventListener('click', function ()  { submitEvidence('camera'); });
+
+  dom.btnCancelModal.addEventListener('click', function () {
+    closeModal();
+    resumeTimer();
+    setButtons(true);
+  });
+
+  // モーダル背景クリックで閉じる
+  dom.modalBackdrop.addEventListener('click', function (e) {
+    if (e.target === dom.modalBackdrop) {
+      closeModal();
+      resumeTimer();
+      setButtons(true);
+    }
+  });
+
+  // キーボード
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      if (dom.screenTitle.classList.contains('active')) {
+        e.preventDefault();
+        showBriefing();
+        return;
+      }
+      if (dom.screenBriefing.classList.contains('active')) {
+        e.preventDefault();
+        startGame();
+        return;
+      }
+      if (dom.screenEnding.classList.contains('active')) {
+        e.preventDefault();
+        showBriefing();
+        return;
+      }
+    }
+
+    if (!gameActive) return;
+
+    // モーダル中
+    if (dom.modalBackdrop.classList.contains('active')) {
+      if (e.key === '1') submitEvidence('dashcam');
+      if (e.key === '2') submitEvidence('signal');
+      if (e.key === '3') submitEvidence('witness');
+      if (e.key === '4') submitEvidence('medical');
+      if (e.key === '5') submitEvidence('brake');
+      if (e.key === '6') submitEvidence('camera');
+      if (e.key === 'Escape') {
+        closeModal();
+        resumeTimer();
+        setButtons(true);
+      }
+      return;
+    }
+
+    if (e.key === 'z' || e.key === 'Z') {
+      onObjection();
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goNext();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

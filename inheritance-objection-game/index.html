@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>そうは問屋がおろしませんよ！ — 相続尋問 第一話</title>
+<style>
+/* ========================================
+   Reset & Base
+   ======================================== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:        #0f1115;
+  --bg-surface:#161920;
+  --bg-modal:  #1a1d24;
+  --bg-card:   #1c1f28;
+  --border:    #2a2d35;
+  --text:      #e5e7eb;
+  --text-dim:  #6b7080;
+  --text-faint:#3e4250;
+  --accent:    #c8a44d;
+  --accent-dim:#9a7e34;
+  --crimson:   #8b0000;
+  --crimson-h: #a01010;
+  --red:       #943030;
+  --green:     #4a8c5c;
+  --font-serif:'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --font-sans: 'Noto Sans JP', 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+  --radius:    6px;
+  --transition:0.3s ease;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ========================================
+   Screens
+   ======================================== */
+.screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.screen.active {
+  display: flex;
+}
+
+/* ========================================
+   Title Screen
+   ======================================== */
+.screen--title {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--bg);
+}
+
+.title-kana {
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.35em;
+  margin-bottom: 20px;
+}
+
+.title-main {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 7vw, 3.2rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.title-episode {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  color: var(--accent-dim);
+  letter-spacing: 0.2em;
+  margin-bottom: 12px;
+}
+
+.title-desc {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  line-height: 1.9;
+  margin-bottom: 56px;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 14px 52px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: var(--font-serif);
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.14em;
+  transition: all var(--transition);
+}
+.btn-primary:hover {
+  background: #d4b45a;
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   Briefing Screen
+   ======================================== */
+.screen--briefing {
+  align-items: center;
+  padding: 48px 24px 64px;
+  background: var(--bg);
+}
+
+.briefing-inner {
+  max-width: 640px;
+  width: 100%;
+}
+
+.briefing-heading {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.briefing-section {
+  margin-bottom: 36px;
+}
+
+.briefing-label {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.briefing-text {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 2;
+  letter-spacing: 0.02em;
+}
+
+.briefing-text strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 証拠カード */
+.evidence-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.evidence-card {
+  padding: 20px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-dim);
+  border-radius: var(--radius);
+}
+
+.evidence-card-name {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+
+.evidence-card-body {
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.8;
+}
+
+/* 任務 */
+.briefing-mission {
+  padding: 20px 22px;
+  background: rgba(200, 164, 77, 0.05);
+  border: 1px solid rgba(200, 164, 77, 0.15);
+  border-radius: var(--radius);
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 2;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.briefing-action {
+  text-align: center;
+  margin-top: 44px;
+}
+
+/* ========================================
+   Game Screen
+   ======================================== */
+.screen--game {
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* 3-column game layout */
+.game-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 20px 16px;
+  background: var(--bg-surface);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+
+.sidebar-left {
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-right {
+  border-left: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-family: var(--font-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-text {
+  font-size: 0.73rem;
+  color: var(--text-dim);
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+}
+
+.sidebar-text strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-evidence {
+  margin-bottom: 14px;
+}
+
+.sidebar-evidence-name {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.sidebar-evidence-body {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.game-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Timer */
+.hud-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-timer {
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  min-width: 2em;
+  text-align: center;
+}
+
+.hud-timer.danger {
+  color: var(--red);
+}
+
+.timer-bar-wrap {
+  height: 3px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.timer-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+
+.timer-bar.danger {
+  background: var(--red);
+}
+
+/* HUD */
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.hud-left, .hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.hud-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-score { color: var(--accent); }
+
+/* Testimony area */
+.testimony-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  max-width: 700px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+}
+
+.testimony-speaker {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--accent-dim);
+  letter-spacing: 0.12em;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.testimony-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1.05rem, 2.6vw, 1.3rem);
+  color: var(--text);
+  line-height: 2.2;
+  text-align: center;
+  max-width: 560px;
+  min-height: 3.5em;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.testimony-text.entering {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.testimony-text.shake {
+  animation: correctShake 0.3s ease;
+}
+@keyframes correctShake {
+  0%, 100% { transform: translateX(0); }
+  20%  { transform: translateX(-4px); }
+  40%  { transform: translateX(4px); }
+  60%  { transform: translateX(-3px); }
+  80%  { transform: translateX(3px); }
+}
+
+/* Feedback */
+.feedback {
+  text-align: center;
+  padding: 10px 24px;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  min-height: 36px;
+  transition: opacity 0.4s ease;
+}
+.feedback.hidden { opacity: 0; }
+.feedback.correct { color: var(--accent); }
+.feedback.wrong { color: var(--red); }
+
+/* Action area */
+.action-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 24px;
+  flex-shrink: 0;
+}
+
+.btn-objection {
+  padding: 16px 40px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  color: #eee;
+  background: var(--crimson);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.12em;
+  transition: all var(--transition);
+}
+.btn-objection:hover:not(:disabled) {
+  background: var(--crimson-h);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(139, 0, 0, 0.3);
+}
+.btn-objection:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-next {
+  padding: 14px 32px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all var(--transition);
+}
+.btn-next:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+.btn-next:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   Evidence Modal
+   ======================================== */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.7);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.modal-backdrop.active {
+  display: flex;
+}
+
+.modal {
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 36px 32px;
+  max-width: 440px;
+  width: 100%;
+  animation: modalIn 0.25s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.evidence-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  line-height: 1.6;
+}
+.evidence-btn:hover {
+  border-color: var(--accent-dim);
+  background: rgba(200, 164, 77, 0.06);
+}
+
+.evidence-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+
+.evidence-desc {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.modal-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: color var(--transition);
+}
+.modal-cancel:hover { color: var(--text); }
+
+/* ========================================
+   Flash overlay
+   ======================================== */
+.flash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.flash-overlay.flash-gold {
+  background: var(--accent);
+  animation: flashAnim 0.35s ease forwards;
+}
+
+.flash-overlay.flash-red {
+  background: var(--red);
+  animation: flashAnim 0.3s ease forwards;
+}
+
+@keyframes flashAnim {
+  0%   { opacity: 0.25; }
+  100% { opacity: 0; }
+}
+
+/* ========================================
+   Ending Screen
+   ======================================== */
+.screen--ending {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.ending-inner {
+  max-width: 520px;
+  opacity: 0;
+  animation: endingAppear 2s ease 0.5s forwards;
+}
+
+@keyframes endingAppear {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.ending-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: var(--text);
+  line-height: 2.4;
+  letter-spacing: 0.08em;
+  margin-bottom: 48px;
+  white-space: pre-line;
+}
+
+.ending-score {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 48px;
+}
+
+.btn-retry {
+  display: inline-block;
+  padding: 12px 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-serif);
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all var(--transition);
+}
+.btn-retry:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+@media (max-width: 960px) {
+  .sidebar { width: 180px; font-size: 0.7rem; }
+}
+
+@media (max-width: 740px) {
+  .sidebar { display: none; }
+}
+
+@media (max-width: 600px) {
+  .hud { padding: 14px 16px; }
+  .testimony-area { padding: 32px 20px; }
+
+
+  .action-area {
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 10px;
+  }
+  .btn-objection,
+  .btn-next {
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal { padding: 28px 20px; }
+
+  .screen--briefing { padding: 32px 16px 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Flash overlay -->
+<div class="flash-overlay" id="flashOverlay"></div>
+
+<!-- ===== タイトル画面 ===== -->
+<div class="screen screen--title active" id="screenTitle">
+  <p class="title-kana">― 相続尋問 ―</p>
+  <h1 class="title-main">そうは問屋がおろしませんよ！</h1>
+  <p class="title-episode">第一話</p>
+  <p class="title-desc">自筆証書遺言の有効性を問う</p>
+  <button class="btn-primary" id="btnStart" type="button">開廷する</button>
+</div>
+
+<!-- ===== 事件ブリーフィング画面 ===== -->
+<div class="screen screen--briefing" id="screenBriefing">
+  <div class="briefing-inner">
+
+    <p class="briefing-heading">事件概要 ― 尋問前資料</p>
+
+    <!-- 事件の背景 -->
+    <div class="briefing-section">
+      <p class="briefing-label">事件の経緯</p>
+      <p class="briefing-text">
+        被相続人・<strong>山田太郎</strong>（享年78歳）の死後、
+        次男・山田次郎が保管していた<strong>自筆証書遺言</strong>が発見された。<br>
+        遺言には「全財産を次男に相続させる」と記載されている。<br>
+        長男側はこの遺言の有効性を争い、調停を申し立てた。
+      </p>
+    </div>
+
+    <!-- 判明している事実 -->
+    <div class="briefing-section">
+      <p class="briefing-label">調査で判明した事実</p>
+      <p class="briefing-text">
+        ・山田太郎は<strong>死亡の2週間前から入院</strong>しており、退院記録はない。<br>
+        　入院中に自宅へ戻った記録も存在しない。<br><br>
+        ・主治医の診療記録には、入院時点で<strong>握力の著しい低下</strong>が記録されており、<br>
+        　「<strong>自筆での署名は困難</strong>」と所見が記されている。<br><br>
+        ・遺言書の日付は<strong>死亡の10日前</strong>（入院期間中）となっている。
+      </p>
+    </div>
+
+    <!-- 手持ち証拠 -->
+    <div class="briefing-section">
+      <p class="briefing-label">あなたの手持ち証拠</p>
+      <div class="evidence-cards">
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠①：入院記録</p>
+          <p class="evidence-card-body">
+            山田太郎は死亡2週間前から○○病院に入院。退院・外出の記録なし。
+            自室に戻ることは不可能だった。
+          </p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠②：主治医カルテ</p>
+          <p class="evidence-card-body">
+            入院時の所見に「両手の握力著しく低下、自筆での署名困難」と記載。
+            ペンを長時間握ることは医学的に難しい状態だった。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- あなたの任務 -->
+    <div class="briefing-section">
+      <p class="briefing-label">あなたの任務</p>
+      <div class="briefing-mission">
+        次男の証言を聞き、事実と矛盾する証言を見つけたら<br>
+        「そうは問屋がおろしませんよ！」で証拠を突きつけよ。<br>
+        矛盾のない証言には異議を出してはならない。
+      </div>
+    </div>
+
+    <div class="briefing-action">
+      <button class="btn-primary" id="btnBeginTrial" type="button">尋問を開始する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div class="screen screen--game" id="screenGame">
+
+  <!-- HUD -->
+  <header class="hud">
+    <div class="hud-left">
+      <span class="hud-label">第</span>
+      <span class="hud-value" id="stmtNum">1</span>
+      <span class="hud-label">証言</span>
+    </div>
+    <div class="hud-center">
+      <span class="hud-label">TIME</span>
+      <span class="hud-timer" id="timerDisplay">10</span>
+    </div>
+    <div class="hud-right">
+      <span class="hud-label">SCORE</span>
+      <span class="hud-value hud-score" id="scoreDisplay">100</span>
+    </div>
+  </header>
+  <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+
+  <div class="game-content">
+    <!-- 左：ストーリー -->
+    <aside class="sidebar sidebar-left">
+      <p class="sidebar-title">事件の経緯</p>
+      <p class="sidebar-text">
+        被相続人・<strong>山田太郎</strong>（享年78歳）の死後、
+        次男・山田次郎が保管していた<strong>自筆証書遺言</strong>が発見された。<br><br>
+        遺言には「全財産を次男に相続させる」と記載。<br>
+        長男側はこの遺言の有効性を争い、調停を申し立てた。<br><br>
+        山田太郎は<strong>死亡の2週間前から入院</strong>しており、退院記録はない。<br><br>
+        主治医の所見に「<strong>握力の著しい低下、自筆での署名は困難</strong>」と記載。<br><br>
+        遺言書の日付は<strong>死亡の10日前</strong>（入院期間中）。
+      </p>
+    </aside>
+
+    <!-- 中央：尋問 -->
+    <div class="game-center">
+      <main class="testimony-area">
+        <div class="testimony-speaker" id="speaker">証人：次男 山田次郎</div>
+        <div class="testimony-text" id="testimonyText"></div>
+        <div class="feedback hidden" id="feedback"></div>
+      </main>
+      <footer class="action-area">
+        <button class="btn-objection" id="btnObjection" type="button">そうは問屋がおろしませんよ！</button>
+        <button class="btn-next" id="btnNext" type="button">次へ</button>
+      </footer>
+    </div>
+
+    <!-- 右：証拠 -->
+    <aside class="sidebar sidebar-right">
+      <p class="sidebar-title">手持ち証拠</p>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">①入院記録</p>
+        <p class="sidebar-evidence-body">死亡2週間前から入院。退院・外出の記録なし。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">②主治医カルテ</p>
+        <p class="sidebar-evidence-body">「両手の握力著しく低下、自筆での署名困難」との所見。</p>
+      </div>
+    </aside>
+  </div>
+
+</div>
+
+<!-- ===== 証拠モーダル ===== -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <p class="modal-title">どの証拠を突きつける？</p>
+    <button class="evidence-btn" id="evidHospital" type="button">
+      <span class="evidence-name">入院記録</span>
+      <span class="evidence-desc">死亡2週間前から入院、自室に戻った記録なし</span>
+    </button>
+    <button class="evidence-btn" id="evidChart" type="button">
+      <span class="evidence-name">主治医カルテ</span>
+      <span class="evidence-desc">握力低下により自筆署名困難との所見</span>
+    </button>
+    <button class="modal-cancel" id="btnCancelModal" type="button">やめる</button>
+  </div>
+</div>
+
+<!-- ===== エンディング ===== -->
+<div class="screen screen--ending" id="screenEnding">
+  <div class="ending-inner" id="endingInner">
+    <p class="ending-text" id="endingText"></p>
+    <p class="ending-score" id="endingScore"></p>
+    <button class="btn-retry" id="btnRetry" type="button">最初からやり直す</button>
+  </div>
+</div>
+
+<script>
+/* ========================================
+   そうは問屋がおろしませんよ！ — 相続尋問 第一話
+   ======================================== */
+'use strict';
+
+(function () {
+
+  /* =============================================
+     証言データ
+     ============================================= */
+  var STATEMENTS = [
+    // ① 矛盾なし — 判断能力の主張（証拠では直接否定できない）
+    { text: '父は最期まで判断能力はしっかりしていました。' },
+    // ② 矛盾なし — 遺言の存在を知った経緯
+    { text: '遺言の存在は父の死後に金庫から見つかりました。' },
+    // ③ 矛盾なし — 立会いの否定
+    { text: '私はその場には立ち会っていません。' },
+    // ④ 矛盾なし — 動機の主張
+    { text: '父はもともと私に会社を継がせるつもりでした。' },
+    // ⑤ 矛盾あり — 「自室で書いた」vs 入院記録（入院中で自室にいない）
+    {
+      text: '遺言は父の自室で書かれました。',
+      correctEvidence: 'hospital',
+    },
+    // ⑥ 矛盾あり — 「ペンを持てた」vs 主治医カルテ（握力低下で署名困難）
+    {
+      text: '父は亡くなる直前までペンを持てました。',
+      correctEvidence: 'chart',
+    },
+    // ⑦ 矛盾なし — 内容を後から知った主張
+    { text: '遺言の内容は私も後から知りました。' },
+    // ⑧ 矛盾なし — 兄弟関係の背景
+    { text: '兄とは昔から折り合いが悪かったです。' },
+  ];
+
+  var PENALTY = -20;
+
+  /* =============================================
+     状態
+     ============================================= */
+  var currentStatementIndex = 0;
+  var score = 100;
+  var correctHits = { stmt5: false, stmt6: false };
+  var mistakes = 0;
+  var MAX_MISTAKES = 2;
+  var gameActive = false;
+  var transitioning = false;
+
+  var TIME_LIMIT = 10;
+  var timeLeft = TIME_LIMIT;
+  var timerInterval = null;
+
+  /* =============================================
+     DOM
+     ============================================= */
+  var dom = {
+    flash:          document.getElementById('flashOverlay'),
+    screenTitle:    document.getElementById('screenTitle'),
+    screenBriefing: document.getElementById('screenBriefing'),
+    screenGame:     document.getElementById('screenGame'),
+    screenEnding:   document.getElementById('screenEnding'),
+    stmtNum:        document.getElementById('stmtNum'),
+    scoreDisplay:   document.getElementById('scoreDisplay'),
+    speaker:        document.getElementById('speaker'),
+    testimonyText:  document.getElementById('testimonyText'),
+    feedback:       document.getElementById('feedback'),
+    btnObjection:   document.getElementById('btnObjection'),
+    btnNext:        document.getElementById('btnNext'),
+    modalBackdrop:  document.getElementById('modalBackdrop'),
+    evidHospital:   document.getElementById('evidHospital'),
+    evidChart:      document.getElementById('evidChart'),
+    btnCancelModal: document.getElementById('btnCancelModal'),
+    endingText:     document.getElementById('endingText'),
+    endingScore:    document.getElementById('endingScore'),
+    endingInner:    document.getElementById('endingInner'),
+    btnStart:       document.getElementById('btnStart'),
+    btnBeginTrial:  document.getElementById('btnBeginTrial'),
+    btnRetry:       document.getElementById('btnRetry'),
+    timerDisplay:   document.getElementById('timerDisplay'),
+    timerBar:       document.getElementById('timerBar'),
+  };
+
+  /* =============================================
+     画面切替
+     ============================================= */
+  function showScreen(name) {
+    dom.screenTitle.classList.remove('active');
+    dom.screenBriefing.classList.remove('active');
+    dom.screenGame.classList.remove('active');
+    dom.screenEnding.classList.remove('active');
+
+    if (name === 'title')    dom.screenTitle.classList.add('active');
+    if (name === 'briefing') dom.screenBriefing.classList.add('active');
+    if (name === 'game')     dom.screenGame.classList.add('active');
+    if (name === 'ending')   dom.screenEnding.classList.add('active');
+  }
+
+  /* =============================================
+     HUD更新
+     ============================================= */
+  function updateHUD() {
+    dom.stmtNum.textContent = currentStatementIndex + 1;
+    dom.scoreDisplay.textContent = score;
+  }
+
+  /* =============================================
+     証言表示
+     ============================================= */
+  function showStatement() {
+    if (currentStatementIndex >= STATEMENTS.length) {
+      finishGame();
+      return;
+    }
+
+    var stmt = STATEMENTS[currentStatementIndex];
+
+    // フェードイン
+    dom.testimonyText.classList.add('entering');
+    hideFeedback();
+
+    setTimeout(function () {
+      dom.testimonyText.textContent = '「' + stmt.text + '」';
+      dom.testimonyText.classList.remove('entering');
+      setButtons(true);
+      transitioning = false;
+      startTimer();
+    }, 80);
+
+    updateHUD();
+  }
+
+  /* =============================================
+     フィードバック
+     ============================================= */
+  function showFeedback(text, cls) {
+    dom.feedback.textContent = text;
+    dom.feedback.className = 'feedback ' + cls;
+  }
+
+  function hideFeedback() {
+    dom.feedback.className = 'feedback hidden';
+    dom.feedback.textContent = '';
+  }
+
+  /* =============================================
+     演出
+     ============================================= */
+  function flashGold() {
+    dom.flash.classList.remove('flash-gold', 'flash-red');
+    void dom.flash.offsetWidth;
+    dom.flash.classList.add('flash-gold');
+    setTimeout(function () { dom.flash.classList.remove('flash-gold'); }, 400);
+  }
+
+  function flashRed() {
+    dom.flash.classList.remove('flash-gold', 'flash-red');
+    void dom.flash.offsetWidth;
+    dom.flash.classList.add('flash-red');
+    setTimeout(function () { dom.flash.classList.remove('flash-red'); }, 350);
+  }
+
+  function shakeText() {
+    dom.testimonyText.classList.remove('shake');
+    void dom.testimonyText.offsetWidth;
+    dom.testimonyText.classList.add('shake');
+  }
+
+  /* =============================================
+     スコア
+     ============================================= */
+  function penalize() {
+    score = Math.max(0, score + PENALTY);
+    updateHUD();
+  }
+
+  /* =============================================
+     タイマー
+     ============================================= */
+  function updateTimerDisplay() {
+    dom.timerDisplay.textContent = timeLeft;
+    var pct = (timeLeft / TIME_LIMIT) * 100;
+    dom.timerBar.style.width = pct + '%';
+
+    if (timeLeft <= 3) {
+      dom.timerDisplay.classList.add('danger');
+      dom.timerBar.classList.add('danger');
+    } else {
+      dom.timerDisplay.classList.remove('danger');
+      dom.timerBar.classList.remove('danger');
+    }
+  }
+
+  function startTimer() {
+    clearTimer();
+    timeLeft = TIME_LIMIT;
+    updateTimerDisplay();
+    timerInterval = setInterval(function () {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearTimer();
+        onTimeout();
+      }
+    }, 1000);
+  }
+
+  function clearTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function pauseTimer() {
+    clearTimer();
+  }
+
+  function resumeTimer() {
+    if (!gameActive || transitioning || timeLeft <= 0) return;
+    clearTimer();
+    timerInterval = setInterval(function () {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearTimer();
+        onTimeout();
+      }
+    }, 1000);
+  }
+
+  function onTimeout() {
+    if (!gameActive || transitioning) return;
+    mistakes++;
+    penalize();
+    flashRed();
+    setButtons(false);
+    showFeedback('時間切れだ。判断が遅すぎる。', 'wrong');
+
+    if (mistakes >= MAX_MISTAKES) {
+      transitioning = true;
+      setTimeout(function () {
+        finishGame();
+      }, 1200);
+      return;
+    }
+
+    transitioning = true;
+    setTimeout(function () {
+      transitioning = false;
+      goNext();
+    }, 1200);
+  }
+
+  /* =============================================
+     モーダル
+     ============================================= */
+  function openModal() {
+    pauseTimer();
+    dom.modalBackdrop.classList.add('active');
+  }
+
+  function closeModal() {
+    dom.modalBackdrop.classList.remove('active');
+  }
+
+  /* =============================================
+     そうは問屋がおろしませんよ！ → 証拠提示
+     ============================================= */
+  function onObjection() {
+    if (!gameActive || transitioning) return;
+    setButtons(false);
+    openModal();
+  }
+
+  function submitEvidence(evidenceKey) {
+    closeModal();
+    clearTimer();
+
+    var stmt = STATEMENTS[currentStatementIndex];
+
+    if (stmt.correctEvidence && stmt.correctEvidence === evidenceKey) {
+      // 正解
+      if (currentStatementIndex === 4) correctHits.stmt5 = true;
+      if (currentStatementIndex === 5) correctHits.stmt6 = true;
+
+      flashGold();
+      shakeText();
+      showFeedback('……矛盾が生じた。', 'correct');
+
+      transitioning = true;
+      setTimeout(function () {
+        transitioning = false;
+        goNext();
+      }, 1400);
+
+    } else {
+      // 不正解
+      mistakes++;
+      penalize();
+      flashRed();
+
+      if (!stmt.correctEvidence) {
+        showFeedback('この証言に矛盾はない。不用意な異議だ。', 'wrong');
+      } else {
+        showFeedback('証拠が違う。矛盾を証明できていない。', 'wrong');
+      }
+
+      if (mistakes >= MAX_MISTAKES) {
+        transitioning = true;
+        setTimeout(function () {
+          finishGame();
+        }, 1200);
+        return;
+      }
+
+      transitioning = true;
+      setTimeout(function () {
+        transitioning = false;
+        setButtons(true);
+      }, 800);
+    }
+  }
+
+  /* =============================================
+     次へ
+     ============================================= */
+  function goNext() {
+    if (!gameActive || transitioning) return;
+    clearTimer();
+    transitioning = true;
+
+    currentStatementIndex++;
+    if (currentStatementIndex >= STATEMENTS.length) {
+      finishGame();
+      return;
+    }
+
+    showStatement();
+  }
+
+  /* =============================================
+     ボタン制御
+     ============================================= */
+  function setButtons(enabled) {
+    dom.btnObjection.disabled = !enabled;
+    dom.btnNext.disabled = !enabled;
+  }
+
+  /* =============================================
+     ブリーフィング → ゲーム開始
+     ============================================= */
+  function showBriefing() {
+    showScreen('briefing');
+  }
+
+  function startGame() {
+    currentStatementIndex = 0;
+    score = 100;
+    correctHits = { stmt5: false, stmt6: false };
+    mistakes = 0;
+    gameActive = true;
+    transitioning = false;
+
+    updateHUD();
+    hideFeedback();
+    showScreen('game');
+    showStatement();
+  }
+
+  /* =============================================
+     ゲーム終了・判定
+     ============================================= */
+  function finishGame() {
+    gameActive = false;
+    clearTimer();
+    setButtons(false);
+
+    var win = correctHits.stmt5 && correctHits.stmt6 && mistakes < MAX_MISTAKES;
+
+    setTimeout(function () {
+      if (mistakes >= MAX_MISTAKES) {
+        dom.endingText.textContent = '裁判官：「弁護人、根拠を欠く主張が続いています。\nこれ以上の尋問は認められません。」\n\n山田一郎：「先生……もう少し慎重にやってくれませんか。\n父の無念を晴らす最後の機会だったのに……」';
+      } else if (win) {
+        dom.endingText.textContent = '裁判官：「本件自筆証書遺言は無効と認める。\n被相続人の真意に基づくものとは認められない。」\n\n山田一郎：「先生……本当にありがとうございます。\n父の本当の意思が、ようやく守られました。」';
+      } else {
+        dom.endingText.textContent = '裁判官：「原告の立証は不十分である。\n請求を棄却する。」\n\n山田一郎：「先生、これで終わりなんですか……\n父はあんな遺言、絶対に書いていないのに……」';
+      }
+
+      dom.endingScore.textContent = 'SCORE: ' + score;
+
+      dom.endingInner.style.animation = 'none';
+      void dom.endingInner.offsetWidth;
+      dom.endingInner.style.animation = '';
+
+      showScreen('ending');
+    }, 600);
+  }
+
+  /* =============================================
+     イベント
+     ============================================= */
+  // タイトル → ブリーフィング
+  dom.btnStart.addEventListener('click', showBriefing);
+
+  // ブリーフィング → ゲーム開始
+  dom.btnBeginTrial.addEventListener('click', startGame);
+
+  // リトライ → ブリーフィングに戻す
+  dom.btnRetry.addEventListener('click', showBriefing);
+
+  dom.btnObjection.addEventListener('click', onObjection);
+  dom.btnNext.addEventListener('click', goNext);
+
+  // 証拠選択
+  dom.evidHospital.addEventListener('click', function () {
+    submitEvidence('hospital');
+  });
+  dom.evidChart.addEventListener('click', function () {
+    submitEvidence('chart');
+  });
+  dom.btnCancelModal.addEventListener('click', function () {
+    closeModal();
+    resumeTimer();
+    setButtons(true);
+  });
+
+  // モーダル背景クリックで閉じる
+  dom.modalBackdrop.addEventListener('click', function (e) {
+    if (e.target === dom.modalBackdrop) {
+      closeModal();
+      resumeTimer();
+      setButtons(true);
+    }
+  });
+
+  // キーボード
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      if (dom.screenTitle.classList.contains('active')) {
+        e.preventDefault();
+        showBriefing();
+        return;
+      }
+      if (dom.screenBriefing.classList.contains('active')) {
+        e.preventDefault();
+        startGame();
+        return;
+      }
+      if (dom.screenEnding.classList.contains('active')) {
+        e.preventDefault();
+        showBriefing();
+        return;
+      }
+    }
+
+    if (!gameActive) return;
+
+    // モーダル中
+    if (dom.modalBackdrop.classList.contains('active')) {
+      if (e.key === '1') submitEvidence('hospital');
+      if (e.key === '2') submitEvidence('chart');
+      if (e.key === 'Escape') {
+        closeModal();
+        resumeTimer();
+        setButtons(true);
+      }
+      return;
+    }
+
+    if (e.key === 'z' || e.key === 'Z') {
+      onObjection();
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goNext();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

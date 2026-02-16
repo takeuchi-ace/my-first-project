@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>そうは問屋がおろしませんよ！ — 冤罪事件 第四話</title>
+<style>
+/* ========================================
+   Reset & Base
+   ======================================== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:        #0f1115;
+  --bg-surface:#161920;
+  --bg-modal:  #1a1d24;
+  --bg-card:   #1c1f28;
+  --border:    #2a2d35;
+  --text:      #e5e7eb;
+  --text-dim:  #6b7080;
+  --text-faint:#3e4250;
+  --accent:    #c8a44d;
+  --accent-dim:#9a7e34;
+  --crimson:   #8b0000;
+  --crimson-h: #a01010;
+  --red:       #943030;
+  --green:     #4a8c5c;
+  --font-serif:'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+  --font-sans: 'Noto Sans JP', 'Yu Gothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+  --radius:    6px;
+  --transition:0.3s ease;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ========================================
+   Screens
+   ======================================== */
+.screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.screen.active {
+  display: flex;
+}
+
+/* ========================================
+   Title Screen
+   ======================================== */
+.screen--title {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--bg);
+}
+
+.title-kana {
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.35em;
+  margin-bottom: 20px;
+}
+
+.title-main {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 7vw, 3.2rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.12em;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.title-episode {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  color: var(--accent-dim);
+  letter-spacing: 0.2em;
+  margin-bottom: 12px;
+}
+
+.title-desc {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  line-height: 1.9;
+  margin-bottom: 56px;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 14px 52px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: var(--font-serif);
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.14em;
+  transition: all var(--transition);
+}
+.btn-primary:hover {
+  background: #d4b45a;
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   Briefing Screen
+   ======================================== */
+.screen--briefing {
+  align-items: center;
+  padding: 48px 24px 64px;
+  background: var(--bg);
+}
+
+.briefing-inner {
+  max-width: 660px;
+  width: 100%;
+}
+
+.briefing-heading {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.briefing-section {
+  margin-bottom: 36px;
+}
+
+.briefing-label {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.briefing-text {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 2;
+  letter-spacing: 0.02em;
+}
+
+.briefing-text strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 証拠カード */
+.evidence-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.evidence-card {
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-dim);
+  border-radius: var(--radius);
+}
+
+.evidence-card-name {
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+
+.evidence-card-body {
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* 任務 */
+.briefing-mission {
+  padding: 20px 22px;
+  background: rgba(200, 164, 77, 0.05);
+  border: 1px solid rgba(200, 164, 77, 0.15);
+  border-radius: var(--radius);
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 2;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.briefing-action {
+  text-align: center;
+  margin-top: 44px;
+}
+
+/* ========================================
+   Witness Transition
+   ======================================== */
+.screen--witness-transition {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--bg);
+}
+
+.witness-transition-inner {
+  max-width: 500px;
+  opacity: 0;
+  animation: endingAppear 1.5s ease 0.3s forwards;
+}
+
+.witness-transition-label {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  color: var(--accent-dim);
+  letter-spacing: 0.18em;
+  margin-bottom: 20px;
+}
+
+.witness-transition-name {
+  font-family: var(--font-serif);
+  font-size: clamp(1.2rem, 4vw, 1.6rem);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.witness-transition-role {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  margin-bottom: 48px;
+  line-height: 1.9;
+}
+
+/* ========================================
+   Game Screen
+   ======================================== */
+.screen--game {
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* 3-column game layout */
+.game-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 20px 16px;
+  background: var(--bg-surface);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+
+.sidebar-left {
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-right {
+  border-left: 1px solid var(--border);
+}
+
+.sidebar-title {
+  font-family: var(--font-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-text {
+  font-size: 0.73rem;
+  color: var(--text-dim);
+  line-height: 1.9;
+  letter-spacing: 0.01em;
+}
+
+.sidebar-text strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-evidence {
+  margin-bottom: 14px;
+}
+
+.sidebar-evidence-name {
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.sidebar-evidence-body {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.game-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* HUD */
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.hud-left, .hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.hud-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-score { color: var(--accent); }
+
+/* Timer */
+.hud-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-timer {
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  min-width: 2em;
+  text-align: center;
+}
+
+.hud-timer.danger {
+  color: var(--red);
+}
+
+.timer-bar-wrap {
+  height: 3px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.timer-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+
+.timer-bar.danger {
+  background: var(--red);
+}
+
+/* Testimony area */
+.testimony-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  max-width: 700px;
+  margin: 0 auto;
+  width: 100%;
+  position: relative;
+}
+
+.testimony-speaker {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--accent-dim);
+  letter-spacing: 0.12em;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.testimony-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1.05rem, 2.6vw, 1.3rem);
+  color: var(--text);
+  line-height: 2.2;
+  text-align: center;
+  max-width: 560px;
+  min-height: 3.5em;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.testimony-text.entering {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.testimony-text.shake {
+  animation: correctShake 0.3s ease;
+}
+@keyframes correctShake {
+  0%, 100% { transform: translateX(0); }
+  20%  { transform: translateX(-4px); }
+  40%  { transform: translateX(4px); }
+  60%  { transform: translateX(-3px); }
+  80%  { transform: translateX(3px); }
+}
+
+/* Feedback */
+.feedback {
+  text-align: center;
+  padding: 10px 24px;
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  min-height: 36px;
+  transition: opacity 0.4s ease;
+}
+.feedback.hidden { opacity: 0; }
+.feedback.correct { color: var(--accent); }
+.feedback.wrong { color: var(--red); }
+
+/* Action area */
+.action-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 24px;
+  flex-shrink: 0;
+}
+
+.btn-objection {
+  padding: 16px 40px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  color: #eee;
+  background: var(--crimson);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.12em;
+  transition: all var(--transition);
+}
+.btn-objection:hover:not(:disabled) {
+  background: var(--crimson-h);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(139, 0, 0, 0.3);
+}
+.btn-objection:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-next {
+  padding: 14px 32px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all var(--transition);
+}
+.btn-next:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+.btn-next:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   Evidence Modal
+   ======================================== */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0, 0, 0, 0.7);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.modal-backdrop.active {
+  display: flex;
+}
+
+.modal {
+  background: var(--bg-modal);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px 28px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: modalIn 0.25s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.evidence-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition);
+  line-height: 1.5;
+}
+.evidence-btn:hover {
+  border-color: var(--accent-dim);
+  background: rgba(200, 164, 77, 0.06);
+}
+
+.evidence-name {
+  display: block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--accent);
+  margin-bottom: 2px;
+  letter-spacing: 0.04em;
+}
+
+.evidence-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.evidence-key {
+  display: inline-block;
+  min-width: 1.4em;
+  text-align: center;
+  padding: 1px 5px;
+  margin-right: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-dim);
+  background: rgba(200, 164, 77, 0.1);
+  border: 1px solid rgba(200, 164, 77, 0.2);
+  border-radius: 3px;
+  font-family: var(--font-sans);
+  vertical-align: middle;
+}
+
+.modal-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: color var(--transition);
+}
+.modal-cancel:hover { color: var(--text); }
+
+/* ========================================
+   Flash overlay
+   ======================================== */
+.flash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.flash-overlay.flash-gold {
+  background: var(--accent);
+  animation: flashAnim 0.35s ease forwards;
+}
+
+.flash-overlay.flash-red {
+  background: var(--red);
+  animation: flashAnim 0.3s ease forwards;
+}
+
+@keyframes flashAnim {
+  0%   { opacity: 0.25; }
+  100% { opacity: 0; }
+}
+
+/* ========================================
+   Ending Screen
+   ======================================== */
+.screen--ending {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.ending-inner {
+  max-width: 520px;
+  opacity: 0;
+  animation: endingAppear 2s ease 0.5s forwards;
+}
+
+@keyframes endingAppear {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.ending-text {
+  font-family: var(--font-serif);
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: var(--text);
+  line-height: 2.4;
+  letter-spacing: 0.08em;
+  margin-bottom: 48px;
+  white-space: pre-line;
+}
+
+.ending-score {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 48px;
+}
+
+.btn-retry {
+  display: inline-block;
+  padding: 12px 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-serif);
+  color: var(--text-dim);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all var(--transition);
+}
+.btn-retry:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+@media (max-width: 960px) {
+  .sidebar { width: 180px; font-size: 0.7rem; }
+}
+
+@media (max-width: 740px) {
+  .sidebar { display: none; }
+}
+
+@media (max-width: 600px) {
+  .hud { padding: 14px 16px; }
+  .testimony-area { padding: 32px 20px; }
+
+
+  .action-area {
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 10px;
+  }
+  .btn-objection,
+  .btn-next {
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal { padding: 24px 16px; }
+
+  .screen--briefing { padding: 32px 16px 48px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Flash overlay -->
+<div class="flash-overlay" id="flashOverlay"></div>
+
+<!-- ===== タイトル画面 ===== -->
+<div class="screen screen--title active" id="screenTitle">
+  <p class="title-kana">― 冤罪事件 ―</p>
+  <h1 class="title-main">そうは問屋がおろしませんよ！</h1>
+  <p class="title-episode">第四話</p>
+  <p class="title-desc">最高裁判所</p>
+  <button class="btn-primary" id="btnStart" type="button">開廷する</button>
+</div>
+
+<!-- ===== 事件ブリーフィング画面 ===== -->
+<div class="screen screen--briefing" id="screenBriefing">
+  <div class="briefing-inner">
+
+    <p class="briefing-heading">事件概要 ― 尋問前資料</p>
+
+    <!-- 事件の背景 -->
+    <div class="briefing-section">
+      <p class="briefing-label">事件の経緯</p>
+      <p class="briefing-text">
+        20XX年11月23日夜、都内マンションの一室で<strong>佐々木裕子</strong>（当時34歳）が
+        刺殺体で発見された。<br>
+        警察は被害者の知人である<strong>田中誠一</strong>（以下A）を逮捕・起訴。<br>
+        Aは一貫して無実を主張したが、一審・二審ともに有罪判決。<br><br>
+        しかし、弁護団の独自調査により<strong>捜査過程の重大な問題</strong>が次々と発覚。<br>
+        DNA鑑定の汚染、指紋の不一致、目撃証言の誘導、アリバイの無視――<br>
+        検察は<strong>有罪ありきの捜査</strong>を行った疑いが濃厚となった。<br><br>
+        <strong>最高裁判所</strong>はこれを受けて口頭弁論を開廷。<br>
+        あなたはAの弁護人として、当時の目撃者と担当検察官の証人尋問に臨む。<br>
+        <strong>二人の証言の矛盾を暴き、冤罪を晴らせ。</strong>
+      </p>
+    </div>
+
+    <!-- 判明している事実 -->
+    <div class="briefing-section">
+      <p class="briefing-label">弁護団の独自調査で判明した事実</p>
+      <p class="briefing-text">
+        ・現場から約5km離れたコンビニの<strong>防犯カメラに犯行時刻のAが映っていた</strong>。<br>
+        　この映像は捜査段階で入手されていたが、検察に提出されなかった。<br><br>
+        ・現場のDNAを第三者機関が再鑑定した結果、<strong>Aとは一致せず</strong>、<br>
+        　原鑑定では試料の<strong>取り扱いに汚染</strong>があったことが判明。<br><br>
+        ・凶器の指紋を最新技術で再鑑定した結果、<strong>Aの指紋とは一致しなかった</strong>。<br><br>
+        ・Aの<strong>携帯電話の通話記録</strong>を解析した結果、犯行時刻にAは<br>
+        　現場から5km離れた基地局の圏内にいたことが確認された。<br><br>
+        ・目撃者・山本健二の<strong>最初の供述調書</strong>には<br>
+        　「暗くて顔はよく見えなかった」と記載されていた。<br><br>
+        ・取調べの一部が録音されており、捜査官が目撃者に<br>
+        　<strong>「田中の写真を指させ」と誘導している</strong>音声が確認された。<br><br>
+        ・被害者の携帯電話を解析したところ、事件前の数週間に<br>
+        　<strong>Aとは別の人物から脅迫メッセージ</strong>が複数届いていた。<br><br>
+        ・事故現場に残された足跡は<strong>28cmの靴</strong>によるもの。<br>
+        　Aの靴のサイズは<strong>25.5cm</strong>で明らかに一致しない。<br><br>
+        ・Aの友人が、事件当夜<strong>Aと一緒にレストランにいた</strong>と陳述。<br>
+        　レストランの防犯カメラにも二人の姿が映っていた。<br><br>
+        ・検察の内部報告書に「<strong>DNA鑑定の結果が不十分。再検討が必要</strong>」<br>
+        　との記載があったが、この報告書は弁護側に開示されなかった。<br><br>
+        ・被害者の日記に「<strong>最近、背の高い男につけ回されている</strong>」との記述があった。<br>
+        　Aの身長は167cmで、この記述とは一致しない。<br><br>
+        ・法医学の再鑑定により、<strong>死亡推定時刻は午後8時〜8時半</strong>と判明。<br>
+        　検察は「午後10時頃」と主張していたが、2時間近くのずれがある。
+      </p>
+    </div>
+
+    <!-- 手持ち証拠 -->
+    <div class="briefing-section">
+      <p class="briefing-label">あなたの手持ち証拠（12点）</p>
+      <div class="evidence-cards">
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠①：コンビニ防犯カメラ映像</p>
+          <p class="evidence-card-body">犯行時刻に現場から5km離れたコンビニにAが映っている。捜査段階で存在が把握されていたが未提出。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠②：DNA再鑑定報告書</p>
+          <p class="evidence-card-body">第三者機関による再鑑定。現場のDNAはAと不一致。原鑑定には試料汚染があった。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠③：凶器の指紋再鑑定書</p>
+          <p class="evidence-card-body">最新技術による再鑑定。凶器に残された指紋はAのものではなかった。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠④：Aの通話記録</p>
+          <p class="evidence-card-body">犯行時刻にAの携帯は現場から5km離れた基地局に接続。Aが現場にいなかった証拠。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑤：目撃者の初回供述調書</p>
+          <p class="evidence-card-body">山本健二の最初の供述。「暗くて顔はよく見えなかった」と記載。後の証言と矛盾する。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑥：取調べの録音記録</p>
+          <p class="evidence-card-body">目撃者への取調べ録音。捜査官が「田中の写真を指させ」と誘導している音声が記録されている。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑦：被害者の携帯メール記録</p>
+          <p class="evidence-card-body">事件前の数週間にAとは別の人物から脅迫メッセージが複数届いていた。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑧：現場の足跡鑑定書</p>
+          <p class="evidence-card-body">現場の足跡は28cmの靴。Aの靴は25.5cm。サイズが明らかに一致しない。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑨：アリバイ証人の陳述書</p>
+          <p class="evidence-card-body">友人の陳述とレストランの防犯カメラ。事件当夜、Aは5km離れたレストランにいた。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑩：検察の内部報告書</p>
+          <p class="evidence-card-body">「DNA鑑定の結果が不十分、再検討が必要」との記載。弁護側に開示されなかった。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑪：被害者の日記</p>
+          <p class="evidence-card-body">「背の高い男につけ回されている」との記述。Aは167cmで記述と一致しない。</p>
+        </div>
+        <div class="evidence-card">
+          <p class="evidence-card-name">証拠⑫：法医学再鑑定書</p>
+          <p class="evidence-card-body">死亡推定時刻は午後8時〜8時半。検察主張の「午後10時頃」と約2時間のずれ。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- あなたの任務 -->
+    <div class="briefing-section">
+      <p class="briefing-label">あなたの任務</p>
+      <div class="briefing-mission">
+        第一の証人・<strong>目撃者 山本健二</strong>、<br>
+        第二の証人・<strong>担当検察官 黒田浩二</strong>の証言を聞き、<br>
+        事実と矛盾する証言を見つけたら「そうは問屋がおろしませんよ！」で証拠を突きつけよ。<br>
+        矛盾のない証言には異議を出してはならない。<br>
+        <strong>すべての矛盾を暴き、田中誠一の無実を証明せよ。</strong>
+      </div>
+    </div>
+
+    <div class="briefing-action">
+      <button class="btn-primary" id="btnBeginTrial" type="button">尋問を開始する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 証人交代画面 ===== -->
+<div class="screen screen--witness-transition" id="screenWitnessTransition">
+  <div class="witness-transition-inner" id="witnessTransInner">
+    <p class="witness-transition-label">― 第二の証人 ―</p>
+    <p class="witness-transition-name">黒田 浩二</p>
+    <p class="witness-transition-role">当時の担当検察官</p>
+    <button class="btn-primary" id="btnNextWitness" type="button">尋問を続ける</button>
+  </div>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div class="screen screen--game" id="screenGame">
+
+  <!-- HUD -->
+  <header class="hud">
+    <div class="hud-left">
+      <span class="hud-label">第</span>
+      <span class="hud-value" id="stmtNum">1</span>
+      <span class="hud-label">証言</span>
+    </div>
+    <div class="hud-center">
+      <span class="hud-label">TIME</span>
+      <span class="hud-timer" id="timerDisplay">10</span>
+    </div>
+    <div class="hud-right">
+      <span class="hud-label">SCORE</span>
+      <span class="hud-value hud-score" id="scoreDisplay">100</span>
+    </div>
+  </header>
+  <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+
+  <div class="game-content">
+    <!-- 左：ストーリー -->
+    <aside class="sidebar sidebar-left">
+      <p class="sidebar-title">事件の経緯</p>
+      <p class="sidebar-text">
+        都内マンションで<strong>佐々木裕子</strong>（34歳）が刺殺体で発見。<br><br>
+        知人の<strong>田中誠一</strong>（A）が逮捕・起訴。一審・二審で有罪判決。<br><br>
+        Aは一貫して無実を主張。<br><br>
+        弁護団の独自調査で<strong>捜査の重大な問題</strong>が発覚。DNA汚染、指紋不一致、目撃証言の誘導、アリバイ無視。<br><br>
+        検察は<strong>有罪ありきの捜査</strong>を行った疑いが濃厚。<br><br>
+        最高裁が口頭弁論を開廷。二人の証人の矛盾を暴き、冤罪を晴らせ。
+      </p>
+    </aside>
+
+    <!-- 中央：尋問 -->
+    <div class="game-center">
+      <main class="testimony-area">
+        <div class="testimony-speaker" id="speaker"></div>
+        <div class="testimony-text" id="testimonyText"></div>
+        <div class="feedback hidden" id="feedback"></div>
+      </main>
+      <footer class="action-area">
+        <button class="btn-objection" id="btnObjection" type="button">そうは問屋がおろしませんよ！</button>
+        <button class="btn-next" id="btnNext" type="button">次へ</button>
+      </footer>
+    </div>
+
+    <!-- 右：証拠 -->
+    <aside class="sidebar sidebar-right">
+      <p class="sidebar-title">手持ち証拠</p>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">①コンビニ防犯カメラ</p>
+        <p class="sidebar-evidence-body">犯行時刻にAが5km先のコンビニに映っている。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">②DNA再鑑定報告書</p>
+        <p class="sidebar-evidence-body">現場DNAはAと不一致。原鑑定に試料汚染。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">③凶器の指紋再鑑定書</p>
+        <p class="sidebar-evidence-body">凶器の指紋はAのものではない。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">④Aの通話記録</p>
+        <p class="sidebar-evidence-body">犯行時刻にAは5km離れた基地局圏内。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑤初回供述調書</p>
+        <p class="sidebar-evidence-body">目撃者「暗くて顔はよく見えなかった」。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑥取調べ録音記録</p>
+        <p class="sidebar-evidence-body">「田中の写真を指させ」と誘導する音声。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑦被害者の携帯メール</p>
+        <p class="sidebar-evidence-body">A以外の人物からの脅迫メッセージ。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑧足跡鑑定書</p>
+        <p class="sidebar-evidence-body">足跡は28cm。Aの靴は25.5cm。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑨アリバイ証人陳述書</p>
+        <p class="sidebar-evidence-body">事件当夜Aは友人とレストランにいた。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑩検察の内部報告書</p>
+        <p class="sidebar-evidence-body">「DNA鑑定不十分、再検討必要」未開示文書。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑪被害者の日記</p>
+        <p class="sidebar-evidence-body">「背の高い男につけ回されている」Aは167cm。</p>
+      </div>
+      <div class="sidebar-evidence">
+        <p class="sidebar-evidence-name">⑫法医学再鑑定書</p>
+        <p class="sidebar-evidence-body">死亡推定時刻は午後8時〜8時半（検察主張と2時間差）。</p>
+      </div>
+    </aside>
+  </div>
+
+</div>
+
+<!-- ===== 証拠モーダル ===== -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <p class="modal-title">どの証拠を突きつける？</p>
+    <button class="evidence-btn" data-key="conveni" type="button">
+      <span class="evidence-name"><span class="evidence-key">1</span>コンビニ防犯カメラ映像</span>
+      <span class="evidence-desc">犯行時刻にAが5km先のコンビニに映っている</span>
+    </button>
+    <button class="evidence-btn" data-key="dna" type="button">
+      <span class="evidence-name"><span class="evidence-key">2</span>DNA再鑑定報告書</span>
+      <span class="evidence-desc">現場DNAはAと不一致、原鑑定に試料汚染</span>
+    </button>
+    <button class="evidence-btn" data-key="fingerprint" type="button">
+      <span class="evidence-name"><span class="evidence-key">3</span>凶器の指紋再鑑定書</span>
+      <span class="evidence-desc">凶器の指紋はAのものではない</span>
+    </button>
+    <button class="evidence-btn" data-key="phone" type="button">
+      <span class="evidence-name"><span class="evidence-key">4</span>Aの通話記録</span>
+      <span class="evidence-desc">犯行時刻にAは5km離れた基地局圏内</span>
+    </button>
+    <button class="evidence-btn" data-key="initial" type="button">
+      <span class="evidence-name"><span class="evidence-key">5</span>目撃者の初回供述調書</span>
+      <span class="evidence-desc">「暗くて顔はよく見えなかった」と記載</span>
+    </button>
+    <button class="evidence-btn" data-key="recording" type="button">
+      <span class="evidence-name"><span class="evidence-key">6</span>取調べの録音記録</span>
+      <span class="evidence-desc">「田中の写真を指させ」と誘導する音声</span>
+    </button>
+    <button class="evidence-btn" data-key="threat" type="button">
+      <span class="evidence-name"><span class="evidence-key">7</span>被害者の携帯メール記録</span>
+      <span class="evidence-desc">A以外の人物からの脅迫メッセージ</span>
+    </button>
+    <button class="evidence-btn" data-key="footprint" type="button">
+      <span class="evidence-name"><span class="evidence-key">8</span>現場の足跡鑑定書</span>
+      <span class="evidence-desc">足跡は28cm、Aの靴は25.5cm</span>
+    </button>
+    <button class="evidence-btn" data-key="alibi" type="button">
+      <span class="evidence-name"><span class="evidence-key">9</span>アリバイ証人の陳述書</span>
+      <span class="evidence-desc">事件当夜Aは友人と5km先のレストランにいた</span>
+    </button>
+    <button class="evidence-btn" data-key="memo" type="button">
+      <span class="evidence-name"><span class="evidence-key">0</span>検察の内部報告書</span>
+      <span class="evidence-desc">「DNA鑑定不十分、再検討必要」未開示の内部文書</span>
+    </button>
+    <button class="evidence-btn" data-key="diary" type="button">
+      <span class="evidence-name"><span class="evidence-key">Q</span>被害者の日記</span>
+      <span class="evidence-desc">「背の高い男につけ回されている」Aは167cm</span>
+    </button>
+    <button class="evidence-btn" data-key="forensic" type="button">
+      <span class="evidence-name"><span class="evidence-key">W</span>法医学再鑑定書</span>
+      <span class="evidence-desc">死亡推定時刻は午後8時〜8時半（検察主張と2時間差）</span>
+    </button>
+    <button class="modal-cancel" id="btnCancelModal" type="button">やめる（Esc）</button>
+  </div>
+</div>
+
+<!-- ===== エンディング ===== -->
+<div class="screen screen--ending" id="screenEnding">
+  <div class="ending-inner" id="endingInner">
+    <p class="ending-text" id="endingText"></p>
+    <p class="ending-score" id="endingScore"></p>
+    <button class="btn-retry" id="btnRetry" type="button">最初からやり直す</button>
+  </div>
+</div>
+
+<script>
+/* ========================================
+   そうは問屋がおろしませんよ！ — 冤罪事件 第四話
+   ======================================== */
+'use strict';
+
+(function () {
+
+  /* =============================================
+     証言データ（36文、矛盾12）
+     証人1: 目撃者 山本健二（1-18、矛盾6）
+     証人2: 担当検察官 黒田浩二（19-36、矛盾6）
+     ============================================= */
+  var WITNESS_CHANGE_INDEX = 18;
+
+  var STATEMENTS = [
+    /* ===========================================
+       証人1: 目撃者 山本健二
+       =========================================== */
+    // 1. 矛盾なし — 当日の状況
+    { text: 'あの夜、犬の散歩で現場のマンション付近を歩いていました。' },
+    // 2. 矛盾あり — 「顔がはっきり見えた」vs 初回供述調書（「暗くて顔はよく見えなかった」）
+    {
+      text: '犯人の顔ははっきりと見えました。田中さんに間違いありません。',
+      correctEvidence: 'initial',
+    },
+    // 3. 矛盾なし — 物音
+    { text: 'マンションの方から大きな物音が聞こえました。' },
+    // 4. 矛盾なし — 人影
+    { text: '人影が建物の入口から飛び出してくるのが見えました。' },
+    // 5. 矛盾あり — 「午後10時頃」vs 法医学再鑑定書（午後8時〜8時半）
+    {
+      text: 'それは午後10時頃のことでした。',
+      correctEvidence: 'forensic',
+    },
+    // 6. 矛盾なし — 通報
+    { text: 'すぐに110番通報しました。' },
+    // 7. 矛盾あり — 「小柄な男」vs 足跡鑑定書（28cm＝大柄な人物）
+    {
+      text: '犯人は小柄な体格の男でした。田中さんと同じくらいです。',
+      correctEvidence: 'footprint',
+    },
+    // 8. 矛盾なし — 逃走
+    { text: '犯人は走って東の方向に逃げていきました。' },
+    // 9. 矛盾なし — 待機
+    { text: '警察が来るまで現場の近くで待っていました。' },
+    // 10. 矛盾あり — 「逃走方向に何もなかった」vs コンビニ防犯カメラ映像
+    {
+      text: '犯人が逃げた方向にはコンビニなど何もなかったと思います。',
+      correctEvidence: 'conveni',
+    },
+    // 11. 矛盾なし — 翌日の聴取
+    { text: '翌日、警察から事情聴取を受けました。' },
+    // 12. 矛盾なし — 写真選別
+    { text: '写真を何枚か見せられて、この人だと指さしました。' },
+    // 13. 矛盾あり — 「誘導なし」vs 取調べの録音記録（「田中の写真を指させ」）
+    {
+      text: '警察から犯人が誰かを教えられたことはありません。自分で選びました。',
+      correctEvidence: 'recording',
+    },
+    // 14. 矛盾なし — 裁判での証言
+    { text: '裁判でも同じことを証言しました。' },
+    // 15. 矛盾なし — 恐怖
+    { text: '当時は怖くてしばらく夜の外出を控えていました。' },
+    // 16. 矛盾あり — 「あの時間に現場付近で田中を見た」vs アリバイ証人の陳述書
+    {
+      text: '事件のあった時間帯に現場付近で田中さんを見たのは確かです。',
+      correctEvidence: 'alibi',
+    },
+    // 17. 矛盾なし — 記憶
+    { text: 'あの事件のことは今でも鮮明に覚えています。' },
+    // 18. 矛盾なし — 真実を話す
+    { text: '真実を話すことが自分の務めだと思っています。' },
+
+    /* ===========================================
+       証人2: 担当検察官 黒田浩二
+       =========================================== */
+    // 19. 矛盾なし — 役職
+    { text: '私がこの事件の主任検察官として捜査を指揮しました。' },
+    // 20. 矛盾あり — 「DNA一致」vs DNA再鑑定報告書（不一致・試料汚染）
+    {
+      text: '現場に残されたDNAは田中被告のものと一致していました。',
+      correctEvidence: 'dna',
+    },
+    // 21. 矛盾なし — 適正捜査の主張
+    { text: '捜査は適正な手続きに従って行われました。' },
+    // 22. 矛盾あり — 「指紋一致」vs 凶器の指紋再鑑定書（不一致）
+    {
+      text: '凶器から検出された指紋も田中被告のものと確認されています。',
+      correctEvidence: 'fingerprint',
+    },
+    // 23. 矛盾なし — 動機
+    { text: '動機は被害者との間の金銭トラブルでした。' },
+    // 24. 矛盾なし — 否認
+    { text: '田中被告は当初から犯行を否認していました。' },
+    // 25. 矛盾あり — 「現場付近にいた」vs 通話記録（5km離れた基地局圏内）
+    {
+      text: '田中被告は犯行時刻に現場付近にいたことが確認されています。',
+      correctEvidence: 'phone',
+    },
+    // 26. 矛盾なし — 目撃証言の重要性
+    { text: '目撃者の証言は本件における重要な柱でした。' },
+    // 27. 矛盾なし — 捜査人員
+    { text: '捜査には多くの人員を投入しました。' },
+    // 28. 矛盾あり — 「脅迫していたのは田中だけ」vs 被害者の携帯メール記録
+    {
+      text: '被害者を脅迫していたのは田中被告だけです。他に容疑者はいませんでした。',
+      correctEvidence: 'threat',
+    },
+    // 29. 矛盾なし — 証拠が十分
+    { text: '起訴に足る証拠は十分に揃っていると判断しました。' },
+    // 30. 矛盾あり — 「DNA鑑定に問題なし」vs 検察の内部報告書
+    {
+      text: '捜査の過程でDNA鑑定に疑義があるという報告は一切ありませんでした。',
+      correctEvidence: 'memo',
+    },
+    // 31. 矛盾なし — 起訴判断
+    { text: '起訴の判断は上司とも協議の上、慎重に行いました。' },
+    // 32. 矛盾なし — 遺族
+    { text: '被害者のご遺族の思いに応えることが検察の使命です。' },
+    // 33. 矛盾あり — 「ストーカー被害の訴えなし」vs 被害者の日記
+    {
+      text: '被害者がストーカー被害を受けていたという事実はありません。',
+      correctEvidence: 'diary',
+    },
+    // 34. 矛盾なし — 証拠開示
+    { text: '裁判では必要な証拠はすべて開示しました。' },
+    // 35. 矛盾なし — 確信
+    { text: '田中被告が犯人であることに疑いの余地はありません。' },
+    // 36. 矛盾なし — 正義
+    { text: '検察は常に真実と正義の追求を第一としています。' },
+  ];
+
+  var PENALTY = -5;
+  var TOTAL_CONTRADICTIONS = 12;
+
+  /* =============================================
+     状態
+     ============================================= */
+  var currentStatementIndex = 0;
+  var score = 100;
+  var correctHits = {};
+  var mistakes = 0;
+  var MAX_MISTAKES = 2;
+  var gameActive = false;
+  var transitioning = false;
+  var witnessTransitionShown = false;
+
+  var TIME_LIMIT = 10;
+  var timeLeft = TIME_LIMIT;
+  var timerInterval = null;
+
+  /* =============================================
+     DOM
+     ============================================= */
+  var dom = {
+    flash:            document.getElementById('flashOverlay'),
+    screenTitle:      document.getElementById('screenTitle'),
+    screenBriefing:   document.getElementById('screenBriefing'),
+    screenGame:       document.getElementById('screenGame'),
+    screenEnding:     document.getElementById('screenEnding'),
+    screenWitTrans:   document.getElementById('screenWitnessTransition'),
+    witnessTransInner:document.getElementById('witnessTransInner'),
+    btnNextWitness:   document.getElementById('btnNextWitness'),
+    stmtNum:          document.getElementById('stmtNum'),
+    scoreDisplay:     document.getElementById('scoreDisplay'),
+    speaker:          document.getElementById('speaker'),
+    testimonyText:    document.getElementById('testimonyText'),
+    feedback:         document.getElementById('feedback'),
+    btnObjection:     document.getElementById('btnObjection'),
+    btnNext:          document.getElementById('btnNext'),
+    modalBackdrop:    document.getElementById('modalBackdrop'),
+    btnCancelModal:   document.getElementById('btnCancelModal'),
+    endingText:       document.getElementById('endingText'),
+    endingScore:      document.getElementById('endingScore'),
+    endingInner:      document.getElementById('endingInner'),
+    btnStart:         document.getElementById('btnStart'),
+    btnBeginTrial:    document.getElementById('btnBeginTrial'),
+    btnRetry:         document.getElementById('btnRetry'),
+    timerDisplay:     document.getElementById('timerDisplay'),
+    timerBar:         document.getElementById('timerBar'),
+  };
+
+  // 証拠ボタンをdata-keyで参照
+  var evidenceBtns = document.querySelectorAll('.evidence-btn[data-key]');
+
+  /* =============================================
+     キーと証拠キーの対応
+     ============================================= */
+  var KEY_MAP = {
+    '1': 'conveni',
+    '2': 'dna',
+    '3': 'fingerprint',
+    '4': 'phone',
+    '5': 'initial',
+    '6': 'recording',
+    '7': 'threat',
+    '8': 'footprint',
+    '9': 'alibi',
+    '0': 'memo',
+    'q': 'diary',
+    'w': 'forensic',
+  };
+
+  /* =============================================
+     画面切替
+     ============================================= */
+  function showScreen(name) {
+    dom.screenTitle.classList.remove('active');
+    dom.screenBriefing.classList.remove('active');
+    dom.screenGame.classList.remove('active');
+    dom.screenEnding.classList.remove('active');
+    dom.screenWitTrans.classList.remove('active');
+
+    if (name === 'title')      dom.screenTitle.classList.add('active');
+    if (name === 'briefing')   dom.screenBriefing.classList.add('active');
+    if (name === 'game')       dom.screenGame.classList.add('active');
+    if (name === 'ending')     dom.screenEnding.classList.add('active');
+    if (name === 'witness')    dom.screenWitTrans.classList.add('active');
+  }
+
+  /* =============================================
+     証人名の更新
+     ============================================= */
+  function updateSpeaker() {
+    if (currentStatementIndex < WITNESS_CHANGE_INDEX) {
+      dom.speaker.textContent = '証人：目撃者 山本健二';
+    } else {
+      dom.speaker.textContent = '証人：担当検察官 黒田浩二';
+    }
+  }
+
+  /* =============================================
+     HUD更新
+     ============================================= */
+  function updateHUD() {
+    dom.stmtNum.textContent = currentStatementIndex + 1;
+    dom.scoreDisplay.textContent = score;
+  }
+
+  /* =============================================
+     証言表示
+     ============================================= */
+  function showStatement() {
+    if (currentStatementIndex >= STATEMENTS.length) {
+      finishGame();
+      return;
+    }
+
+    // 証人交代の演出
+    if (currentStatementIndex === WITNESS_CHANGE_INDEX && !witnessTransitionShown) {
+      witnessTransitionShown = true;
+      gameActive = false;
+
+      // アニメーションリセット
+      dom.witnessTransInner.style.animation = 'none';
+      void dom.witnessTransInner.offsetWidth;
+      dom.witnessTransInner.style.animation = '';
+
+      showScreen('witness');
+      return;
+    }
+
+    var stmt = STATEMENTS[currentStatementIndex];
+
+    dom.testimonyText.classList.add('entering');
+    hideFeedback();
+    updateSpeaker();
+
+    setTimeout(function () {
+      dom.testimonyText.textContent = '「' + stmt.text + '」';
+      dom.testimonyText.classList.remove('entering');
+      setButtons(true);
+      transitioning = false;
+      startTimer();
+    }, 80);
+
+    updateHUD();
+  }
+
+  /* =============================================
+     フィードバック
+     ============================================= */
+  function showFeedback(text, cls) {
+    dom.feedback.textContent = text;
+    dom.feedback.className = 'feedback ' + cls;
+  }
+
+  function hideFeedback() {
+    dom.feedback.className = 'feedback hidden';
+    dom.feedback.textContent = '';
+  }
+
+  /* =============================================
+     演出
+     ============================================= */
+  function flashGold() {
+    dom.flash.classList.remove('flash-gold', 'flash-red');
+    void dom.flash.offsetWidth;
+    dom.flash.classList.add('flash-gold');
+    setTimeout(function () { dom.flash.classList.remove('flash-gold'); }, 400);
+  }
+
+  function flashRed() {
+    dom.flash.classList.remove('flash-gold', 'flash-red');
+    void dom.flash.offsetWidth;
+    dom.flash.classList.add('flash-red');
+    setTimeout(function () { dom.flash.classList.remove('flash-red'); }, 350);
+  }
+
+  function shakeText() {
+    dom.testimonyText.classList.remove('shake');
+    void dom.testimonyText.offsetWidth;
+    dom.testimonyText.classList.add('shake');
+  }
+
+  /* =============================================
+     スコア
+     ============================================= */
+  function penalize() {
+    score = Math.max(0, score + PENALTY);
+    updateHUD();
+  }
+
+  /* =============================================
+     タイマー
+     ============================================= */
+  function updateTimerDisplay() {
+    dom.timerDisplay.textContent = timeLeft;
+    var pct = (timeLeft / TIME_LIMIT) * 100;
+    dom.timerBar.style.width = pct + '%';
+
+    if (timeLeft <= 3) {
+      dom.timerDisplay.classList.add('danger');
+      dom.timerBar.classList.add('danger');
+    } else {
+      dom.timerDisplay.classList.remove('danger');
+      dom.timerBar.classList.remove('danger');
+    }
+  }
+
+  function startTimer() {
+    clearTimer();
+    timeLeft = TIME_LIMIT;
+    updateTimerDisplay();
+    timerInterval = setInterval(function () {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearTimer();
+        onTimeout();
+      }
+    }, 1000);
+  }
+
+  function clearTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function pauseTimer() {
+    clearTimer();
+  }
+
+  function resumeTimer() {
+    if (!gameActive || transitioning || timeLeft <= 0) return;
+    clearTimer();
+    timerInterval = setInterval(function () {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        clearTimer();
+        onTimeout();
+      }
+    }, 1000);
+  }
+
+  function onTimeout() {
+    if (!gameActive || transitioning) return;
+    mistakes++;
+    penalize();
+    flashRed();
+    setButtons(false);
+    showFeedback('時間切れだ。判断が遅すぎる。', 'wrong');
+
+    if (mistakes >= MAX_MISTAKES) {
+      transitioning = true;
+      setTimeout(function () {
+        finishGame();
+      }, 1200);
+      return;
+    }
+
+    transitioning = true;
+    setTimeout(function () {
+      transitioning = false;
+      goNext();
+    }, 1200);
+  }
+
+  /* =============================================
+     モーダル
+     ============================================= */
+  function openModal() {
+    pauseTimer();
+    dom.modalBackdrop.classList.add('active');
+  }
+
+  function closeModal() {
+    dom.modalBackdrop.classList.remove('active');
+  }
+
+  /* =============================================
+     そうは問屋がおろしませんよ！ → 証拠提示
+     ============================================= */
+  function onObjection() {
+    if (!gameActive || transitioning) return;
+    setButtons(false);
+    openModal();
+  }
+
+  function submitEvidence(evidenceKey) {
+    closeModal();
+    clearTimer();
+
+    var stmt = STATEMENTS[currentStatementIndex];
+
+    if (stmt.correctEvidence && stmt.correctEvidence === evidenceKey) {
+      correctHits[currentStatementIndex] = true;
+
+      flashGold();
+      shakeText();
+      showFeedback('……矛盾が生じた。', 'correct');
+
+      transitioning = true;
+      setTimeout(function () {
+        transitioning = false;
+        goNext();
+      }, 1400);
+
+    } else {
+      mistakes++;
+      penalize();
+      flashRed();
+
+      if (!stmt.correctEvidence) {
+        showFeedback('この証言に矛盾はない。不用意な異議だ。', 'wrong');
+      } else {
+        showFeedback('証拠が違う。矛盾を証明できていない。', 'wrong');
+      }
+
+      if (mistakes >= MAX_MISTAKES) {
+        transitioning = true;
+        setTimeout(function () {
+          finishGame();
+        }, 1200);
+        return;
+      }
+
+      transitioning = true;
+      setTimeout(function () {
+        transitioning = false;
+        setButtons(true);
+      }, 800);
+    }
+  }
+
+  /* =============================================
+     次へ
+     ============================================= */
+  function goNext() {
+    if (!gameActive || transitioning) return;
+    clearTimer();
+    transitioning = true;
+
+    currentStatementIndex++;
+    if (currentStatementIndex >= STATEMENTS.length) {
+      finishGame();
+      return;
+    }
+
+    showStatement();
+  }
+
+  /* =============================================
+     ボタン制御
+     ============================================= */
+  function setButtons(enabled) {
+    dom.btnObjection.disabled = !enabled;
+    dom.btnNext.disabled = !enabled;
+  }
+
+  /* =============================================
+     画面遷移
+     ============================================= */
+  function showBriefing() {
+    showScreen('briefing');
+  }
+
+  function startGame() {
+    currentStatementIndex = 0;
+    score = 100;
+    correctHits = {};
+    mistakes = 0;
+    gameActive = true;
+    transitioning = false;
+    witnessTransitionShown = false;
+
+    updateHUD();
+    updateSpeaker();
+    hideFeedback();
+    showScreen('game');
+    showStatement();
+  }
+
+  function resumeAfterWitnessChange() {
+    gameActive = true;
+    transitioning = false;
+    showScreen('game');
+    showStatement();
+  }
+
+  /* =============================================
+     ゲーム終了・判定
+     ============================================= */
+  function finishGame() {
+    gameActive = false;
+    clearTimer();
+    setButtons(false);
+
+    var hitCount = Object.keys(correctHits).length;
+    var win = hitCount === TOTAL_CONTRADICTIONS && mistakes < MAX_MISTAKES;
+
+    setTimeout(function () {
+      if (mistakes >= MAX_MISTAKES) {
+        dom.endingText.textContent = '裁判官：「弁護人、根拠を欠く主張が繰り返されています。\nこれ以上の尋問は認めません。」\n\n田中誠一：「先生、頼むよ……俺の人生がかかってるんだ。\nもっと慎重にやってくれよ……」';
+      } else if (win) {
+        dom.endingText.textContent = '裁判官：「原判決を破棄し、被告人に無罪を言い渡す。\n本件捜査には重大な違法があったと認めざるを得ない。」\n\n田中誠一：「先生……10年間、この日を待っていました。\nやっと外に出られるんですね。本当に……ありがとうございます。」';
+      } else {
+        dom.endingText.textContent = '裁判官：「弁護側の主張には理由がない。\n上告を棄却する。」\n\n田中誠一：「嘘だろ……俺はやってないのに。\n先生、もう俺には何も残ってないのか……」';
+      }
+
+      dom.endingScore.textContent = 'SCORE: ' + score + '　矛盾指摘: ' + hitCount + ' / ' + TOTAL_CONTRADICTIONS;
+
+      dom.endingInner.style.animation = 'none';
+      void dom.endingInner.offsetWidth;
+      dom.endingInner.style.animation = '';
+
+      showScreen('ending');
+    }, 600);
+  }
+
+  /* =============================================
+     イベント
+     ============================================= */
+  dom.btnStart.addEventListener('click', showBriefing);
+  dom.btnBeginTrial.addEventListener('click', startGame);
+  dom.btnRetry.addEventListener('click', showBriefing);
+  dom.btnNextWitness.addEventListener('click', resumeAfterWitnessChange);
+
+  dom.btnObjection.addEventListener('click', onObjection);
+  dom.btnNext.addEventListener('click', goNext);
+
+  // 証拠ボタン（data-keyで動的に処理）
+  evidenceBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      submitEvidence(btn.getAttribute('data-key'));
+    });
+  });
+
+  dom.btnCancelModal.addEventListener('click', function () {
+    closeModal();
+    resumeTimer();
+    setButtons(true);
+  });
+
+  dom.modalBackdrop.addEventListener('click', function (e) {
+    if (e.target === dom.modalBackdrop) {
+      closeModal();
+      resumeTimer();
+      setButtons(true);
+    }
+  });
+
+  // キーボード
+  document.addEventListener('keydown', function (e) {
+    var key = e.key.toLowerCase();
+
+    if (e.key === 'Enter') {
+      if (dom.screenTitle.classList.contains('active')) {
+        e.preventDefault();
+        showBriefing();
+        return;
+      }
+      if (dom.screenBriefing.classList.contains('active')) {
+        e.preventDefault();
+        startGame();
+        return;
+      }
+      if (dom.screenWitTrans.classList.contains('active')) {
+        e.preventDefault();
+        resumeAfterWitnessChange();
+        return;
+      }
+      if (dom.screenEnding.classList.contains('active')) {
+        e.preventDefault();
+        showBriefing();
+        return;
+      }
+    }
+
+    if (!gameActive) return;
+
+    // モーダル中
+    if (dom.modalBackdrop.classList.contains('active')) {
+      if (KEY_MAP[key]) {
+        submitEvidence(KEY_MAP[key]);
+      }
+      if (e.key === 'Escape') {
+        closeModal();
+        resumeTimer();
+        setButtons(true);
+      }
+      return;
+    }
+
+    if (key === 'z') {
+      onObjection();
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goNext();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>

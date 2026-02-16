@@ -1,0 +1,1504 @@
+/* ========================================
+   螟冶ｻ顔黄謳榊ｰる摩 LP - Style
+   ACE 繝悶Λ繝ｳ繝峨�繝ｩ繧､繝医ユ繝ｼ繝樒沿��futokaiko 貅匁侠��
+   ======================================== */
+
+/* --- Reset & Base --- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* 繝ｩ繧､繝医ユ繝ｼ繝樣�濶ｲ��futokaiko 貅匁侠�� */
+  --white: #ffffff;
+  --bg: #ffffff;
+  --bg-alt: #f8f8f8;
+  --bg-gray: #eeeeef;
+  --text: #000c15;
+  --text-sub: #444c55;
+  --text-muted: #6b7585;
+  --border: #dde0e4;
+  --border-light: #eaedf0;
+  /* futokaiko 邉ｻ繧｢繧ｯ繧ｻ繝ｳ繝茨ｼ磯搨�� */
+  --accent: #30b8ed;
+  --accent-deep: #3f94bd;
+  --accent-pale: #eaf8ff;
+  /* CTA逕ｨ繧ｪ繝ｬ繝ｳ繧ｸ��futokaiko 縺ｮ slider-btn / price-section-btn 濶ｲ�� */
+  --cta: #dd5533;
+  --cta-hover: #c44a2a;
+  /* 陬懷勧繝吶�繧ｸ繝･ */
+  --sub: #9b8d77;
+  --danger: #d9534f;
+  --success: #5cb85c;
+  --font-sans: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  --font-serif: 'Noto Serif JP', 'Yu Mincho', serif;
+  --max-width: 1100px;
+  --section-py: 96px;
+  --transition: 0.3s ease;
+  --shadow-card: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-card-hover: 0 6px 24px rgba(0,0,0,0.13);
+  --radius: 10px;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--text);
+  background-color: var(--bg);
+  line-height: 1.85;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent-deep);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.accent {
+  color: var(--accent);
+}
+
+.sp-only { display: none; }
+.pc-only { display: inline; }
+
+@media (max-width: 768px) {
+  .sp-only { display: inline; }
+  .pc-only { display: none; }
+}
+
+/* ========================================
+   Header��futokaiko 貅匁侠 窶� 繝ｭ繧ｴ蟾ｦ + CTA蜿ｳ��
+   ======================================== */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--white);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+}
+
+.header-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px;
+}
+
+.header-logo {
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+.header-logo-main {
+  font-family: var(--font-sans);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.header-logo-sub {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-info {
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+}
+
+.header-cta-list {
+  display: flex;
+  list-style: none;
+  gap: 10px;
+}
+
+.header-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+
+.header-cta-btn.tel {
+  background: var(--accent);
+  color: #fff;
+}
+
+.header-cta-btn.tel:hover {
+  background: var(--accent-deep);
+  color: #fff;
+}
+
+.header-cta-btn.line {
+  background: #06c755;
+  color: #fff;
+}
+
+.header-cta-btn.line:hover {
+  background: #05b34c;
+  color: #fff;
+}
+
+.header-cta-btn.mail {
+  background: var(--cta);
+  color: #fff;
+}
+
+.header-cta-btn.mail:hover {
+  background: var(--cta-hover);
+  color: #fff;
+}
+
+.header-cta-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 繝翫ン繧ｲ繝ｼ繧ｷ繝ｧ繝ｳ��PC繧ｻ繧ｫ繝ｳ繝峨ヰ繝ｼ�� */
+.nav {
+  position: relative;
+  z-index: 999;
+  background: var(--accent-deep);
+}
+
+.nav-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+}
+
+.nav-links {
+  display: flex;
+  list-style: none;
+  gap: 28px;
+}
+
+.nav-links a {
+  color: rgba(255,255,255,0.9);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: color var(--transition);
+}
+
+.nav-links a:hover {
+  color: #fff;
+}
+
+.nav-cta {
+  display: none;
+}
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: #fff;
+  transition: var(--transition);
+  border-radius: 1px;
+}
+
+@media (max-width: 900px) {
+  .header-inner {
+    height: 64px;
+  }
+
+  .header-info,
+  .header-cta-list {
+    display: none;
+  }
+
+  .nav {
+    /* static flow — no top offset needed */
+  }
+
+  .nav-inner {
+    justify-content: space-between;
+  }
+
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 44px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: var(--accent-deep);
+    padding: 16px 24px;
+    gap: 12px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+}
+
+/* ========================================
+   Hero
+   futokaiko 貅匁侠: 逋ｽ閭梧勹 + 髱偵い繧ｯ繧ｻ繝ｳ繝�
+   ======================================== */
+.hero {
+  position: relative;
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px 80px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0a0f14 0%, #141e28 40%, #1a2a3a 100%);
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 50%, rgba(48,184,237,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  text-align: center;
+}
+
+.hero-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 20px;
+  border-radius: 20px;
+  letter-spacing: 0.06em;
+  margin-bottom: 24px;
+}
+
+.hero-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.hero-title {
+  font-family: var(--font-sans);
+  font-size: clamp(1.8rem, 4.5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.55;
+  color: #ffffff;
+  margin-bottom: 28px;
+  letter-spacing: 0.03em;
+}
+
+.hero-sub {
+  font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+  color: rgba(255,255,255,0.7);
+  line-height: 2;
+  margin-bottom: 44px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.hero-note {
+  margin-top: 24px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+}
+
+.hero .btn-outline {
+  color: #fff;
+  border-color: rgba(255,255,255,0.4);
+}
+
+.hero .btn-outline:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: #fff;
+  color: #fff;
+}
+
+/* ========================================
+   Buttons
+   futokaiko: solid fill, translateY(-2px) hover, box-shadow
+   ======================================== */
+.btn {
+  display: inline-block;
+  padding: 15px 38px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: none;
+  text-align: center;
+}
+
+.btn-primary {
+  background: var(--cta);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--cta-hover);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(221,85,51,0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--accent-deep);
+  border: 2px solid var(--accent-deep);
+}
+
+.btn-outline:hover {
+  background: var(--accent-deep);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-accent:hover {
+  background: var(--accent-deep);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(63,148,189,0.3);
+}
+
+.btn-large {
+  padding: 18px 52px;
+  font-size: 1rem;
+}
+
+/* ========================================
+   Section
+   futokaiko: center headers, decorative underline, alternating bg
+   ======================================== */
+.section {
+  padding: var(--section-py) 0;
+}
+
+.section-alt {
+  background: var(--bg-alt);
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.section-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.section-title {
+  font-family: var(--font-sans);
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 0;
+  letter-spacing: 0.03em;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 18px;
+}
+
+/* futokaiko 鬚ｨ 隕句�縺嶺ｸ狗ｷ夊｣�｣ｾ */
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.section-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.9;
+  margin-top: 20px;
+}
+
+/* ========================================
+   Worries
+   ======================================== */
+.worries-list {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.worries-list li {
+  display: flex;
+  gap: 18px;
+  padding: 24px 28px;
+  background: var(--white);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--accent);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.worries-list li:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.worry-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+  margin-top: 3px;
+}
+
+.worry-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.worry-text strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.worry-text p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 600px) {
+  .worries-list li {
+    padding: 20px;
+    gap: 14px;
+  }
+}
+
+/* ========================================
+   Issues Table
+   ======================================== */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.issues-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.issues-table thead {
+  background: var(--accent-pale);
+}
+
+.issues-table th {
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--accent-deep);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--accent-deep);
+  white-space: nowrap;
+}
+
+.issues-table td {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: top;
+  color: var(--text-sub);
+}
+
+.issues-table td strong {
+  color: var(--text);
+}
+
+.issues-table tbody tr:hover {
+  background: var(--accent-pale);
+}
+
+@media (max-width: 768px) {
+  .issues-table thead {
+    display: none;
+  }
+
+  .issues-table tr {
+    display: block;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .issues-table td {
+    display: block;
+    padding: 4px 0;
+    border: none;
+  }
+
+  .issues-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    color: var(--accent-deep);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+}
+
+/* ========================================
+   Cards
+   futokaiko: border-radius 12px, shadow, hover lift -5px, WHITE bg
+   ======================================== */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  padding: 32px 28px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  border: none;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card-number {
+  font-family: var(--font-sans);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.35;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.card-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+
+.card-text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.9;
+}
+
+/* ========================================
+   CTA Band�井ｸｭ髢鼎TA��
+   futokaiko: contact-banner-section (髱定レ譎ｯ蟶ｯ)
+   ======================================== */
+.cta-band {
+  background: linear-gradient(135deg, var(--accent-deep) 0%, var(--accent) 100%);
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.cta-band-title {
+  font-family: var(--font-sans);
+  font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.cta-band-sub {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 28px;
+  line-height: 1.8;
+}
+
+.cta-band .btn-primary {
+  background: #fff;
+  color: var(--accent-deep);
+  font-weight: 700;
+}
+
+.cta-band .btn-primary:hover {
+  background: var(--bg-alt);
+  color: var(--accent-deep);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+/* ========================================
+   Flow
+   ======================================== */
+.flow-steps {
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.flow-steps::before {
+  content: '';
+  position: absolute;
+  left: 28px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent), var(--accent-deep));
+  opacity: 0.3;
+}
+
+.flow-step {
+  display: flex;
+  gap: 28px;
+  padding-bottom: 48px;
+  position: relative;
+}
+
+.flow-step:last-child {
+  padding-bottom: 0;
+}
+
+.flow-number {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 14px rgba(48,184,237,0.25);
+}
+
+.flow-body h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  padding-top: 4px;
+}
+
+.flow-body p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.85;
+}
+
+@media (max-width: 600px) {
+  .flow-steps::before {
+    left: 22px;
+  }
+
+  .flow-number {
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
+  }
+
+  .flow-step {
+    gap: 18px;
+  }
+}
+
+/* ========================================
+   Pricing
+   ======================================== */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.pricing-card {
+  padding: 36px 28px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  text-align: center;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.pricing-card-main {
+  border: 2px solid var(--accent);
+  position: relative;
+}
+
+.pricing-card-main::before {
+  content: '縺翫☆縺吶ａ';
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 18px;
+  border-radius: 20px;
+  letter-spacing: 0.1em;
+}
+
+.pricing-label {
+  font-size: 0.8rem;
+  color: var(--accent-deep);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.pricing-amount {
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.pricing-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.7;
+}
+
+.pricing-features {
+  list-style: none;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+.pricing-features li {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-light);
+  padding-left: 22px;
+  position: relative;
+}
+
+.pricing-features li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.pricing-note {
+  margin-top: 20px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ========================================
+   Cases
+   ======================================== */
+.cases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.case-card {
+  padding: 28px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.case-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.case-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  padding: 4px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+
+.case-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.case-detail {
+  margin-bottom: 16px;
+}
+
+.case-row {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+.case-row.highlight {
+  color: var(--text);
+  font-weight: 700;
+  background: var(--accent-pale);
+  margin: 4px -12px 0;
+  padding: 12px 12px;
+  border-radius: 6px;
+  border: none;
+}
+
+.case-label {
+  flex-shrink: 0;
+  width: 120px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-deep);
+  letter-spacing: 0.05em;
+}
+
+.case-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  padding-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .case-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .case-label {
+    width: auto;
+  }
+}
+
+/* ========================================
+   FAQ
+   futokaiko: Q/A colored markers
+   ======================================== */
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.faq-question {
+  padding: 22px 0 22px 48px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+  padding-right: 40px;
+}
+
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+/* Q marker */
+.faq-question::before {
+  content: 'Q';
+  position: absolute;
+  left: 0;
+  top: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--text);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faq-question::after {
+  content: '+';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.4rem;
+  color: var(--accent);
+  font-weight: 300;
+  transition: transform var(--transition);
+}
+
+details[open] .faq-question::after {
+  content: '竏�';
+}
+
+.faq-answer {
+  padding: 0 0 24px 48px;
+  position: relative;
+}
+
+/* A marker */
+.faq-answer::before {
+  content: 'A';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faq-answer p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.9;
+}
+
+/* ========================================
+   Contact Form
+   ======================================== */
+.contact-form {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.required {
+  font-size: 0.7rem;
+  color: var(--cta);
+  font-weight: 700;
+  background: rgba(221,85,51,0.08);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #b0b8c2;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(48,184,237,0.12);
+}
+
+.form-group input.error,
+.form-group textarea.error {
+  border-color: var(--danger);
+}
+
+.form-error {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin-top: 6px;
+  min-height: 1.2em;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.form-actions {
+  text-align: center;
+  margin-top: 36px;
+}
+
+.form-success {
+  display: none;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--success);
+}
+
+.form-success.show {
+  display: block;
+}
+
+.form-success svg {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+}
+
+.form-success p {
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
+   Area / Offices
+   ======================================== */
+.offices-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.office-card {
+  padding: 28px;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  border-top: 3px solid var(--accent);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.office-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.office-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-deep);
+  margin-bottom: 12px;
+}
+
+.office-card p {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+  line-height: 1.8;
+}
+
+.office-card .office-tel {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .offices-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.area-note strong {
+  color: var(--accent-deep);
+}
+
+/* ========================================
+   Footer
+   futokaiko 貅匁侠: 髱貞ｸｯ + 繝繝ｼ繧ｯ繝輔ャ繧ｿ繝ｼ
+   ======================================== */
+.footer-band {
+  background: linear-gradient(135deg, var(--accent-deep), var(--accent));
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.footer-band-text {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.footer-band-text a {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer {
+  padding: 48px 0 36px;
+  background: #1a2530;
+  color: #c0cad5;
+}
+
+.footer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 32px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.footer-logo-area {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-logo-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+.footer-logo-sub {
+  font-size: 0.7rem;
+  color: #8a9aaa;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+  list-style: none;
+}
+
+.footer-links a {
+  color: #8a9aaa;
+  font-size: 0.8rem;
+  transition: color var(--transition);
+}
+
+.footer-links a:hover {
+  color: #fff;
+}
+
+.footer-offices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.footer-office h4 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.footer-office p {
+  font-size: 0.75rem;
+  color: #8a9aaa;
+  line-height: 1.7;
+}
+
+.footer-legal {
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.footer-legal-list {
+  list-style: none;
+  margin-bottom: 16px;
+}
+
+.footer-legal-list li {
+  font-size: 0.75rem;
+  color: #6a7a8a;
+  line-height: 1.8;
+  padding-bottom: 6px;
+  padding-left: 18px;
+  position: relative;
+}
+
+.footer-legal-list li::before {
+  content: '窶ｻ';
+  position: absolute;
+  left: 0;
+  color: var(--accent-deep);
+}
+
+.footer-copy {
+  font-size: 0.72rem;
+  color: #6a7a8a;
+  text-align: center;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .footer-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .footer-offices {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-offices {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
+   Fixed CTA (Mobile) 窶� futokaiko 貅匁侠: 3蛻�
+   ======================================== */
+.fixed-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  display: none;
+  background: var(--white);
+  border-top: 2px solid var(--accent);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+}
+
+.fixed-cta.visible {
+  display: block;
+}
+
+.fixed-cta-message {
+  display: flex;
+  justify-content: center;
+  padding: 6px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.fixed-cta-message span + span {
+  margin-left: 4px;
+}
+
+.fixed-cta-buttons {
+  display: flex;
+}
+
+.fixed-cta-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+}
+
+.fixed-cta-btn.phone {
+  background: var(--accent);
+  color: #fff;
+}
+
+.fixed-cta-btn.line {
+  background: #06c755;
+  color: #fff;
+}
+
+.fixed-cta-btn.form {
+  background: var(--cta);
+  color: #fff;
+}
+
+.fixed-cta-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (min-width: 769px) {
+  .fixed-cta {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   Fade In Animation
+   ======================================== */
+.fade-in {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
