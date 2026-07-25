@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- 銀行マン・田中 — Neat, glasses, navy suit, blue tie -->
+  <!-- Shoulders / Suit -->
+  <path d="M40 256 L60 185 C70 170, 95 158, 128 155 C161 158, 186 170, 196 185 L216 256 Z"
+        fill="#1E2A3A"/>
+  <path d="M88 175 L108 195 L100 256 L72 256 Z" fill="#232F42"/>
+  <path d="M168 175 L148 195 L156 256 L184 256 Z" fill="#232F42"/>
+  <!-- Shirt collar -->
+  <path d="M108 165 L118 185 L128 175 L138 185 L148 165 C142 160,134 158,128 157 C122 158,114 160,108 165 Z"
+        fill="#EDE7DC"/>
+  <!-- Tie -->
+  <polygon points="128,175 122,195 128,256 134,195" fill="#3B5998"/>
+  <ellipse cx="128" cy="178" rx="6" ry="4" fill="#2D4580"/>
+  <!-- Neck -->
+  <rect x="116" y="140" width="24" height="22" rx="6" fill="#F3C7A6"/>
+  <rect x="118" y="148" width="20" height="14" rx="4" fill="#E8B894" opacity="0.4"/>
+  <!-- Head -->
+  <ellipse cx="128" cy="100" rx="52" ry="58" fill="#F3C7A6"/>
+  <ellipse cx="128" cy="128" rx="40" ry="18" fill="#E8B894" opacity="0.35"/>
+  <!-- Hair -->
+  <path d="M76 88 C76 52, 100 32, 128 30 C156 32, 180 52, 180 88
+           L180 72 C180 42, 158 22, 128 20 C98 22, 76 42, 76 72 Z"
+        fill="#2B1B12"/>
+  <line x1="128" y1="20" x2="128" y2="50" stroke="#1A0F08" stroke-width="1.5"/>
+  <path d="M76 88 L74 96 C73 100, 76 100, 78 96 Z" fill="#2B1B12"/>
+  <path d="M180 88 L182 96 C183 100, 180 100, 178 96 Z" fill="#2B1B12"/>
+  <!-- Eyebrows -->
+  <path d="M96 86 Q108 80, 118 85" stroke="#2B1B12" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M138 85 Q148 80, 160 86" stroke="#2B1B12" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Glasses -->
+  <rect x="93" y="89" width="28" height="20" rx="3" stroke="#5C5040" stroke-width="2" fill="none"/>
+  <rect x="135" y="89" width="28" height="20" rx="3" stroke="#5C5040" stroke-width="2" fill="none"/>
+  <line x1="121" y1="97" x2="135" y2="97" stroke="#5C5040" stroke-width="1.5"/>
+  <line x1="93" y1="95" x2="82" y2="90" stroke="#5C5040" stroke-width="1.5"/>
+  <line x1="163" y1="95" x2="174" y2="90" stroke="#5C5040" stroke-width="1.5"/>
+  <!-- Eyes -->
+  <ellipse cx="107" cy="98" rx="5" ry="5" fill="#fff"/>
+  <ellipse cx="149" cy="98" rx="5" ry="5" fill="#fff"/>
+  <ellipse cx="108" cy="98" rx="3" ry="3" fill="#1A1A1A"/>
+  <ellipse cx="150" cy="98" rx="3" ry="3" fill="#1A1A1A"/>
+  <ellipse cx="109" cy="97" rx="1" ry="1" fill="#fff"/>
+  <ellipse cx="151" cy="97" rx="1" ry="1" fill="#fff"/>
+  <!-- Nose -->
+  <path d="M126 104 Q128 112, 130 104" stroke="#E0B08A" stroke-width="1.2" fill="none"/>
+  <!-- Mouth -->
+  <line x1="118" y1="120" x2="138" y2="120" stroke="#C49070" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Ears -->
+  <ellipse cx="76" cy="100" rx="6" ry="10" fill="#F3C7A6"/>
+  <ellipse cx="76" cy="100" rx="3" ry="6" fill="#E8B894" opacity="0.5"/>
+  <ellipse cx="180" cy="100" rx="6" ry="10" fill="#F3C7A6"/>
+  <ellipse cx="180" cy="100" rx="3" ry="6" fill="#E8B894" opacity="0.5"/>
+  <!-- Scorecard -->
+  <rect x="90" y="200" width="12" height="16" rx="1" fill="#fff" opacity="0.7"/>
+  <line x1="93" y1="204" x2="99" y2="204" stroke="#999" stroke-width="0.5"/>
+  <line x1="93" y1="207" x2="99" y2="207" stroke="#999" stroke-width="0.5"/>
+  <line x1="93" y1="210" x2="97" y2="210" stroke="#999" stroke-width="0.5"/>
+</svg>

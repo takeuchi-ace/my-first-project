@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- 二代目オーナー・坊っちゃん — Round face, wavy hair, purple vest, lollipop -->
+  <!-- Shoulders / Knit vest -->
+  <path d="M42 256 L62 190 C72 172, 96 160, 128 157 C160 160, 184 172, 194 190 L214 256 Z"
+        fill="#7B68AE"/>
+  <!-- Knit texture -->
+  <line x1="62" y1="210" x2="194" y2="210" stroke="#6A5A9A" stroke-width="0.6" opacity="0.5"/>
+  <line x1="58" y1="220" x2="198" y2="220" stroke="#6A5A9A" stroke-width="0.6" opacity="0.5"/>
+  <line x1="54" y1="230" x2="202" y2="230" stroke="#6A5A9A" stroke-width="0.6" opacity="0.5"/>
+  <line x1="50" y1="240" x2="206" y2="240" stroke="#6A5A9A" stroke-width="0.6" opacity="0.5"/>
+  <line x1="46" y1="250" x2="210" y2="250" stroke="#6A5A9A" stroke-width="0.6" opacity="0.5"/>
+  <!-- Shirt collar -->
+  <path d="M108 165 L118 185 L128 175 L138 185 L148 165 C142 160,134 159,128 158 C122 159,114 160,108 165 Z"
+        fill="#EDE7DC"/>
+  <!-- Neck -->
+  <rect x="117" y="140" width="22" height="22" rx="7" fill="#F3C7A6"/>
+  <rect x="119" y="150" width="18" height="12" rx="5" fill="#E8B894" opacity="0.35"/>
+  <!-- Head (rounder) -->
+  <ellipse cx="128" cy="96" rx="50" ry="55" fill="#F3C7A6"/>
+  <!-- Cheek blush -->
+  <ellipse cx="92" cy="112" rx="12" ry="7" fill="#F0B0A0" opacity="0.25"/>
+  <ellipse cx="164" cy="112" rx="12" ry="7" fill="#F0B0A0" opacity="0.25"/>
+  <!-- Hair (wavy brown) -->
+  <path d="M78 82 C78 48, 100 28, 128 26 C156 28, 178 48, 178 82
+           L180 68 C182 38, 158 16, 128 14 C98 16, 74 38, 76 68 Z"
+        fill="#5C3A20"/>
+  <path d="M82 56 Q90 48, 100 54 Q110 46, 120 52 Q130 44, 140 50 Q150 44, 160 52 Q170 48, 176 58"
+        stroke="#4A2E16" stroke-width="2" fill="none"/>
+  <path d="M80 68 Q88 60, 96 66 Q104 58, 112 64 Q120 56, 128 62 Q136 56, 144 64 Q152 58, 160 66 Q168 60, 176 68"
+        stroke="#4A2E16" stroke-width="1.5" fill="none" opacity="0.6"/>
+  <path d="M78 82 Q72 88, 76 96 Q78 88, 82 84" fill="#5C3A20"/>
+  <path d="M178 82 Q184 88, 180 96 Q178 88, 174 84" fill="#5C3A20"/>
+  <!-- Eyebrows -->
+  <path d="M96 84 Q106 80, 116 84" stroke="#5C3A20" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M140 84 Q150 80, 160 84" stroke="#5C3A20" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- Eyes (round with slight sharp outer corner) -->
+  <ellipse cx="106" cy="96" rx="9" ry="8" fill="#fff"/>
+  <ellipse cx="150" cy="96" rx="9" ry="8" fill="#fff"/>
+  <ellipse cx="107" cy="97" rx="5" ry="5.5" fill="#3A2820"/>
+  <ellipse cx="151" cy="97" rx="5" ry="5.5" fill="#3A2820"/>
+  <ellipse cx="108" cy="95.5" rx="2" ry="2" fill="#fff"/>
+  <ellipse cx="152" cy="95.5" rx="2" ry="2" fill="#fff"/>
+  <path d="M114 92 L118 90" stroke="#C0A090" stroke-width="0.6" fill="none"/>
+  <path d="M142 92 L138 90" stroke="#C0A090" stroke-width="0.6" fill="none"/>
+  <!-- Nose -->
+  <path d="M126 102 Q128 108, 130 102" stroke="#E0B090" stroke-width="1" fill="none"/>
+  <!-- Mouth (gentle smile) -->
+  <path d="M116 120 Q122 128, 128 128 Q134 128, 140 120"
+        stroke="#C09078" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <!-- Ears -->
+  <ellipse cx="78" cy="98" rx="6" ry="9" fill="#F3C7A6"/>
+  <ellipse cx="78" cy="98" rx="3" ry="5.5" fill="#E8B894" opacity="0.4"/>
+  <ellipse cx="178" cy="98" rx="6" ry="9" fill="#F3C7A6"/>
+  <ellipse cx="178" cy="98" rx="3" ry="5.5" fill="#E8B894" opacity="0.4"/>
+  <!-- Lollipop -->
+  <line x1="155" y1="200" x2="162" y2="185" stroke="#D4C8B0" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="164" cy="182" r="5" fill="#E04060"/>
+  <circle cx="164" cy="182" r="2.5" fill="#F06080" opacity="0.6"/>
+</svg>

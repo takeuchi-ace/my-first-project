@@ -1,0 +1,334 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { EntertainGrade, GameResult, RootStackParamList } from '../types';
+import { characters } from '../data/characters';
+import { calcResult } from '../logic/engine';
+import { calcAceResult } from '../logic/aceEngine';
+import { wasSSAchieved as wasTanakaSSAchieved } from '../logic/tanaka';
+import { wasOnizukaSSAchieved } from '../logic/onizuka';
+import { useGameStore } from '../store/useGameStore';
+import { COLORS } from '../theme/colors';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'ResultSimple'>;
+
+const GRADE_COLORS: Record<EntertainGrade, string> = {
+  SS: COLORS.gradeSS,
+  S: COLORS.gradeS,
+  A: COLORS.gradeA,
+  B: COLORS.gradeB,
+  C: COLORS.gradeC,
+  D: COLORS.gradeD,
+};
+
+export default function ResultScreenSimple({ route, navigation }: Props) {
+  const { characterId, finishReason, isAceRound } = route.params;
+  const store = useGameStore();
+  const character = useMemo(
+    () => characters.find((c) => c.id === characterId)!,
+    [characterId],
+  );
+
+  const lastGameState = store.getLastGameState();
+
+  // ACE: 初回 vs 2回目以降の判定
+  const wasAlreadyContracted = useRef(
+    store.contractedCharacterIds.includes(characterId)
+  ).current;
+  const isFirstAceRound = isAceRound === true && !wasAlreadyContracted;
+
+  const result: GameResult = useMemo(() => {
+    if (isAceRound) return calcAceResult();
+    if (!lastGameState) {
+      // Fallback: shouldn't happen
+      return {
+        opponentGross18: character.avgScore18,
+        baseline18: character.avgScore18,
+        improvement: 0,
+        entertainScore: 50,
+        grade: 'C' as EntertainGrade,
+        contractSuccess: false,
+        playType: 'balanced',
+        playTypeLabel: '八方美人型',
+        playTypeComment: 'どのスタイルもバランスよく使いこなす万能タイプ。',
+      };
+    }
+    const baseResult = calcResult(lastGameState);
+    if (characterId === 1 && wasTanakaSSAchieved()) {
+      return { ...baseResult, grade: 'SS' as EntertainGrade };
+    }
+    if (characterId === 2 && wasOnizukaSSAchieved()) {
+      return { ...baseResult, grade: 'SS' as EntertainGrade };
+    }
+    return baseResult;
+  }, [isAceRound, lastGameState, character, characterId]);
+
+  // Contract processing + round counter (run once as side effect)
+  const [contractResult, setContractResult] = useState<{ newlyUnlocked: number[] } | null>(null);
+  const processed = useRef(false);
+
+  useEffect(() => {
+    if (processed.current) return;
+    processed.current = true;
+
+    if (!isAceRound) {
+      store.incrementRoundCounter();
+      store.handleRoundComplete(characterId);
+    }
+    if (result.contractSuccess) {
+      const newlyUnlocked = store.addContractForCharacter(characterId);
+      setContractResult({ newlyUnlocked });
+    }
+  }, [result.contractSuccess, characterId, isAceRound]);
+
+  const handleNext = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (contractResult) {
+      // Navigate to Intro screen for contract reveal
+      navigation.replace('Intro', {
+        contractedCharId: characterId,
+        newlyUnlockedIds: contractResult.newlyUnlocked,
+        isAceContract: isAceRound ?? false,
+        isRepeatAce: isAceRound === true && wasAlreadyContracted,
+        lunchMood: lastGameState?.lunchMood ?? 'neutral',
+      });
+    } else {
+      navigation.popToTop();
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* Creep explosion banner */}
+        {finishReason === 'creep_explosion' && (
+          <View style={styles.explosionBanner}>
+            <Text style={styles.explosionText}>
+              気持ち悪がられてしまった...
+            </Text>
+          </View>
+        )}
+
+        {/* Opponent score */}
+        <Text style={styles.label}>{character.fullName} さん</Text>
+        <Text style={styles.grossScore}>18H: {result.opponentGross18}</Text>
+
+        {/* Baseline reference */}
+        <Text style={styles.baselineText}>
+          ベースライン: {result.baseline18}
+        </Text>
+
+        {/* Improvement / deterioration */}
+        {result.improvement > 0 ? (
+          <Text style={styles.improvement}>
+            あなたの接待で {result.improvement}打 改善しました
+          </Text>
+        ) : result.improvement < 0 ? (
+          <Text style={styles.deterioration}>
+            接待の影響で {Math.abs(result.improvement)}打 悪化しました
+          </Text>
+        ) : null}
+
+        {/* Grade */}
+        <Text style={styles.gradeLabel}>接待グレード</Text>
+        <Text style={[styles.grade, { color: GRADE_COLORS[result.grade] }]}>
+          {result.grade}
+        </Text>
+        <Text style={styles.scoreDetail}>
+          スコア: {result.entertainScore}
+        </Text>
+
+        {/* Play type */}
+        <View style={styles.playTypeCard}>
+          <Text style={styles.playTypeLabel}>{result.playTypeLabel}</Text>
+          <Text style={styles.playTypeComment}>{result.playTypeComment}</Text>
+        </View>
+
+        {/* ACE専用メッセージ */}
+        {isAceRound && (
+          <View style={styles.aceMessageCard}>
+            {isFirstAceRound ? (
+              <>
+                <Text style={styles.aceMessageText}>
+                  {'\u300C'}ぜひ顧問契約お願いします{'\u300D'}
+                </Text>
+                <Text style={styles.aceReplyText}>
+                  {'\u300C'}来年も再来年も、末永くよろしく{'\u300D'}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.aceMessageText}>
+                  {'\u300C'}顧問契約、本当に頼りになります{'\u300D'}
+                </Text>
+                <Text style={styles.aceReplyText}>
+                  {'\u300C'}孫の代まで末永くよろしく{'\u300D'}
+                </Text>
+              </>
+            )}
+          </View>
+        )}
+
+        {/* Action button */}
+        <Pressable
+          style={({ pressed }) => [
+            result.contractSuccess ? styles.actionButtonSuccess : styles.actionButton,
+            pressed && styles.actionButtonPressed,
+          ]}
+          onPress={handleNext}
+        >
+          <Text style={result.contractSuccess ? styles.actionButtonSuccessText : styles.actionButtonText}>
+            {result.contractSuccess ? '次へ' : 'もう一度プレーする'}
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  content: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    flexGrow: 1,
+  },
+  explosionBanner: {
+    backgroundColor: 'rgba(220, 50, 50, 0.3)',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 24,
+  },
+  explosionText: {
+    color: '#FF8888',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  label: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  grossScore: {
+    color: COLORS.textCream,
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  baselineText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  improvement: {
+    color: '#88DD88',
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  deterioration: {
+    color: '#FF8888',
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  gradeLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  grade: {
+    fontSize: 72,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  scoreDetail: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    marginBottom: 20,
+  },
+  // ===== Play type =====
+  playTypeCard: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 10,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    marginBottom: 24,
+    width: '100%',
+  },
+  playTypeLabel: {
+    color: COLORS.textCream,
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  playTypeComment: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  // ===== ACE message =====
+  aceMessageCard: {
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 10,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.25)',
+    marginBottom: 24,
+    width: '100%',
+  },
+  aceMessageText: {
+    color: COLORS.textCream,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  aceReplyText: {
+    color: '#FFD700',
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  // ===== Buttons =====
+  actionButton: {
+    backgroundColor: COLORS.woodDark,
+    borderRadius: 10,
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: COLORS.woodLight,
+  },
+  actionButtonSuccess: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+  },
+  actionButtonPressed: {
+    opacity: 0.7,
+  },
+  actionButtonText: {
+    color: COLORS.textCream,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  actionButtonSuccessText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- 体育会系社長・鬼塚 — Spiky hair, tanned, vest, orange tie, towel -->
+  <!-- Shoulders / Vest -->
+  <path d="M38 256 L58 188 C68 170, 93 158, 128 155 C163 158, 188 170, 198 188 L218 256 Z"
+        fill="#2C4A32"/>
+  <!-- Shirt underneath -->
+  <path d="M75 195 L85 256 L171 256 L181 195 C170 175, 145 162, 128 160 C111 162, 86 175, 75 195 Z"
+        fill="#EDE7DC"/>
+  <!-- Vest overlay -->
+  <path d="M38 256 L58 188 C68 172, 85 164, 100 162 L92 195 L85 256 Z" fill="#2C4A32"/>
+  <path d="M218 256 L198 188 C188 172, 171 164, 156 162 L164 195 L171 256 Z" fill="#2C4A32"/>
+  <!-- Open collar -->
+  <path d="M108 162 L118 182 L128 172 L138 182 L148 162"
+        stroke="#EDE7DC" stroke-width="2" fill="none"/>
+  <!-- Orange tie -->
+  <polygon points="128,173 120,198 128,245 136,198" fill="#E67E22"/>
+  <ellipse cx="128" cy="176" rx="7" ry="4" fill="#CC6A1A"/>
+  <!-- Neck -->
+  <rect x="114" y="138" width="28" height="24" rx="7" fill="#EDBA8A"/>
+  <rect x="116" y="148" width="24" height="14" rx="5" fill="#DCA872" opacity="0.4"/>
+  <!-- Head -->
+  <ellipse cx="128" cy="96" rx="54" ry="56" fill="#EDBA8A"/>
+  <ellipse cx="128" cy="122" rx="44" ry="16" fill="#DCA872" opacity="0.3"/>
+  <!-- Spiky hair -->
+  <polygon points="85,60 78,30 95,50" fill="#2B1B12"/>
+  <polygon points="100,48 92,18 110,40" fill="#2B1B12"/>
+  <polygon points="118,42 112,10 130,34" fill="#2B1B12"/>
+  <polygon points="138,34 128,5 148,28" fill="#2B1B12"/>
+  <polygon points="155,42 150,12 165,36" fill="#2B1B12"/>
+  <polygon points="168,52 164,24 178,46" fill="#2B1B12"/>
+  <path d="M78 70 C78 48, 98 30, 128 28 C158 30, 178 48, 178 70
+           L178 60 C178 38, 158 20, 128 18 C98 20, 78 38, 78 60 Z"
+        fill="#2B1B12"/>
+  <!-- Thick eyebrows -->
+  <path d="M92 80 Q107 72, 120 79" stroke="#2B1B12" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M136 79 Q149 72, 164 80" stroke="#2B1B12" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Eyes -->
+  <ellipse cx="106" cy="94" rx="8" ry="6" fill="#fff"/>
+  <ellipse cx="150" cy="94" rx="8" ry="6" fill="#fff"/>
+  <ellipse cx="107" cy="94" rx="4" ry="4.5" fill="#1A1A1A"/>
+  <ellipse cx="151" cy="94" rx="4" ry="4.5" fill="#1A1A1A"/>
+  <ellipse cx="108" cy="93" rx="1.5" ry="1.5" fill="#fff"/>
+  <ellipse cx="152" cy="93" rx="1.5" ry="1.5" fill="#fff"/>
+  <path d="M98 98 Q106 101, 114 98" stroke="#DCA872" stroke-width="0.8" fill="none"/>
+  <path d="M142 98 Q150 101, 158 98" stroke="#DCA872" stroke-width="0.8" fill="none"/>
+  <!-- Nose -->
+  <path d="M124 100 Q128 114, 132 100" stroke="#D9A06E" stroke-width="1.5" fill="none"/>
+  <path d="M122 112 Q128 116, 134 112" stroke="#D9A06E" stroke-width="1" fill="none"/>
+  <!-- Mouth (grin) -->
+  <path d="M110 124 Q120 136, 128 136 Q136 136, 146 124"
+        stroke="#C08060" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M116 128 Q128 134, 140 128" fill="#fff" opacity="0.7"/>
+  <!-- Ears -->
+  <ellipse cx="74" cy="96" rx="7" ry="11" fill="#EDBA8A"/>
+  <ellipse cx="74" cy="96" rx="3.5" ry="7" fill="#DCA872" opacity="0.5"/>
+  <ellipse cx="182" cy="96" rx="7" ry="11" fill="#EDBA8A"/>
+  <ellipse cx="182" cy="96" rx="3.5" ry="7" fill="#DCA872" opacity="0.5"/>
+  <!-- Towel on shoulder -->
+  <path d="M44 210 Q52 195, 68 190 L74 205 Q58 210, 50 225 Z" fill="#F5F0E6" opacity="0.85"/>
+  <path d="M46 215 Q54 200, 68 195" stroke="#D5CFC0" stroke-width="0.5" fill="none"/>
+</svg>
