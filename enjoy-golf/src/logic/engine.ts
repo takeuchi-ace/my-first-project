@@ -385,10 +385,40 @@ const pickEvent = (state: GameState): GameEvent | null => {
   return filtered[Math.floor(Math.random() * filtered.length)];
 };
 
-/** 抽選 → 表示用にキャラ名を差し込んだイベントを返す */
+/**
+ * 選択肢の並び順が固定されているイベント。
+ * 最終パットは選択肢の index が狙い（左／カップ直接／右）に対応しているため、
+ * 並べ替えるとミニゲームの判定が壊れる。
+ */
+const ORDER_LOCKED_PREFIXES = ['putting_event_'];
+
+/**
+ * 選択肢の並び順をシャッフルする。
+ *
+ * 監査 D-1: 最良の選択肢が1番目に集中していた（キャラ固有イベントで98%、
+ * ランチで95%）ため、本文を読まずに位置だけで正解を選べてしまっていた。
+ * 表示のたびに並べ替えて、位置と評価の相関を断つ。
+ *
+ * イベントは selectEvent が返したオブジェクトをそのまま画面が保持し、
+ * applyChoice にも同じオブジェクトを渡すので、index の対応はビート内で一貫する。
+ */
+const shuffleChoices = (event: GameEvent): GameEvent => {
+  if (ORDER_LOCKED_PREFIXES.some((p) => event.id.startsWith(p))) return event;
+  if (event.choices.length < 2) return event;
+  return { ...event, choices: shuffle(event.choices) };
+};
+
+/**
+ * 選択肢配列の並べ替え（D-1 対策）。
+ * GameEvent 以外の形（コンペの CharacterSpecificEvent 等）でも使えるよう配列単位で公開する。
+ * 呼び出し側は「イベントが切り替わったときだけ」呼ぶこと（毎レンダリングで呼ぶと並び順が踊る）。
+ */
+export const shuffleChoiceList = <T>(choices: T[]): T[] => shuffle(choices);
+
+/** 抽選 → 表示用にキャラ名を差し込み、選択肢を並べ替えて返す */
 export const selectEvent = (state: GameState): GameEvent | null => {
   const event = pickEvent(state);
-  return event ? localizeEvent(event, state.characterId) : null;
+  return event ? shuffleChoices(localizeEvent(event, state.characterId)) : null;
 };
 
 /**
@@ -399,7 +429,7 @@ export const selectEvent = (state: GameState): GameEvent | null => {
 export const selectLunchTalkEvent = (state: GameState): GameEvent | null => {
   if (!canFireBeat(state, 'lunchTalk')) return null;
   const evt = drawBeatEvent(state, 'lunchTalk');
-  return evt ? localizeEvent(evt, state.characterId) : null;
+  return evt ? shuffleChoices(localizeEvent(evt, state.characterId)) : null;
 };
 
 // ===== Check cheat_physical availability for a choice =====

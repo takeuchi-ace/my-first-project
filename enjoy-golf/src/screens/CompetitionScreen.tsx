@@ -19,7 +19,7 @@ import {
   layoutSeats,
 } from '../data/lunchMiniGame';
 import { calcLunchResult } from '../logic/lunchMiniGame';
-import { evaluateReactionRank } from '../logic/engine';
+import { evaluateReactionRank, shuffleChoiceList } from '../logic/engine';
 import { FaceSprite } from '../faces';
 import {
   createCompetitionState,
@@ -127,9 +127,12 @@ export default function CompetitionScreen({ navigation, route }: Props) {
   }, [step, fadeAnim]);
 
   // Current event
+  // 監査 D-1: 正解の選択肢が1番目に固定されていたため、イベント切り替え時に並べ替える
   const currentEvent: CharacterSpecificEvent | null = useMemo(() => {
     if (step !== 'event') return null;
-    return events[gameState.eventIndex] ?? null;
+    const evt = events[gameState.eventIndex];
+    if (!evt) return null;
+    return { ...evt, choices: shuffleChoiceList(evt.choices) };
   }, [step, gameState.eventIndex, events]);
 
   // ===== animateFace =====
