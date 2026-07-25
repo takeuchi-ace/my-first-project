@@ -86,7 +86,7 @@ export const characterSpecificEvents: Record<number, CharacterSpecificEvent[]> =
       choices: [
         { id: 'A', text: '「さすがですね、気合入ってますね！」', delta: { fun: 5, trust: 6, focus: 4, creep: 0 }, tags: ['bold', 'kiai'] },
         { id: 'B', text: '「量より質も大事ですよ」', delta: { fun: -1, trust: 4, focus: 7, creep: 2 }, tags: ['logic'] },
-        { id: 'C', text: '「僕は200回やりました」', delta: { fun: 2, trust: -4, focus: -2, creep: 10 }, tags: ['over_praise'] },
+        { id: 'C', text: '「自分は200回やりました」', delta: { fun: 2, trust: -4, focus: -2, creep: 10 }, tags: ['over_praise'] },
       ],
     },
     {
@@ -1112,7 +1112,7 @@ export const characterSpecificEvents: Record<number, CharacterSpecificEvent[]> =
       title: '経営の悩み',
       situation: '「スタッフとの距離感って難しいですよね…」とふと弱さを見せる。',
       choices: [
-        { id: 'A', text: '「わかります。僕もそう思います」', delta: { fun: 2, trust: 8, focus: 4, creep: 0 }, tags: ['honesty', 'ethics'] },
+        { id: 'A', text: '「わかります。自分もそう思います」', delta: { fun: 2, trust: 8, focus: 4, creep: 0 }, tags: ['honesty', 'ethics'] },
         { id: 'B', text: '「ミツキさんなら大丈夫ですよ！」', delta: { fun: 4, trust: -2, focus: 0, creep: 6 }, tags: ['flattery', 'over_praise'] },
         { id: 'C', text: '「ゴルフの話しましょう」と話題を変える', delta: { fun: -2, trust: -6, focus: 2, creep: 8 }, tags: ['distance'] },
       ],

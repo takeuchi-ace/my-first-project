@@ -15,7 +15,7 @@ export const femaleEvents: GameEvent[] = [
     description: '「女性経営者って相談相手少ないんですよね。」とふと漏らす。',
     stage: 0,
     choices: [
-      { text: '「僕がいつでも相談に乗りますよ！」', delta: { trust: -2, fun: 2, creep: 6, focus: 0 }, tags: ['flattery', 'over_support'] },
+      { text: '「自分がいつでも相談に乗りますよ！」', delta: { trust: -2, fun: 2, creep: 6, focus: 0 }, tags: ['flattery', 'over_support'] },
       { text: '「確かに、少数だからこそ大変ですよね」', delta: { trust: 6, fun: 2, creep: 0, focus: 4 }, tags: ['honesty', 'ethics'] },
       { text: '「わかります、孤独って辛いですよね」', delta: { trust: 4, fun: 4, creep: 2, focus: 2 }, tags: ['humor'] },
       { text: '「男性も同じですよ」', delta: { trust: -4, fun: -2, creep: 4, focus: 0 }, tags: ['distance'] },
@@ -59,7 +59,7 @@ export const femaleEvents: GameEvent[] = [
     choices: [
       { text: '「大丈夫、あなたの判断は正しいです！」', delta: { trust: -2, fun: 2, creep: 6, focus: 0 }, tags: ['flattery', 'over_praise'] },
       { text: '「責任が伴う分、重いですよね」', delta: { trust: 6, fun: 2, creep: 0, focus: 4 }, tags: ['honesty', 'logic'] },
-      { text: '「僕もそう感じることがあります」', delta: { trust: 4, fun: 4, creep: 2, focus: 2 }, tags: ['ethics'] },
+      { text: '「自分もそう感じることがあります」', delta: { trust: 4, fun: 4, creep: 2, focus: 2 }, tags: ['ethics'] },
       { text: '「まぁ、慣れますよ」', delta: { trust: -6, fun: -2, creep: 4, focus: 0 }, tags: ['distance'] },
     ],
   },
@@ -71,10 +71,10 @@ export const femaleEvents: GameEvent[] = [
     description: '「距離近い人、苦手なんです。」と率直に言う。',
     stage: 0,
     choices: [
-      { text: '「僕は違いますよ！安心してください」', delta: { trust: -4, fun: 0, creep: 8, focus: 0 }, tags: ['flattery', 'over_support'] },
+      { text: '「自分は違いますよ！安心してください」', delta: { trust: -4, fun: 0, creep: 8, focus: 0 }, tags: ['flattery', 'over_support'] },
       { text: '「わかりました。適度な距離を保ちますね」', delta: { trust: 8, fun: 2, creep: 0, focus: 4 }, tags: ['honesty', 'distance'] },
       { text: '「自分のペースって大事ですよね」', delta: { trust: 4, fun: 4, creep: 2, focus: 2 }, tags: ['ethics'] },
-      { text: '「え、僕近いですか？」', delta: { trust: -2, fun: 2, creep: 6, focus: 0 }, tags: ['humor'] },
+      { text: '「え、自分は近いですか？」', delta: { trust: -2, fun: 2, creep: 6, focus: 0 }, tags: ['humor'] },
     ],
   },
 
@@ -143,7 +143,7 @@ export const femaleEvents: GameEvent[] = [
     choices: [
       { text: '「あなたが大事にする方で！」', delta: { trust: -4, fun: 0, creep: 8, focus: 0 }, tags: ['flattery'] },
       { text: '「約束を守った上で結果を出すのが理想です」', delta: { trust: 8, fun: 2, creep: 0, focus: 4 }, tags: ['honesty', 'logic'] },
-      { text: '「難しい質問ですね…僕も悩みます」', delta: { trust: 4, fun: 2, creep: 2, focus: 2 }, tags: ['ethics'] },
+      { text: '「難しい質問ですね…自分も悩みます」', delta: { trust: 4, fun: 2, creep: 2, focus: 2 }, tags: ['ethics'] },
       { text: '「結果がすべてでしょう」', delta: { trust: -2, fun: -2, creep: 4, focus: 2 }, tags: ['bold'] },
     ],
   },
@@ -185,7 +185,7 @@ export const femaleEvents: GameEvent[] = [
     choices: [
       { text: '「大丈夫！調子上がりますよ！」', delta: { trust: -2, fun: 2, creep: 6, focus: 0 }, tags: ['flattery', 'hype'] },
       { text: '「そういう日もありますよ。焦らずいきましょう」', delta: { trust: 6, fun: 4, creep: 0, focus: 4 }, tags: ['honesty'] },
-      { text: '「僕もそうです。一緒に頑張りましょう」', delta: { trust: 4, fun: 4, creep: 2, focus: 2 }, tags: ['humor'] },
+      { text: '「自分もそうです。一緒に頑張りましょう」', delta: { trust: 4, fun: 4, creep: 2, focus: 2 }, tags: ['humor'] },
       { text: '「集中できないと困りますね」', delta: { trust: -4, fun: -4, creep: 4, focus: 0 }, tags: ['serious'] },
     ],
   },
@@ -267,7 +267,7 @@ export const femaleEvents: GameEvent[] = [
     description: '「今日は素で話せました。」と嬉しそうに微笑む。',
     stage: 0,
     choices: [
-      { text: '「僕もです！最高の一日でした！」', delta: { trust: 0, fun: 4, creep: 6, focus: 0 }, tags: ['flattery', 'hype'] },
+      { text: '「自分もです！最高の一日でした！」', delta: { trust: 0, fun: 4, creep: 6, focus: 0 }, tags: ['flattery', 'hype'] },
       { text: '「こちらこそ。楽しかったです」', delta: { trust: 6, fun: 6, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「素で話せるって貴重ですよね」', delta: { trust: 4, fun: 4, creep: 2, focus: 2 }, tags: ['ethics'] },
       { text: '「そうですか」', delta: { trust: -4, fun: -4, creep: 4, focus: 0 }, tags: ['silence', 'distance'] },

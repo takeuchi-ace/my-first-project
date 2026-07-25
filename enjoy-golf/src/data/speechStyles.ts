@@ -5,11 +5,19 @@ export type SpeechStyle = {
   tone: string[];
   catchPhrases: string[];
   sampleLines: string[];
+  /**
+   * 口調そのものがキャラの正体になっているスタイル（体育会・方言・英語混じり等）。
+   * true のキャラには curatedEvents の共通セリフ（choice.speech）を使わず、
+   * このスタイル専用の speechLineTemplates を使う。
+   * 共通セリフは丁寧語ベースで書かれており、これらの口調では成立しないため。
+   */
+  distinctVoice?: boolean;
 };
 
 export const speechStyles: SpeechStyle[] = [
   {
     id: 'S01',
+    distinctVoice: true,
     name: '熱血体育会',
     firstPerson: '俺',
     tone: ['勢い', '短文', '命令形混じり'],
@@ -42,6 +50,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S05',
+    distinctVoice: true,
     name: '外資合理英語混じり',
     firstPerson: 'I',
     tone: ['合理的', '冷静', '英語混じり'],
@@ -58,6 +67,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S07',
+    distinctVoice: true,
     name: '昭和礼節重鎮',
     firstPerson: 'わし',
     tone: ['説教気味', '重厚', '礼儀重視'],
@@ -98,6 +108,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S12',
+    distinctVoice: true,
     name: '女将おもてなし',
     firstPerson: '私',
     tone: ['柔らかい', '品がある', '間合い重視'],
@@ -138,6 +149,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S17',
+    distinctVoice: true,
     name: '強気関西不動産',
     firstPerson: 'ワシ',
     tone: ['豪快', '関西弁軽め', '攻め'],

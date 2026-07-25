@@ -74,7 +74,7 @@ const tanakaMorningShotEvent: MorningShotEvent = {
         },
         {
           id: 'C',
-          text: '「私も緊張していますよ！」と場を和ませる',
+          text: '「自分も緊張していますよ！」と場を和ませる',
           delta: { trust: 4, fun: 5, creep: 2 },
           tags: ['humor', 'over_support'],
         },

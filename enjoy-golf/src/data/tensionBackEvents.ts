@@ -56,7 +56,7 @@ export const tensionBackEvents: GameEvent[] = [
     stage: 8,
     category: 'tensionBack',
     choices: [
-      { text: '「ここは私が」と自然に申し出る', delta: { trust: 4, fun: 2, creep: 2 }, tags: ['etiquette'] },
+      { text: '「ここは自分が」と自然に申し出る', delta: { trust: 4, fun: 2, creep: 2 }, tags: ['etiquette'] },
       { text: '「割り勘でいかがですか」', delta: { trust: 3 }, tags: ['honesty'] },
       { text: '「○○さんにお任せします」', delta: { trust: -4, fun: -2, creep: 7 }, tags: ['distance'] },
     ],

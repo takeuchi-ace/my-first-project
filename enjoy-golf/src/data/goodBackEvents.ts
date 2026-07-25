@@ -20,7 +20,7 @@ export const goodBackEvents: GameEvent[] = [
     stage: 6,
     category: 'goodBack',
     choices: [
-      { text: '「僕も楽しんでます！」と笑顔で返す', delta: { trust: 5, fun: 5 }, tags: ['humor'] },
+      { text: '「自分も楽しんでます！」と笑顔で返す', delta: { trust: 5, fun: 5 }, tags: ['humor'] },
       { text: '「○○さんのおかげです」', delta: { trust: 4, fun: 3, creep: 2 }, tags: ['flattery'] },
       { text: '「プレーに集中しましょう」', delta: { trust: 2, fun: -2, focus: 5 }, tags: ['serious'] },
     ],

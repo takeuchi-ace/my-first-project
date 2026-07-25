@@ -1,4 +1,4 @@
-import { ReactionRank, GameState, GameEvent, CharacterSpecificEvent, Gauge, CharacterId } from '../types';
+import { ReactionRank, GameState, GameEvent, CharacterSpecificEvent, Gauge, CharacterId, Choice } from '../types';
 import {
   GestureClass,
   rankToGestureClass,
@@ -64,6 +64,28 @@ function resolveSpeechText(
   // 5) speechStyles fallback
   const style = speechStyles.find((s) => s.id === character.speechStyleId);
   return style?.sampleLines?.length ? pick(style.sampleLines) : '';
+}
+
+/**
+ * curatedEvents の共通セリフ（choice.speech）を使ってよいかを判定して返す。
+ *
+ * 共通セリフは「選択肢ごと・反応ランクごと」に書かれた質の高いテキストだが、
+ * 全キャラで同じ文章が出るため、口調がキャラの正体になっている相手
+ * （speechStyle.distinctVoice = 体育会・方言・英語混じり等）では
+ * キャラ崩れを起こす。その場合は null を返し、呼び出し側で
+ * そのキャラ専用の speechLineTemplates にフォールバックさせる。
+ */
+export function resolveChoiceSpeech(
+  choice: Pick<Choice, 'speech'>,
+  rank: ReactionRank,
+  characterId: CharacterId
+): string | null {
+  if (!choice.speech) return null;
+  const character = characters.find((c) => c.id === characterId);
+  if (!character) return choice.speech[rank];
+  const style = speechStyles.find((s) => s.id === character.speechStyleId);
+  if (style?.distinctVoice) return null;
+  return choice.speech[rank];
 }
 
 /**

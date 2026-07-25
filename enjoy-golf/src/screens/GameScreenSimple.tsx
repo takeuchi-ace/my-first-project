@@ -57,6 +57,7 @@ import {
   computeReactionPlan,
   findBestChoiceIndex,
   updateInsightStreak,
+  resolveChoiceSpeech,
 } from '../lib/insight';
 import { applyLunchBiasOnly, calcLunchResult } from '../logic/lunchMiniGame';
 import {
@@ -568,8 +569,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     // Compute reaction plan (single call for consistent randomness)
     const plan = computeReactionPlan(rank, characterId, choice.speechOverride);
 
-    // Speech: choice-level speech takes priority over plan
-    const resolvedSpeech = choice.speech ? choice.speech[rank] : plan.speechText;
+    // Speech: 選択肢ごとの共通セリフを優先。ただし口調が正体になっているキャラでは
+    // 使わず（resolveChoiceSpeech が null を返す）、キャラ専用テンプレートに戻す
+    const curatedLine = resolveChoiceSpeech(choice, rank, characterId);
+    const resolvedSpeech = curatedLine ?? plan.speechText;
 
     // Update mood + face animation (Competition style)
     setMood(RANK_TO_MOOD[rank]);

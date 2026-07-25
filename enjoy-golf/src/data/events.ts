@@ -735,7 +735,7 @@ export const events: GameEvent[] = [
       { text: '靴を脱いで池に飛び込みボールを拾う', delta: { fun: 10, trust: 3, creep: 12, focus: -10 }, tags: ['over_support', 'bold'] },
       { text: '「新しいボールありますよ！どうぞ使ってください」', delta: { fun: 5, trust: 5 }, tags: ['safe'] },
       { text: 'キャディに網で取ってもらうよう頼む', delta: { fun: 2, trust: 2 }, tags: ['neutral'] },
-      { text: '「あのボール、俺が念力で引き寄せます！」とボケる', delta: { fun: 8, creep: 3 }, tags: ['humor'] },
+      { text: '「あのボール、自分が念力で引き寄せます！」とボケる', delta: { fun: 8, creep: 3 }, tags: ['humor'] },
     ],
   },
   {
@@ -1911,7 +1911,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「楽しかったです！またご一緒できれば嬉しいです」と正直に', delta: { fun: 5, trust: 6 }, tags: ['honesty'] },
       { text: '「○○さんのプレーから勉強になりました！」と謙虚に', delta: { fun: 4, trust: 4 }, tags: ['flattery', 'safe'] },
-      { text: '「今日一日で人生が変わりました！目が開かれました！出会えて光栄です！私の○○さんへの敬慕は宇宙の果てまで届きます！！！」と詩人のように締める', delta: { fun: 9, trust: -5, creep: 18 }, tags: ['flattery', 'extreme'] },
+      { text: '「今日一日で人生が変わりました！目が開かれました！出会えて光栄です！自分の○○さんへの敬慕は宇宙の果てまで届きます！！！」と詩人のように締める', delta: { fun: 9, trust: -5, creep: 18 }, tags: ['flattery', 'extreme'] },
     ],
   },
   {
