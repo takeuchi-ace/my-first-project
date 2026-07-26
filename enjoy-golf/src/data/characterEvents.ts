@@ -462,7 +462,7 @@ export const characterSpecificEvents: Record<number, CharacterSpecificEvent[]> =
       choices: [
         { id: 'A', text: '「ミスの分散も含めてですか？リスクリワード比で見ると攻めも合理的かも」と議論に乗る', delta: { fun: 5, trust: 9, focus: 4, creep: 0 }, tags: ['logic', 'honesty'] },
         { id: 'B', text: '「難しいホールですよね。中村さんの判断にお任せします」', delta: { fun: 1, trust: 1, focus: 2, creep: 1 }, tags: ['neutral', 'safe'] },
-        { id: 'C', text: '「中村さんなら攻めても絶対大丈夫ですよ！信じてます！」と根拠なく煽る', delta: { fun: 2, trust: -5, focus: -2, creep: 9 }, tags: ['flattery', 'hype'] },
+        { id: 'C', text: '「中村さんなら攻めても絶対大丈夫ですよ！信じてます！」と背中を押す', delta: { fun: 2, trust: -5, focus: -2, creep: 9 }, tags: ['flattery', 'hype'] },
       ],
     },
     {
@@ -528,7 +528,7 @@ export const characterSpecificEvents: Record<number, CharacterSpecificEvent[]> =
       choices: [
         { id: 'A', text: '「ビジネスのきっかけになればとは思ってます。でもゴルフ自体が楽しいのも本当です」と本音で答える', delta: { fun: 5, trust: 10, focus: 2, creep: 0 }, tags: ['honesty', 'bold'] },
         { id: 'B', text: '「まあ、いろんな意味がありますかね…」と笑ってごまかす', delta: { fun: 2, trust: 0, focus: 0, creep: 3 }, tags: ['neutral', 'silence'] },
-        { id: 'C', text: '「そんなことないですよ！純粋にゴルフを楽しみたくて！」と必死に取り繕う', delta: { fun: 0, trust: -7, focus: -2, creep: 11 }, tags: ['flattery', 'over_support'] },
+        { id: 'C', text: '「そんなことないですよ！純粋にゴルフを楽しみたくて！」と取り繕う', delta: { fun: 0, trust: -7, focus: -2, creep: 11 }, tags: ['flattery', 'over_support'] },
       ],
     },
   ],
