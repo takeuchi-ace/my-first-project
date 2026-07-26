@@ -111,14 +111,14 @@ export default function ProfileScreen({ route, navigation }: Props) {
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
+          <View style={styles.statItemNarrow}>
             <Text style={styles.statLabel}>Avg</Text>
             <Text style={styles.statValue}>{character.avgScore18}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>ショット</Text>
-            <Text style={styles.statValue}>{character.shotShape}</Text>
+            <Text style={styles.statValueShot}>{character.shotShape}</Text>
           </View>
         </View>
 
@@ -271,11 +271,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     marginBottom: 16,
+    // 中央寄せの親の中では内容幅に縮んでしまい、球筋が折り返していたので横幅を伸ばす
+    alignSelf: 'stretch',
   },
   statItem: {
     flex: 1,
+    alignItems: 'center',
+  },
+  // Avg は2桁なので幅を取らせず、余った幅を球筋側に回す
+  statItemNarrow: {
+    width: 56,
     alignItems: 'center',
   },
   statLabel: {
@@ -288,6 +295,14 @@ const styles = StyleSheet.create({
     color: COLORS.textCream,
     fontSize: 15,
     fontWeight: '700',
+  },
+  // 球筋は最長16字（「パワーフェードという名のスライス」）まであるので少し詰める
+  statValueShot: {
+    color: COLORS.textCream,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 17,
+    textAlign: 'center',
   },
   statDivider: {
     width: 1,

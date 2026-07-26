@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -126,6 +127,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   );
   const store = useGameStore();
   const isAceRound = character.isAce;
+  // 省スペース表示の判定に使う（小型端末で選択肢が画面外に出るのを防ぐ）
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
 
   // ===== Game State (engine-driven) =====
   // 同一の初期stateからeventを選出（charEventSlotsの不一致を防ぐ）
@@ -880,6 +883,27 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     advanceToNext(advancedState);
   }, [gameState, advanceToNext]);
 
+  // ===== 長い選択肢のための省スペース表示 =====
+  // 選択肢が長いと3択目が画面外に出て見比べられなくなる。対策は2段構え:
+  //  1. ヘッダーと重複しているフェーズタグを常に出さない（全イベントで68pt稼ぐ）
+  //  2. それでも足りないときだけ顔を縮める（+26pt。顔は反応を見る表示なので最小限に）
+  //
+  // 判定は画面の実寸から計算する。固定値にすると小型端末で効かなかった。
+  //  - 選択肢の上端までに使う高さ: 実測 385pt（375幅）／414pt（320幅）。狭いほど説明文が
+  //    折り返して下がるので、余裕を見て 415 を使う
+  //  - 1行に入る文字数も幅で変わる（実測: 320幅で20字、375幅で24字 → (幅-60)/13）
+  //  - 選択肢1件の高さ: 上下パディング28pt ＋ 1行20pt ＋ 間隔8pt
+  const CHOICES_TOP_OFFSET = 415;
+  const charsPerLine = Math.max(12, Math.floor((windowWidth - 60) / 13));
+  const choicesEstimatedHeight = useMemo(() => {
+    if (!currentEvent) return 0;
+    return currentEvent.choices.reduce(
+      (sum, c) => sum + 28 + Math.ceil(c.text.length / charsPerLine) * 20 + 8,
+      0
+    );
+  }, [currentEvent, charsPerLine]);
+  const compactLayout = choicesEstimatedHeight > windowHeight - CHOICES_TOP_OFFSET;
+
   // ===== Display helpers =====
   const phaseLabel = isAceRound
     ? '相談ラウンド'
@@ -1555,18 +1579,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             )}
           </View>
 
-          {/* Phase tag (Competition style) */}
-          <View style={styles.phaseTag}>
-            <Text style={styles.phaseTagText}>
-              {phaseLabel} {holeDisplay}
-            </Text>
-          </View>
+          {/* フェーズ表示はヘッダー右上のカードと同じ内容なので、中央のタグは置かない
+              （選択肢の表示領域を38pt空けるため。iPhone SE 相当では長文3択が収まらなかった） */}
 
           {/* Centered face (Competition style) */}
-          <View style={styles.faceCenter}>
+          <View style={[styles.faceCenter, compactLayout && styles.faceCenterCompact]}>
             <FaceSprite
               mood={moodOverride ?? mood}
-              scale={2.5}
+              scale={compactLayout ? 1.4 : 2.5}
               characterId={characterId}
               anim={faceAnim}
             />
@@ -2183,6 +2203,9 @@ const styles = StyleSheet.create({
   faceCenter: {
     alignItems: 'center',
     marginVertical: 16,
+  },
+  faceCenterCompact: {
+    marginVertical: 6,
   },
   selectedChoiceRow: {
     marginBottom: 12,
