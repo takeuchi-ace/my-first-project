@@ -185,6 +185,12 @@ export interface Character {
   callName: string;
   /** 肩書き。氏名ではないので fullName には入れない（プロフィール等の正式紹介でのみ表示） */
   title?: string;
+  /**
+   * 1ビートごとに目減りする trust の量（＝このキャラの難易度）。
+   * 良い選択で積んだ信頼が時間で剥がれるため、ラウンド全体を通して稼ぎ続ける必要がある。
+   * 大きいほど難しい。目安: 2=序盤の相手 / 3=標準 / 4-5=手強い相手 / 0=相談ラウンド
+   */
+  trustDrift: number;
   gender: 'male' | 'female';
   nickname?: string;
   speechStyleId: string;
@@ -268,6 +274,12 @@ export interface GameState {
   bonusBeat: BonusBeat;
   /** ボーナスビートを消化済みか */
   bonusBeatDone: boolean;
+  /**
+   * 直前の選択に対する反応そのもの（trust の自然減を含まない）。
+   * 反応ランクの判定はこれを使う。ゲージの前後差から求めると
+   * trustDrift による目減りが混ざってランクが下振れする。
+   */
+  lastAppliedDelta: Gauge;
 }
 
 // ===== Play Type =====

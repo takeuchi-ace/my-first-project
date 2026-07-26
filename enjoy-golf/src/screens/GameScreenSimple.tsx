@@ -555,13 +555,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
     // ===== 通常モード（以下変更なし） =====
 
-    // Calculate applied delta for rank evaluation
-    const appliedDelta: Gauge = {
-      fun: newState.gauge.fun - gameState.gauge.fun,
-      trust: newState.gauge.trust - gameState.gauge.trust,
-      creep: newState.gauge.creep - gameState.gauge.creep,
-      focus: newState.gauge.focus - gameState.gauge.focus,
-    };
+    // 反応ランクは engine が記録した「選択への反応そのもの」を使う。
+    // ゲージの前後差から求めると trustDrift による目減りが混ざってランクが下振れする
+    const appliedDelta: Gauge = newState.lastAppliedDelta;
 
     // Evaluate rank
     const rank: ReactionRank = evaluateReactionRank(appliedDelta);

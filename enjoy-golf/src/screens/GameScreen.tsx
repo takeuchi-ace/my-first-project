@@ -345,12 +345,8 @@ export default function GameScreen({ navigation, route }: Props) {
 
         const newState = applyChoice(state, currentEvent, choiceIndex);
 
-        const appliedDelta: Gauge = {
-          trust: newState.gauge.trust - state.gauge.trust,
-          fun: newState.gauge.fun - state.gauge.fun,
-          creep: newState.gauge.creep - state.gauge.creep,
-          focus: newState.gauge.focus - state.gauge.focus,
-        };
+        // ゲージの前後差では trustDrift の目減りが混ざるため、engine が記録した反応差分を使う
+        const appliedDelta: Gauge = newState.lastAppliedDelta;
         const rank = evaluateReactionRank(appliedDelta);
 
         const plan = computeReactionPlan(rank, characterId, choice.speechOverride);

@@ -62,6 +62,7 @@ export const createAceInitialState = (characterId: CharacterId): GameState => ({
   // 相談ラウンドは独自フロー（5ホール・ランチなし）。ボーナスビートは発生させない
   bonusBeat: 'closing',
   bonusBeatDone: true,
+  lastAppliedDelta: { fun: 0, trust: 0, creep: 0, focus: 0 },
 });
 
 // ===== Event Selection: AceConsult ベース =====

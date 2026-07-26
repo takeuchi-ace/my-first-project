@@ -133,6 +133,32 @@ const clampGauge = (g: Gauge): Gauge => ({
   focus: clamp(g.focus),
 });
 
+// =====================================================================
+// タグ反応の減衰
+//
+// 同じタグを1ラウンド内で繰り返すと、そのタグに対する相手の「喜び」が鈍る。
+// 相手の好みを掴んだあと同じ手を押し続けるのが最適解になってしまうのを防ぐ。
+//
+// 減衰するのは reactions と likesTags（＝相手が嬉しがる分）だけ。
+//  - choice.delta（行為そのものの効果）は減衰しない
+//  - hatesTags の罰も減衰しない。嫌なことを繰り返されて慣れる相手はいない
+//
+// tagHistory は createInitialState で空に戻るのでラウンド単位で効く。
+// =====================================================================
+const TAG_DECAY = [1, 0.7, 0.45, 0.25];
+
+const tagDecayRate = (tagHistory: Tag[], tag: Tag): number => {
+  const used = tagHistory.filter((t) => t === tag).length;
+  return TAG_DECAY[Math.min(used, TAG_DECAY.length - 1)];
+};
+
+const scaleDelta = (delta: Partial<Gauge>, rate: number): Partial<Gauge> => ({
+  fun: delta.fun != null ? Math.round(delta.fun * rate) : undefined,
+  trust: delta.trust != null ? Math.round(delta.trust * rate) : undefined,
+  creep: delta.creep != null ? Math.round(delta.creep * rate) : undefined,
+  focus: delta.focus != null ? Math.round(delta.focus * rate) : undefined,
+});
+
 // ===== Apply Delta =====
 const applyDelta = (gauge: Gauge, delta: Partial<Gauge>): Gauge =>
   clampGauge({
@@ -220,6 +246,7 @@ export const createInitialState = (characterId: CharacterId): GameState => ({
   puttResult: null,
   bonusBeat: BONUS_BEATS[Math.floor(Math.random() * BONUS_BEATS.length)],
   bonusBeatDone: false,
+  lastAppliedDelta: { fun: 0, trust: 0, creep: 0, focus: 0 },
 });
 
 // ===== Find event by id across all sources =====
@@ -444,7 +471,8 @@ export const isChoiceAllowed = (state: GameState, choice: Choice): boolean => {
 const applyLikesHates = (
   gauge: Gauge,
   tags: Tag[],
-  characterId: CharacterId
+  characterId: CharacterId,
+  tagHistory: Tag[]
 ): Gauge => {
   const character = characters.find((c) => c.id === characterId);
   if (!character) return gauge;
@@ -452,9 +480,11 @@ const applyLikesHates = (
   let g = gauge;
   for (const tag of tags) {
     if (character.likesTags.includes(tag)) {
-      g = applyDelta(g, { trust: 2, fun: 2 });
+      // 好みへのボーナスは繰り返すほど鈍る
+      g = applyDelta(g, scaleDelta({ trust: 2, fun: 2 }, tagDecayRate(tagHistory, tag)));
     }
     if (character.hatesTags.includes(tag)) {
+      // 嫌がることの罰は減衰させない
       g = applyDelta(g, { creep: 6, trust: -4 });
     }
   }
@@ -523,19 +553,22 @@ export const applyChoice = (
     state.characterId
   );
 
-  // 2. Apply character reactions (as-is, already tuned per character)
+  // 2. Apply character reactions（同じタグの繰り返しで鈍らせる）
   const character = characters.find((c) => c.id === state.characterId);
   if (character) {
     for (const tag of choice.tags) {
       const reaction = character.reactions.find((r) => r.tag === tag);
       if (reaction) {
-        newGauge = applyDelta(newGauge, reaction.delta);
+        const rate = tagDecayRate(state.tagHistory, tag);
+        // 正の反応（喜び）だけ鈍る。負の反応（不快）はそのまま効かせる
+        const isPositive = (reaction.delta.trust ?? 0) > 0 || (reaction.delta.fun ?? 0) > 0;
+        newGauge = applyDelta(newGauge, isPositive ? scaleDelta(reaction.delta, rate) : reaction.delta);
       }
     }
   }
 
   // 3. Apply likes/hates bonuses
-  newGauge = applyLikesHates(newGauge, choice.tags, state.characterId);
+  newGauge = applyLikesHates(newGauge, choice.tags, state.characterId, state.tagHistory);
 
   // 4. Track tags and cheat count
   const newTagHistory = [...state.tagHistory, ...choice.tags];
@@ -556,11 +589,20 @@ export const applyChoice = (
     newLunchMood = calcLunchMood(newLunchImpactScore);
   }
 
+  /** 選択への反応そのもの（trustDrift による目減りを含まない） */
+  const reactionDelta = (g: Gauge): Gauge => ({
+    fun: g.fun - state.gauge.fun,
+    trust: g.trust - state.gauge.trust,
+    creep: g.creep - state.gauge.creep,
+    focus: g.focus - state.gauge.focus,
+  });
+
   // 7. Creep explosion check
   if (newGauge.creep >= 100) {
     return {
       ...state,
       gauge: newGauge,
+      lastAppliedDelta: reactionDelta(newGauge),
       phase: state.phase,
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
@@ -597,11 +639,21 @@ export const applyChoice = (
     });
   }
 
+  // 9. trust の自然減（キャラごとの難易度）
+  //    良い選択で積んだ信頼が1ビートごとに剥がれるので、ラウンド全体で稼ぎ続ける必要がある。
+  //    反応ランクの判定には影響させないため、目減り前の差分を lastAppliedDelta に残す。
+  const appliedDelta = reactionDelta(newGauge);
+  const drift = character?.trustDrift ?? 3;
+  if (drift !== 0) {
+    newGauge = clampGauge({ ...newGauge, trust: newGauge.trust - drift });
+  }
+
   // ── ボーナスビートはホールを消費しない ──
   if (event.beat) {
     return {
       ...state,
       gauge: newGauge,
+      lastAppliedDelta: appliedDelta,
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
       holeResults: [
@@ -633,6 +685,7 @@ export const applyChoice = (
   return {
     ...state,
     gauge: newGauge,
+    lastAppliedDelta: appliedDelta,
     currentHole: isComplete ? 9 : newHole,
     phase: isComplete ? state.phase : getPhase(newHole),
     cheatPhysicalCount: newCheatCount,
