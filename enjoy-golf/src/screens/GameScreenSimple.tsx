@@ -28,6 +28,8 @@ import { characters } from '../data/characters';
 import {
   createInitialState,
   applyChoice,
+  applyMinigameResult,
+  focusWindowScale,
   selectEvent,
   selectLunchTalkEvent,
   isChoiceAllowed,
@@ -80,6 +82,22 @@ import { COLORS } from '../theme/colors';
 
 const QUOTE_RATE = 0.25;
 const ACE_HOLE_COUNT = 5;
+
+// ミニゲームの判定窓（中心 0.5 からの片側幅）。集中力で伸縮する
+const OWN_SHOT_WINDOW = { perfect: 0.10, good: 0.20 };
+const PUTT_WINDOW = { perfect: 0.05, good: 0.10 };
+
+/** focus を反映した判定窓を返す */
+const scaledWindow = (base: { perfect: number; good: number }, focus: number) => {
+  const s = focusWindowScale(focus);
+  return { perfect: base.perfect * s, good: base.good * s };
+};
+
+/** 判定窓を目標ゾーンの描画位置に変換する（判定と見た目を同じ数値から作る） */
+const zoneStyle = (half: number) => ({
+  left: `${(0.5 - half) * 100}%` as `${number}%`,
+  width: `${half * 200}%` as `${number}%`,
+});
 
 const RANK_TO_MOOD: Record<ReactionRank, MoodLevel> = {
   good: 4,
@@ -161,6 +179,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   // ===== Insight state =====
   const [insightStreak, setInsightStreak] = useState(0);
   const [showInsight, setShowInsight] = useState(false);
+  // 直前のターンで相手が本音を隠したか（見抜けたかは次の一手で判定する）
+  const [prevWasMismatch, setPrevWasMismatch] = useState(false);
+  // 表示中の仕草が「本音の手がかり」かどうか。強調表示に使う
+  const [gestureIsTell, setGestureIsTell] = useState(false);
 
   // ===== Quote (名言) state =====
   const [quoteMode, setQuoteMode] = useState(false);
@@ -198,6 +220,12 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     slope: SlopeType; correctAim: PuttAim;
   } | null>(null);
   const [puttResultText, setPuttResultText] = useState('');
+
+  // ミニゲームの判定窓に使う集中力。会話で focus を削ると自分のプレーが決まらなくなる
+  const ownShotFocus = pendingMorningState?.gauge.focus ?? gameState.gauge.focus;
+  const puttFocus = pendingPuttState?.gauge.focus ?? gameState.gauge.focus;
+  const ownShotZone = useMemo(() => scaledWindow(OWN_SHOT_WINDOW, ownShotFocus), [ownShotFocus]);
+  const puttZone = useMemo(() => scaledWindow(PUTT_WINDOW, puttFocus), [puttFocus]);
   const [puttResultLabel, setPuttResultLabel] = useState('');
 
   // ===== Lunch mini-game state =====
@@ -316,10 +344,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const pos = swingPositionRef.current;
+    // 集中力が低いほど判定窓が狭くなる（目標ゾーンの表示も同じ数値から作っている）
+    const w = scaledWindow(OWN_SHOT_WINDOW, ownShotFocus);
+    const off = Math.abs(pos - 0.5);
     let result: OwnShotResult;
-    if (pos >= 0.4 && pos <= 0.6) {
+    if (off <= w.perfect) {
       result = 'perfect';
-    } else if (pos >= 0.3 && pos <= 0.7) {
+    } else if (off <= w.good) {
       result = 'good';
     } else {
       result = 'miss';
@@ -335,14 +366,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       else if (result === 'good') delta = { trust: 1 };
       else delta = { fun: 2, creep: characterId === 1 ? 2 : 0 };
 
-      const newGauge: Gauge = {
-        fun: Math.min(100, Math.max(0, (base.gauge.fun) + (delta.fun ?? 0))),
-        trust: Math.min(100, Math.max(0, (base.gauge.trust) + (delta.trust ?? 0))),
-        creep: Math.min(100, Math.max(0, (base.gauge.creep) + (delta.creep ?? 0))),
-        focus: Math.min(100, Math.max(0, (base.gauge.focus) + (delta.focus ?? 0))),
-      };
-      const updatedState: GameState = { ...base, gauge: newGauge, ownShot: result };
-      setPendingMorningState(updatedState);
+      // engine 経由で反映する（キャラの traitModifiers を効かせるため）
+      setPendingMorningState({ ...applyMinigameResult(base, delta), ownShot: result });
     }
 
     setMorningPhase('own_shot_result');
@@ -378,6 +403,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const resetUI = useCallback(() => {
     setSpeechText('');
     setGestureText(null);
+    setGestureIsTell(false);
     setShowSpeech(false);
     setShowGesture(false);
     setQuoteMode(false);
@@ -569,8 +595,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     const plan = computeReactionPlan(rank, characterId, choice.speechOverride);
 
     // Speech: 選択肢ごとの共通セリフを優先。ただし口調が正体になっているキャラでは
-    // 使わず（resolveChoiceSpeech が null を返す）、キャラ専用テンプレートに戻す
-    const curatedLine = resolveChoiceSpeech(choice, rank, characterId);
+    // 使わず（resolveChoiceSpeech が null を返す）、キャラ専用テンプレートに戻す。
+    // 本音を隠すターンでは正反対のランクのセリフが返る（表情と仕草は本音のまま）
+    const curatedLine = resolveChoiceSpeech(choice, rank, characterId, plan.isMismatch);
     const resolvedSpeech = curatedLine ?? plan.speechText;
 
     // Update mood + face animation (Competition style)
@@ -583,19 +610,21 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       toValue: 0.9, duration: 200, useNativeDriver: true,
     }).start();
 
-    // Insight
+    // Insight: 建前に流されなかったか。判定するのは「隠されたターンの次の一手」
     const bestIdx = findBestChoiceIndex(gameState, currentEvent);
     const { newStreak, insightFired } = updateInsightStreak(
-      insightStreak, plan.isMismatch, choiceIndex, bestIdx,
+      insightStreak, prevWasMismatch, choiceIndex, bestIdx,
     );
     setInsightStreak(newStreak);
-    if (insightFired) {
+    setPrevWasMismatch(plan.isMismatch);
+    if (insightFired && store.gainAceBall()) {
       setShowInsight(true);
     }
 
     // Set speech & gesture
     setSpeechText(resolvedSpeech);
     setGestureText(plan.gestureText);
+    setGestureIsTell(plan.isMismatch);
 
     // ===== Tanaka: じわ熱 override =====
     if (characterId === 1 && !isAceRound) {
@@ -799,10 +828,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const pos = swingPositionRef.current;
+    // 集中力が低いほど判定窓が狭くなる（目標ゾーンの表示も同じ数値から作っている）
+    const w = scaledWindow(PUTT_WINDOW, puttFocus);
+    const off = Math.abs(pos - 0.5);
     let power: PuttPower;
-    if (pos >= 0.45 && pos <= 0.55) {
+    if (off <= w.perfect) {
       power = 'perfect';
-    } else if (pos >= 0.4 && pos <= 0.6) {
+    } else if (off <= w.good) {
       power = 'good';
     } else {
       power = 'miss';
@@ -823,14 +855,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       else if (result === 'lip_out') delta = { trust: 2, fun: 3 };
       else delta = { fun: 1, creep: characterId === 1 ? 2 : 1 };
 
-      const newGauge: Gauge = {
-        fun: Math.min(100, Math.max(0, base.gauge.fun + (delta.fun ?? 0))),
-        trust: Math.min(100, Math.max(0, base.gauge.trust + (delta.trust ?? 0))),
-        creep: Math.min(100, Math.max(0, base.gauge.creep + (delta.creep ?? 0))),
-        focus: Math.min(100, Math.max(0, base.gauge.focus + (delta.focus ?? 0))),
-      };
-      const updatedState: GameState = { ...base, gauge: newGauge, puttResult: result };
-      setPendingPuttState(updatedState);
+      // engine 経由で反映する（キャラの traitModifiers を効かせるため）
+      setPendingPuttState({ ...applyMinigameResult(base, delta), puttResult: result });
     }
 
     setPuttPhase('result');
@@ -1089,9 +1115,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                   <Text style={styles.swingZoneMiss}>MISS</Text>
                 </View>
 
+                {/* ゾーン幅は判定に使う数値そのもの。集中力が低いと目に見えて狭くなる */}
                 <View style={styles.swingTrack}>
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightGood]} />
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightPerfect]} />
+                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightGood, zoneStyle(ownShotZone.good)]} />
+                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightPerfect, zoneStyle(ownShotZone.perfect)]} />
                   <Animated.View
                     style={[
                       styles.swingIndicator,
@@ -1226,9 +1253,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                   <Text style={styles.swingZoneMiss}>STRONG</Text>
                 </View>
 
+                {/* パットは窓が狭い。従来は表示だけ朝イチと同じ幅で、実判定と食い違っていた */}
                 <View style={styles.swingTrack}>
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightGood]} />
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightPerfect]} />
+                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightGood, zoneStyle(puttZone.good)]} />
+                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightPerfect, zoneStyle(puttZone.perfect)]} />
                   <Animated.View
                     style={[
                       styles.swingIndicator,
@@ -1667,11 +1695,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         </View>
       )}
 
-      {/* Gesture overlay (Competition style) */}
+      {/* Gesture overlay (Competition style)
+          相手が本音を隠したターンでは、この仕草だけが手がかりになる。
+          言葉と食い違っていることに気づけるよう色を変えて目立たせる */}
       {showGesture && gestureText && (
         <View style={styles.gestureOverlayContainer} pointerEvents="none">
           <Animated.View style={[styles.gestureOverlayContent, { opacity: gestureOpacity }]}>
-            <Text style={styles.gestureOverlayText}>*{gestureText}*</Text>
+            <Text style={[styles.gestureOverlayText, gestureIsTell && styles.gestureOverlayTell]}>
+              *{gestureText}*
+            </Text>
           </Animated.View>
         </View>
       )}
@@ -2264,6 +2296,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 16,
+  },
+  // 本音の手がかりになっている仕草。言葉と食い違っているサイン
+  gestureOverlayTell: {
+    color: '#FFD700',
+    fontWeight: '700',
   },
   gestureOverlayText: {
     fontSize: 13,

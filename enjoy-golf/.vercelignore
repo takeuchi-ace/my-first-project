@@ -1,0 +1,23 @@
+# dist（ビルド済みWeb版）だけをアップロードする。
+#
+# 注意: ここのパターンは階層を問わず一致するため、`assets` や `*.png` と書くと
+#       dist/assets/ の中のスプライト画像まで除外されて画像が404になる。
+#       先頭に / を付けてプロジェクト直下だけを指すこと。
+#
+# デプロイ手順:
+#   npx expo export --platform web
+#   npx vercel --prod
+/node_modules
+/.expo
+/src
+/assets
+/docs
+/顔
+/*.md
+/*.png
+/open.html
+/package-lock.json
+/tsconfig.json
+/index.ts
+/App.tsx
+/app.json

@@ -59,6 +59,7 @@ export default function InsightOverlay({ isActive, onDone }: Props) {
       >
         <Text style={styles.icon}>💡</Text>
         <Text style={styles.text}>本心読破！</Text>
+        <Text style={styles.reward}>ACEボール +1</Text>
       </Animated.View>
     </View>
   );
@@ -76,6 +77,15 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 36,
+  },
+  reward: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 2,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   text: {
     fontSize: 14,

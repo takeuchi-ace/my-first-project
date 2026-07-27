@@ -459,6 +459,36 @@ export const selectLunchTalkEvent = (state: GameState): GameEvent | null => {
   return evt ? shuffleChoices(localizeEvent(evt, state.characterId)) : null;
 };
 
+/**
+ * 集中力がミニゲームの判定窓の広さを決める。
+ *
+ * focus は会話の選択肢で上下するのに、これまで勝敗にも自分のプレーにも影響していなかった
+ * （entertainScore も contractSuccess も trust/fun/creep しか見ない）。
+ * 「相手に合わせすぎて自分のゴルフが疎かになる」という接待ゴルフの葛藤を、
+ * 朝イチのショットと最終パットの成功しやすさに落とす。
+ *
+ * focus 50 を基準（等倍）とし、0 で 0.6倍、100 で 1.4倍。
+ */
+export const focusWindowScale = (focus: number): number =>
+  0.6 + (clamp(focus) / 100) * 0.8;
+
+/**
+ * ミニゲーム（朝イチの自分のショット・最終パット）の結果をゲージに反映する。
+ *
+ * これまで画面側で直接 clamp して足していたため、キャラの traitModifiers が効かず
+ * 「誰が相手でもパットインは trust +5」になっていた。選択肢と同じ補正を通す。
+ *
+ * trustDrift はここでは引かない。ミニゲームは同じビートの一部であり、
+ * ホール分の目減りは applyChoice 側ですでに引かれているため。
+ */
+export const applyMinigameResult = (
+  state: GameState,
+  delta: Partial<Gauge>
+): GameState => ({
+  ...state,
+  gauge: applyDeltaWithModifiers(state.gauge, delta, state.characterId),
+});
+
 // ===== Check cheat_physical availability for a choice =====
 export const isChoiceAllowed = (state: GameState, choice: Choice): boolean => {
   if (choice.tags.includes('cheat_physical') && state.cheatPhysicalCount >= 2) {

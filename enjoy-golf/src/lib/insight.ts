@@ -2,7 +2,6 @@ import { ReactionRank, GameState, GameEvent, CharacterSpecificEvent, Gauge, Char
 import {
   GestureClass,
   rankToGestureClass,
-  swapGestureClass,
   getGesturePool,
 } from '../data/gestures';
 import { characters } from '../data/characters';
@@ -23,15 +22,37 @@ export interface ReactionPlan {
 }
 
 /**
+ * 本音を隠すとき、口ではどのランクの言葉を使うか。
+ *
+ * このゲームの読み合いのルールは「言葉は取り繕えるが、本音は表情と仕草に出る」。
+ * ズレが起きたときはセリフだけを裏返し、表情と仕草は本当のランクのまま出す。
+ * プレイヤーは態度を見れば本音が分かる。
+ *
+ *  good  → bad  : 嬉しいのに素っ気なく装う
+ *  neutral → good: 何とも思っていないのに社交辞令を言う
+ *  bad/worst → good: 不快なのに笑って取り繕う
+ */
+const MASK_RANK: Record<ReactionRank, ReactionRank> = {
+  good: 'bad',
+  neutral: 'good',
+  bad: 'good',
+  worst: 'good',
+};
+
+/**
  * セリフ決定の優先順位:
  * 1. speechOverride（イベント側で指定された固定セリフ）
- * 2. mismatch時: character.mismatchSpeechLines?.[rank]
+ * 2. mismatch時: character.mismatchSpeechLines?.[rank]（建前用に書き下ろした専用セリフ）
  * 3. character.speechLines?.[rank]?.default
  * 4. speechLineTemplates[character.speechStyleId][rank]
  * 5. speechStyles.sampleLines（rank無視フォールバック）
+ *
+ * 2 が未設定のキャラでは、呼び出し側が rank を MASK_RANK で置き換えて渡すため、
+ * 「そのキャラが正反対の気分のときに言う言葉」がそのまま建前として使われる。
+ * 既存のセリフを流用するので口調が崩れない。
  */
 function resolveSpeechText(
-  rank: ReactionRank,
+  trueRank: ReactionRank,
   characterId: CharacterId,
   isMismatch: boolean,
   speechOverride?: string
@@ -42,13 +63,16 @@ function resolveSpeechText(
   const character = characters.find((c) => c.id === characterId);
   if (!character) return '';
 
-  // 2) mismatch専用セリフ
+  // 2) 建前用に書き下ろした専用セリフ（本当のランクで引く）
   if (isMismatch) {
-    const mismatchLines = character.mismatchSpeechLines?.[rank];
+    const mismatchLines = character.mismatchSpeechLines?.[trueRank];
     if (mismatchLines?.length) {
       return pick(mismatchLines);
     }
   }
+
+  // 専用セリフが無い場合は、正反対のランクの言葉をそのまま建前として使う
+  const rank = isMismatch ? MASK_RANK[trueRank] : trueRank;
 
   // 3) character.speechLines
   const entry = character.speechLines?.[rank];
@@ -78,20 +102,26 @@ function resolveSpeechText(
 export function resolveChoiceSpeech(
   choice: Pick<Choice, 'speech'>,
   rank: ReactionRank,
-  characterId: CharacterId
+  characterId: CharacterId,
+  isMismatch = false
 ): string | null {
   if (!choice.speech) return null;
+  // 本音を隠すときは、その選択肢に対する正反対のランクのセリフを口にする
+  const spokenRank = isMismatch ? MASK_RANK[rank] : rank;
   const character = characters.find((c) => c.id === characterId);
-  if (!character) return choice.speech[rank];
+  if (!character) return choice.speech[spokenRank];
   const style = speechStyles.find((s) => s.id === character.speechStyleId);
   if (style?.distinctVoice) return null;
-  return choice.speech[rank];
+  return choice.speech[spokenRank];
 }
 
 /**
  * セリフ+仕草を一括計算
- * - 70%の確率で仕草を追加
- * - mismatchRate に応じてセリフと仕草がチグハグになる
+ *
+ * - 通常は 70% の確率で仕草を添える
+ * - mismatchRate の確率で「本音を隠す」ターンになる。そのときは
+ *   セリフだけを正反対のランクのものに差し替え、表情と仕草は本当のランクのまま出す。
+ *   仕草が唯一の手がかりになるので、隠しているターンは必ず仕草を表示する。
  */
 export function computeReactionPlan(
   rank: ReactionRank,
@@ -110,14 +140,14 @@ export function computeReactionPlan(
     };
   }
 
-  // mismatch判定を先に行う（セリフ・仕草の両方に影響）
+  // 本音を隠すターンかどうか
   const isMismatch = Math.random() < character.mismatchRate;
 
-  // セリフ解決（mismatch時は専用セリフを優先）
+  // セリフ解決。隠すターンは専用セリフ（未設定なら正反対のランクの言葉）を使う
   const speechText = resolveSpeechText(rank, characterId, isMismatch, speechOverride);
 
-  // 仕草: 70%の確率で表示
-  const showGesture = Math.random() < 0.7;
+  // 仕草: 通常は70%。隠すターンは仕草が唯一の手がかりなので必ず出す
+  const showGesture = isMismatch || Math.random() < 0.7;
   if (!showGesture) {
     return {
       speechText,
@@ -129,9 +159,8 @@ export function computeReactionPlan(
     };
   }
 
-  // 仕草クラス決定（mismatch時はクラス反転）
-  const normalClass = rankToGestureClass(rank);
-  const gestureClass = isMismatch ? swapGestureClass(normalClass) : normalClass;
+  // 仕草は常に本当のランクを表す（本音は態度に出る）
+  const gestureClass = rankToGestureClass(rank);
 
   // 仕草テキスト
   const pool = getGesturePool(gestureClass);
@@ -192,15 +221,21 @@ export function findBestCompChoiceIndex(
 }
 
 /**
- * streak更新: mismatchターンのみ判定
+ * 「本音を見抜けたか」の連続カウント。
+ *
+ * 判定するのは、相手が本音を隠した**次のターン**。隠されたターンの選択自体は
+ * まだ何も見ていないので測れない。建前を真に受けた人は次の一手を外し、
+ * 態度を読めた人は正解を選べる ── そこを数える。
+ *
+ * @param afterMismatch 直前のターンが「本音を隠したターン」だったか
  */
 export function updateInsightStreak(
   current: number,
-  isMismatch: boolean,
+  afterMismatch: boolean,
   chosenIdx: number,
   bestIdx: number
 ): { newStreak: number; insightFired: boolean } {
-  if (!isMismatch) {
+  if (!afterMismatch) {
     return { newStreak: current, insightFired: false };
   }
 

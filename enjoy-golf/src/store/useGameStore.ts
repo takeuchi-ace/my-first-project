@@ -23,6 +23,8 @@ interface GameStoreActions {
   addContract: () => void;
   addContractForCharacter: (id: CharacterId) => CharacterId[];
   useAceBall: () => void;
+  /** 本音を見抜いたご褒美に1個増やす（上限は ACE_BALL_MAX） */
+  gainAceBall: () => boolean;
   refillAceBalls: () => void;
   setLastGameState: (state: GameState | null) => void;
   getLastGameState: () => GameState | null;
@@ -211,6 +213,18 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // 相手の本音を見抜いたときの報酬。すでに上限なら false を返す（演出も出さない）
+  const gainedRef = useRef(false);
+  const gainAceBallFn = useCallback(() => {
+    gainedRef.current = false;
+    setState((prev) => {
+      if (prev.aceBalls >= ACE_BALL_MAX) return prev;
+      gainedRef.current = true;
+      return { ...prev, aceBalls: prev.aceBalls + 1 };
+    });
+    return gainedRef.current;
+  }, []);
+
   const refillAceBallsFn = useCallback(() => {
     setState((prev) => ({ ...prev, aceBalls: ACE_BALL_MAX }));
   }, []);
@@ -340,6 +354,7 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       addContract,
       addContractForCharacter,
       useAceBall: useAceBallFn,
+      gainAceBall: gainAceBallFn,
       refillAceBalls: refillAceBallsFn,
       setLastGameState,
       getLastGameState,

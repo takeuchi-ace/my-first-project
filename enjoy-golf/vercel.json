@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "echo 'skip: ローカルでビルド済みの dist をそのまま配信する'",
+  "buildCommand": "echo 'skip: npx expo export --platform web で事前に dist を作っておくこと'",
+  "outputDirectory": "dist"
+}
