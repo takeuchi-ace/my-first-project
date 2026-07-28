@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { EntertainGrade, GameResult, RootStackParamList } from '../types';
 import { characters } from '../data/characters';
-import { calcResult } from '../logic/engine';
+import { calcResult, diagnoseCreepCause } from '../logic/engine';
 import { calcAceResult } from '../logic/aceEngine';
 import { wasSSAchieved as wasTanakaSSAchieved } from '../logic/tanaka';
 import { wasOnizukaSSAchieved } from '../logic/onizuka';
@@ -13,6 +13,16 @@ import { useGameStore } from '../store/useGameStore';
 import { COLORS } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultSimple'>;
+
+/**
+ * 途中終了の文面。creep は「引かれた度合い」を1本で表しているが、
+ * 引かれ方には種類がある。何をやりすぎたのかを言い分ける。
+ */
+const CREEP_EXPLOSION_TEXT: Record<ReturnType<typeof diagnoseCreepCause>, string> = {
+  cheat: 'ごまかしを見透かされてしまった...',
+  tooClose: '距離を詰めすぎて引かれてしまった...',
+  tooDistant: '壁を作られたまま終わってしまった...',
+};
 
 const GRADE_COLORS: Record<EntertainGrade, string> = {
   SS: COLORS.gradeSS,
@@ -32,6 +42,15 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
   );
 
   const lastGameState = store.getLastGameState();
+
+  // 何をやりすぎて引かれたのかで文面を分ける
+  const creepExplosionText = useMemo(
+    () =>
+      CREEP_EXPLOSION_TEXT[
+        lastGameState ? diagnoseCreepCause(lastGameState) : 'tooClose'
+      ],
+    [lastGameState],
+  );
 
   // ACE: 初回 vs 2回目以降の判定
   const wasAlreadyContracted = useRef(
@@ -105,9 +124,7 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         {/* Creep explosion banner */}
         {finishReason === 'creep_explosion' && (
           <View style={styles.explosionBanner}>
-            <Text style={styles.explosionText}>
-              気持ち悪がられてしまった...
-            </Text>
+            <Text style={styles.explosionText}>{creepExplosionText}</Text>
           </View>
         )}
 

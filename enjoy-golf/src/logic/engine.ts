@@ -247,6 +247,8 @@ export const createInitialState = (characterId: CharacterId): GameState => ({
   bonusBeat: BONUS_BEATS[Math.floor(Math.random() * BONUS_BEATS.length)],
   bonusBeatDone: false,
   lastAppliedDelta: { fun: 0, trust: 0, creep: 0, focus: 0 },
+  creepBySource: { cheat: 0, close: 0, distant: 0 },
+  coldStreak: 0,
 });
 
 // ===== Find event by id across all sources =====
@@ -460,6 +462,106 @@ export const selectLunchTalkEvent = (state: GameState): GameEvent | null => {
 };
 
 /**
+ * creep が振り切れた原因。
+ *
+ * creep は「相手に引かれた度合い」を1本で表しているが、引かれ方には種類がある。
+ * 実測では creep の24%（151選択肢分）が沈黙・距離・正論といった「冷たさ」由来で、
+ * それらで終了しても「気持ち悪がられてしまった」と出るのが実態と食い違っていた。
+ * ゲージは1本のまま、終了時に何をやりすぎたのかを言い分けるために使う。
+ */
+export type CreepCause = 'cheat' | 'tooClose' | 'tooDistant';
+
+/**
+ * creep の帰属表。プレータイプ診断の `TAG_GROUPS` とは目的が違うので別に持つ。
+ *
+ * TAG_GROUPS を流用すると `serious`（honest群）と `logic`（dominant群）が
+ * どの判定にも当たらず「詰めすぎ」に流れ込む。この2つだけで creep 395 分＝
+ * 冷たさ由来の3分の1を占めるため、正論を並べて引かれた結果が
+ * 「距離を詰めすぎて引かれた」と表示されていた。
+ *
+ * ここでは creep 本来の意味＝「引かれ方」で切る。
+ *  - cheat  : ごまかし・裏切り
+ *  - distant: 冷たい・壁を作る（沈黙／距離／正論／無難）
+ *  - close  : 詰めすぎ・過剰（上記以外。creep の既定の意味）
+ */
+const CREEP_SOURCE_TAGS: Record<'cheat' | 'distant', Tag[]> = {
+  cheat: ['cheat', 'cheat_score', 'cheat_physical', 'snitch'],
+  distant: [
+    'silence',
+    'distance',
+    'serious',
+    'logic',
+    'neutral',
+    'safe',
+    'safe_play',
+    'avoid_risk',
+    'excuse',
+    'self_suppress',
+  ],
+};
+
+/**
+ * その選択肢で得た creep を、どの振る舞いの分として数えるか。
+ * 複数の引かれ方に跨るタグ構成なら等分する。
+ * どれにも当てはまらない場合は creep 本来の意味である「詰めすぎ」に寄せる。
+ */
+const attributeCreep = (
+  source: GameState['creepBySource'],
+  tags: Tag[],
+  amount: number
+): GameState['creepBySource'] => {
+  if (amount <= 0) return source;
+  const hit: (keyof GameState['creepBySource'])[] = [];
+  if (tags.some((t) => CREEP_SOURCE_TAGS.cheat.includes(t))) hit.push('cheat');
+  if (tags.some((t) => CREEP_SOURCE_TAGS.distant.includes(t))) hit.push('distant');
+  if (tags.some((t) => !CREEP_SOURCE_TAGS.cheat.includes(t) && !CREEP_SOURCE_TAGS.distant.includes(t))) {
+    hit.push('close');
+  }
+  if (hit.length === 0) hit.push('close');
+  const share = amount / hit.length;
+  const next = { ...source };
+  for (const k of hit) next[k] += share;
+  return next;
+};
+
+/**
+ * 冷たさの連続。壁は1回では立たない。
+ *
+ * 1選択あたりの creep が小さいため、冷たい選択だけで通しても creep は 49〜67 で止まり、
+ * 「壁を作られたまま終わってしまった」が実質発生しない状態だった。
+ * 一方で1回ごとの creep を上げると、慎重に距離を取る1手まで罰することになる。
+ *
+ * そこで罰を連続に乗せる。距離を取り続けるほど加速して creep が積む。
+ * 好みへのボーナスが繰り返しで鈍る（tagDecayRate）のと対になる形。
+ * index = 連続回数。3回目から効き始め、6回目以降で頭打ち。
+ */
+const COLD_WALL_CREEP = [0, 0, 0, 3, 5, 7, 9];
+
+const coldWallCreep = (streak: number): number =>
+  COLD_WALL_CREEP[Math.min(Math.max(streak, 0), COLD_WALL_CREEP.length - 1)];
+
+/**
+ * この選択が「壁を作る側」に数えられるか。
+ * そのキャラが好むタグ（黒田の `serious` など）は壁にならない。
+ * 相手が望む距離感を守っているだけなので、連続は途切れる。
+ */
+const buildsColdWall = (tags: Tag[], characterId: CharacterId): boolean => {
+  const character = characters.find((c) => c.id === characterId);
+  return tags.some(
+    (t) =>
+      CREEP_SOURCE_TAGS.distant.includes(t) &&
+      !(character?.likesTags.includes(t) ?? false)
+  );
+};
+
+/** creep が振り切れた原因を、実際の寄与量から判定する */
+export const diagnoseCreepCause = (state: GameState): CreepCause => {
+  const { cheat, close, distant } = state.creepBySource;
+  if (cheat >= close && cheat >= distant && cheat > 0) return 'cheat';
+  return distant > close ? 'tooDistant' : 'tooClose';
+};
+
+/**
  * 集中力がミニゲームの判定窓の広さを決める。
  *
  * focus は会話の選択肢で上下するのに、これまで勝敗にも自分のプレーにも影響していなかった
@@ -600,6 +702,15 @@ export const applyChoice = (
   // 3. Apply likes/hates bonuses
   newGauge = applyLikesHates(newGauge, choice.tags, state.characterId, state.tagHistory);
 
+  // 3.5. 冷たさの連続 — 距離を取り続けると加速して creep が積む
+  const newColdStreak = buildsColdWall(choice.tags, state.characterId)
+    ? state.coldStreak + 1
+    : 0;
+  const wallCreep = coldWallCreep(newColdStreak);
+  if (wallCreep > 0) {
+    newGauge = clampGauge({ ...newGauge, creep: newGauge.creep + wallCreep });
+  }
+
   // 4. Track tags and cheat count
   const newTagHistory = [...state.tagHistory, ...choice.tags];
   let newCheatCount = state.cheatPhysicalCount;
@@ -629,10 +740,13 @@ export const applyChoice = (
 
   // 7. Creep explosion check
   if (newGauge.creep >= 100) {
+    const finalDelta = reactionDelta(newGauge);
     return {
       ...state,
       gauge: newGauge,
-      lastAppliedDelta: reactionDelta(newGauge),
+      lastAppliedDelta: finalDelta,
+      creepBySource: attributeCreep(state.creepBySource, choice.tags, finalDelta.creep),
+      coldStreak: newColdStreak,
       phase: state.phase,
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
@@ -673,6 +787,8 @@ export const applyChoice = (
   //    良い選択で積んだ信頼が1ビートごとに剥がれるので、ラウンド全体で稼ぎ続ける必要がある。
   //    反応ランクの判定には影響させないため、目減り前の差分を lastAppliedDelta に残す。
   const appliedDelta = reactionDelta(newGauge);
+  // creep をどの振る舞いで稼いだかを積算しておく（終了時の文面の出し分けに使う）
+  const newCreepBySource = attributeCreep(state.creepBySource, choice.tags, appliedDelta.creep);
   const drift = character?.trustDrift ?? 3;
   if (drift !== 0) {
     newGauge = clampGauge({ ...newGauge, trust: newGauge.trust - drift });
@@ -684,6 +800,8 @@ export const applyChoice = (
       ...state,
       gauge: newGauge,
       lastAppliedDelta: appliedDelta,
+      creepBySource: newCreepBySource,
+      coldStreak: newColdStreak,
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
       holeResults: [
@@ -716,6 +834,8 @@ export const applyChoice = (
     ...state,
     gauge: newGauge,
     lastAppliedDelta: appliedDelta,
+    creepBySource: newCreepBySource,
+    coldStreak: newColdStreak,
     currentHole: isComplete ? 9 : newHole,
     phase: isComplete ? state.phase : getPhase(newHole),
     cheatPhysicalCount: newCheatCount,

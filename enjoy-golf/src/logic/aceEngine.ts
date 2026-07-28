@@ -63,6 +63,8 @@ export const createAceInitialState = (characterId: CharacterId): GameState => ({
   bonusBeat: 'closing',
   bonusBeatDone: true,
   lastAppliedDelta: { fun: 0, trust: 0, creep: 0, focus: 0 },
+  creepBySource: { cheat: 0, close: 0, distant: 0 },
+  coldStreak: 0,
 });
 
 // ===== Event Selection: AceConsult ベース =====
