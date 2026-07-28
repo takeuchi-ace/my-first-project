@@ -24,7 +24,7 @@ export const extremeEvents: GameEvent[] = [
     stage: 3,
     choices: [
       { text: '「面白い！乗りましょう！」', delta: { fun: 10, trust: 3, focus: 8 }, tags: ['bold', 'risk', 'extreme'] },
-      { text: '「さすがにそれは…笑」とやんわり断る', delta: { trust: 3, fun: -2 }, tags: ['safe', 'ethics'] },
+      { text: '「さすがにそれは…笑」とやんわり断る', delta: { trust: 3, fun: -1, focus: 3 }, tags: ['safe', 'ethics', 'serious'] },
       { text: '「じゃあ20万で」と倍プッシュ', delta: { fun: 7, trust: 3, creep: 3 }, tags: ['bold', 'risk', 'kiai', 'extreme'] },
     ],
   },

@@ -33,7 +33,7 @@ export const goodBackEvents: GameEvent[] = [
     category: 'goodBack',
     choices: [
       { text: '一緒に笑う', delta: { trust: 5, fun: 6 }, tags: ['humor'] },
-      { text: '「全然大丈夫ですよ！」とフォロー', delta: { trust: 4, fun: 2, creep: 1 }, tags: ['over_support'] },
+      { text: '「全然大丈夫ですよ！」とフォロー', delta: { trust: 2, fun: 2, creep: 2 }, tags: ['over_support', 'flattery'] },
       { text: '改善アドバイスを出す', delta: { trust: 3, fun: 1, focus: 4 }, tags: ['logic'] },
     ],
   },

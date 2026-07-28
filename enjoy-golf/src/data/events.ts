@@ -258,9 +258,9 @@ export const events: GameEvent[] = [
     description: 'プレー中に突然雨が降り始めた。相手は少し不機嫌そうだ。',
     stage: 3,
     choices: [
-      { text: '「雨のゴルフも乙ですよ！」とポジティブに', delta: { fun: 6, trust: 2 }, tags: ['humor'] },
+      { text: '「雨のゴルフも乙ですよ！」とポジティブに', delta: { fun: 6, trust: 2 }, tags: ['humor', 'hype'] },
       { text: '自分の傘を相手に差し出す', delta: { trust: 5, fun: 3, focus: -3 }, tags: ['over_support'] },
-      { text: '「クラブハウスで少し休みましょうか？」', delta: { trust: 3, focus: 5 }, tags: ['safe'] },
+      { text: '「雨脚が強いうちは待った方が早いですよ」と休憩を提案する', delta: { trust: 3, fun: 1, focus: 5 }, tags: ['logic', 'safe'] },
     ],
   },
   {
@@ -348,9 +348,9 @@ export const events: GameEvent[] = [
     description: 'グリーン上に大きなピッチマーク。相手のボールが作ったものだが、本人は気づいていない。',
     stage: 3,
     choices: [
-      { text: 'さりげなく自分が直しておく', delta: { trust: 5, fun: 1 }, tags: ['etiquette'] },
-      { text: '「ここ、マークありますよ」と本人に気づかせる', delta: { trust: 3, fun: 2, creep: 1 }, tags: ['etiquette'] },
-      { text: '「今日はグリーン荒れてますね」と場全体の話にして空気で伝える', delta: { trust: 4, fun: 2, creep: 3 }, tags: ['etiquette', 'over_support'] },
+      { text: 'さりげなく自分が直しておく', delta: { trust: 4, fun: 1, focus: 1 }, tags: ['etiquette'] },
+      { text: '「ここ、マークありますよ」と本人に気づかせる', delta: { trust: 3, fun: 1, focus: 2 }, tags: ['honesty'] },
+      { text: '「今日はグリーン荒れてますね」と場全体の話にして空気で伝える', delta: { trust: 2, fun: 4, creep: 1 }, tags: ['humor', 'distance'] },
     ],
   },
 
@@ -589,7 +589,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「大丈夫ですか？」とさりげなく手を添える', delta: { trust: 5, fun: 2 }, tags: ['etiquette'] },
       { text: '「効いてきましたね！笑」と笑い飛ばす', delta: { fun: 6, trust: 2, creep: 2 }, tags: ['alcohol', 'humor'] },
-      { text: '「水飲みましょう」とペットボトルを渡す', delta: { trust: 4, fun: 2 }, tags: ['safe'] },
+      { text: '「水を飲んでからにしましょう」と率直に止める', delta: { trust: 3, fun: 1, focus: 3 }, tags: ['honesty'] },
     ],
   },
   {
@@ -1012,9 +1012,9 @@ export const events: GameEvent[] = [
     description: '相手の車が駐車場から出ようとしている。あなたはまだ残っている。',
     stage: 9,
     choices: [
-      { text: '車が見えなくなるまでお辞儀を続ける', delta: { trust: 4, fun: 2, creep: 5 }, tags: ['over_support', 'etiquette'] },
-      { text: '手を振って見送る', delta: { fun: 4, trust: 4 }, tags: ['safe'] },
-      { text: '「お気をつけて！」と一礼してさっと自分も帰る', delta: { trust: 3, fun: 3 }, tags: ['neutral'] },
+      { text: '車が見えなくなるまでお辞儀を続ける', delta: { trust: 1, fun: 1, creep: 6 }, tags: ['over_support', 'etiquette'] },
+      { text: '手を振って見送る', delta: { fun: 5, trust: 3 }, tags: ['humor'] },
+      { text: '「お気をつけて！」と一礼してさっと自分も帰る', delta: { trust: 4, fun: 1, focus: 2 }, tags: ['etiquette'] },
     ],
   },
 
@@ -1218,7 +1218,7 @@ export const events: GameEvent[] = [
     stage: 3,
     choices: [
       { text: '「ナイスアウト！すごい！」と拍手', delta: { fun: 5, trust: 3 }, tags: ['flattery'] },
-      { text: '「さすがです！バンカーも得意なんですね」', delta: { fun: 5, trust: 4 }, tags: ['flattery'] },
+      { text: '「砂の取り方が薄かったですね。あの厚さは狙って出せるものじゃないです」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
       { text: '「今のショット…全世界のバンカー苦手な人に見せてあげたい…これが本物のゴルフだ…！涙が止まらない！！」と泣きそうになる', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
@@ -1333,9 +1333,9 @@ export const events: GameEvent[] = [
     description: 'グリーン周りのアプローチ。相手がピンまで10ヤードのところから打とうとしている。',
     stage: 4,
     choices: [
-      { text: '「ピンまでどれくらいか測りますよ」と距離を計算してあげる', delta: { fun: 3, trust: 3, creep: 2 }, tags: ['over_support'] },
-      { text: '「どんなイメージで打つか決まりましたか？」と確認する', delta: { trust: 3, fun: 2 }, tags: ['safe'] },
-      { text: '静かに見守る', delta: { trust: 4, focus: 2 }, tags: ['serious'] },
+      { text: '「ピンまでどれくらいか測りますよ」と距離を計算してあげる', delta: { fun: 1, trust: 1, creep: 4 }, tags: ['over_support', 'logic'] },
+      { text: '「どんなイメージで打つか決まりましたか？」と確認する', delta: { trust: 3, fun: 2, focus: 1 }, tags: ['etiquette'] },
+      { text: '静かに見守る', delta: { trust: 3, focus: 4 }, tags: ['serious'] },
     ],
   },
   {
@@ -1532,7 +1532,7 @@ export const events: GameEvent[] = [
     stage: 6,
     choices: [
       { text: '「惜しい！ホールインワン一歩手前！」と興奮する', delta: { fun: 6, trust: 3 }, tags: ['flattery'] },
-      { text: '「あの球筋は完璧でしたよ！次ホールインワン出ますよ！」と盛り上げる', delta: { fun: 7, trust: 2 }, tags: ['flattery', 'bold'] },
+      { text: '「番手をひとつ落として入られてましたよね。あれが効いてます」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
       { text: '「今のホールインワン！！ゴルフの神様が嫉妬した結果がカップを外れた！！あなたが真のホールインワン・マスター！！生涯忘れません！！」と声を張り上げる', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
@@ -1635,7 +1635,7 @@ export const events: GameEvent[] = [
     description: '相手の絶妙なアプローチがカップの縁で止まった。「入れ！入れ！」という惜しいシーンだった。',
     stage: 7,
     choices: [
-      { text: '「惜しすぎる！！あの球、入ってたも同然です！」と興奮する', delta: { fun: 6, trust: 3 }, tags: ['flattery'] },
+      { text: '「あと転がり半回転でしたね。ラインは読み切ってました」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
       { text: '「OK！縁で止まったのは入ったと同じですよ！」とOKを出す', delta: { fun: 5, trust: 2, creep: 5 }, tags: ['cheat_score'] },
       { text: '「ゴルフの神様ですら嫉妬して止めた！！入ってたら今頃プロゴルファー転向してましたよ！！記録はバーディで！！！」と大絶叫する', delta: { fun: 10, trust: -5, creep: 17 }, tags: ['cheat_score', 'extreme'] },
     ],
@@ -1691,7 +1691,7 @@ export const events: GameEvent[] = [
     stage: 7,
     choices: [
       { text: '「すごい！ラフから直接グリーン！！」と大喜びする', delta: { fun: 6, trust: 3 }, tags: ['flattery'] },
-      { text: '「プロでも難しいあそこからオン！笑いが止まらない！」と笑いで盛り上げる', delta: { fun: 7, trust: 3 }, tags: ['humor', 'flattery'] },
+      { text: '「刻む選択もあった場面で、ラフの抵抗を計算に入れて振り切りましたね」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
       { text: 'あの深いラフからのオンは物理法則を超えた奇跡だとキャディに語り聞かせる', delta: { fun: 8, trust: 1, creep: 5 }, tags: ['flattery', 'over_support'] },
     ],
   },
@@ -1751,7 +1751,7 @@ export const events: GameEvent[] = [
     stage: 8,
     choices: [
       { text: '「最高！！バーディおめでとうございます！」と大喜びする', delta: { fun: 7, trust: 4 }, tags: ['flattery'] },
-      { text: '「すごい！このパット、一生忘れられない！！」と称賛する', delta: { fun: 8, trust: 3 }, tags: ['flattery', 'bold'] },
+      { text: '「あのラインを最後まで信じて打ち切りましたね」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
       { text: '「今の一打で今日のラウンド代が全部ペイできた！！ゴルフの神が認めた一打！！この瞬間を目撃できた自分は幸運の極み！！！」と号泣しそうになる', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
@@ -1899,8 +1899,8 @@ export const events: GameEvent[] = [
     stage: 9,
     choices: [
       { text: '「アプリで呼びますよ！」とすぐに手配する', delta: { fun: 4, trust: 4 }, tags: ['etiquette'] },
-      { text: '「一緒に乗って途中まで送りますよ」と申し出る', delta: { fun: 4, trust: 3, creep: 3 }, tags: ['over_support'] },
-      { text: '「アプリ教えますね！次から使えますよ」と自立を支援する', delta: { fun: 3, trust: 4 }, tags: ['safe'] },
+      { text: '「一緒に乗って途中まで送りますよ」と申し出る', delta: { fun: 3, trust: 2, creep: 4 }, tags: ['over_support'] },
+      { text: '「アプリ教えますね！次から使えますよ」と自立を支援する', delta: { fun: 1, trust: 3, focus: 3 }, tags: ['logic', 'honesty'] },
     ],
   },
   {
@@ -1953,8 +1953,8 @@ export const events: GameEvent[] = [
     description: '視界の開けたホールに出た。相手が「ここは飛ばせるな」と言っている。',
     stage: 2,
     choices: [
-      { text: '「無理せずフェアウェイキープでいきましょう」と抑える', delta: { fun: 0, trust: 3, focus: 2 }, tags: ['safe', 'avoid_risk'] },
-      { text: '「風も追ってます。いい距離出ますよ」と後押しする', delta: { fun: 2, trust: 3 }, tags: ['logic'] },
+      { text: '「無理せずフェアウェイキープでいきましょう」と抑える', delta: { fun: 0, trust: 3, focus: 4 }, tags: ['safe', 'avoid_risk', 'serious'] },
+      { text: '「風も追ってます。いい距離出ますよ」と後押しする', delta: { fun: 2, trust: 3, focus: 3 }, tags: ['logic'] },
       { text: '「振り切りましょう！！今日は刻むの無しで！！自分も全部ドライバーでいきます！！」と煽る', delta: { fun: 7, trust: 3, creep: 3 }, tags: ['bold', 'risk', 'kiai', 'extreme'] },
     ],
   },
@@ -1997,8 +1997,8 @@ export const events: GameEvent[] = [
     description: '残り2ホール。ピンは奥の難しい位置に切られている。手前から刻むこともできる。',
     stage: 8,
     choices: [
-      { text: '「安全に手前から攻めましょう」と提案する', delta: { fun: 0, trust: 3, focus: 2 }, tags: ['safe', 'avoid_risk'] },
-      { text: '「ピンまで残り何ヤードか測りますか」と確認する', delta: { fun: 1, trust: 3, focus: 2 }, tags: ['logic'] },
+      { text: '「安全に手前から攻めましょう」と提案する', delta: { fun: 0, trust: 3, focus: 4 }, tags: ['safe', 'avoid_risk', 'serious'] },
+      { text: '「ピンまで残り何ヤードか測りますか」と確認する', delta: { fun: 1, trust: 3, focus: 4 }, tags: ['logic'] },
       { text: '「ここはピンを直接狙いましょう！！最後に一番いい絵を作りましょう！！自分も付き合います！！」と攻めを勧める', delta: { fun: 7, trust: 3, creep: 3 }, tags: ['bold', 'risk', 'kiai', 'extreme'] },
     ],
   },
