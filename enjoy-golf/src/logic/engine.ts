@@ -344,7 +344,7 @@ const pickEvent = (state: GameState): GameEvent | null => {
   }
 
   // ── Hole 9 最優先: 最終パット ──
-  if (state.currentHole === 9 && state.puttResult === null && !state.aceUsedThisRound) {
+  if (state.currentHole === 9 && state.puttResult === null) {
     return buildPuttingEvent(state.characterId);
   }
 
@@ -1108,9 +1108,8 @@ export const calcResult = (state: GameState): GameResult => {
 
   const entertainScore = calcEntertainScore(state.gauge);
 
-  // ACE弁護士は creep 閾値が厳しい (70 vs 通常の 85)
-  const character = characters.find((c) => c.id === state.characterId);
-  const creepThreshold = character?.isAce ? 70 : 85;
+  // エースラウンドは calcAceResult を通るのでここには来ない（isAce 分岐は置かない）
+  const creepThreshold = 85;
 
   // 昼係数によるtrust調整
   let adjustedTrust = state.gauge.trust;

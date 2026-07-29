@@ -50,7 +50,9 @@ export const createAceInitialState = (characterId: CharacterId): GameState => ({
   aceUsedThisRound: false,
   tagHistory: [],
   lunchImpactScore: 0,
-  lunchMood: 'good',
+  // 相談ラウンドに昼はない。'good' にすると顧問契約の場面（IntroScreen）で
+  // 「昼の時間、良かったですね。」という起きていない出来事の話が出てしまう
+  lunchMood: 'neutral',
   afternoonTrustBias: 0,
   afternoonCreepBias: 0,
   afternoonFocusBias: 0,
@@ -134,6 +136,23 @@ export const applyAceChoice = (
     finished: isComplete,
     finishReason: isComplete ? 'complete' : null,
   };
+};
+
+/**
+ * そのラウンドで実際に受けた助言を、記録から復元する。
+ *
+ * holeResults には複合ID（"ac_01+ac_07+ac_15"）と選んだ index が残っているので、
+ * 追加の状態を持たずに「何を相談して何と言われたか」を並べ直せる。
+ * 相談ラウンドは選択肢をシャッフルしないため index と ID の順序は一致する。
+ */
+export const getAceRoundConsults = (state: GameState): AceConsult[] => {
+  const out: AceConsult[] = [];
+  for (const h of state.holeResults) {
+    const id = h.eventId.split('+')[h.choiceIndex];
+    const consult = aceConsultPool.find((c) => c.id === id);
+    if (consult) out.push(consult);
+  }
+  return out;
 };
 
 // ===== Result (常に S、常に契約成立) =====

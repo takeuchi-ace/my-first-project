@@ -12,6 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { characters } from '../data/characters';
+import { aceConsultPool } from '../data/aceConsults';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite } from '../faces';
 import { COLORS } from '../theme/colors';
@@ -20,6 +21,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 const PRE_ROUND_AUTO_MS = 1000;
 const PRE_ROUND_FADE_MS = 300;
+
+/** 集められる言葉の総数（相談プールのうち名言として提示されるもの） */
+const ACE_QUOTE_TOTAL = aceConsultPool.filter((c) => c.isQuote).length;
 
 export default function ProfileScreen({ route, navigation }: Props) {
   const { characterId } = route.params;
@@ -131,6 +135,22 @@ export default function ProfileScreen({ route, navigation }: Props) {
         {/* Hint */}
         {character.hint && (
           <Text style={styles.hintText}>{character.hint}</Text>
+        )}
+
+        {/* もらった言葉（エースのみ）
+            相談ラウンドで発動した名言は端末に残るが、これまで表示する場所がなかった。
+            ラウンドの入口であるこの画面に置いて、読み返せるようにする。 */}
+        {character.isAce && store.aceQuotes.length > 0 && (
+          <View style={styles.quotesCard}>
+            <Text style={styles.quotesLabel}>
+              もらった言葉 {store.aceQuotes.length} / {ACE_QUOTE_TOTAL}
+            </Text>
+            {store.aceQuotes.map((q, i) => (
+              <Text key={i} style={styles.quoteLine}>
+                {'「'}{q}{'」'}
+              </Text>
+            ))}
+          </View>
         )}
 
         {/* Status */}
@@ -314,6 +334,30 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   // ===== Motto =====
+  quotesCard: {
+    backgroundColor: 'rgba(255,215,0,0.07)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+    marginBottom: 12,
+    width: '100%',
+  },
+  quotesLabel: {
+    color: '#FFD700',
+    fontSize: 11,
+    letterSpacing: 2,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  quoteLine: {
+    color: COLORS.textCream,
+    fontSize: 12,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
   mottoCard: {
     backgroundColor: COLORS.cardBg,
     borderRadius: 12,

@@ -6,7 +6,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { EntertainGrade, GameResult, RootStackParamList } from '../types';
 import { characters } from '../data/characters';
 import { calcResult, diagnoseCreepCause } from '../logic/engine';
-import { calcAceResult } from '../logic/aceEngine';
+import { calcAceResult, getAceRoundConsults } from '../logic/aceEngine';
 import { wasSSAchieved as wasTanakaSSAchieved } from '../logic/tanaka';
 import { wasOnizukaSSAchieved } from '../logic/onizuka';
 import { useGameStore } from '../store/useGameStore';
@@ -117,6 +117,76 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
       navigation.popToTop();
     }
   };
+
+  // 相談ラウンドの結果は通常ラウンドと別物。
+  // 18ホールのスコアも「接待グレード」も存在しないので、共通レイアウトを流用しない
+  // （流用していたため「18H: 96」という架空の数値と、「接待グレード」と
+  //  「接待ではない」が同じ画面に並ぶ矛盾が出ていた）。
+  if (isAceRound) {
+    const consults = lastGameState ? getAceRoundConsults(lastGameState) : [];
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <ScrollView contentContainerStyle={styles.aceContent}>
+          <Text style={styles.aceName}>{character.fullName}</Text>
+          {character.title && (
+            <Text style={styles.aceTitle}>{character.title}</Text>
+          )}
+
+          <View style={styles.aceDivider}>
+            <View style={styles.aceDividerLine} />
+            <Text style={styles.aceDividerText}>今日いただいた言葉</Text>
+            <View style={styles.aceDividerLine} />
+          </View>
+
+          {consults.map((c, i) => (
+            <View
+              key={`${c.id}-${i}`}
+              style={[styles.aceConsultCard, c.isQuote && styles.aceConsultCardQuote]}
+            >
+              <Text style={styles.aceConsultQuestion}>{c.text}</Text>
+              <Text
+                style={[styles.aceConsultAnswer, c.isQuote && styles.aceConsultAnswerQuote]}
+              >
+                {'「'}{c.answer}{'」'}
+              </Text>
+            </View>
+          ))}
+
+          <View style={styles.aceMessageCard}>
+            {isFirstAceRound ? (
+              <>
+                <Text style={styles.aceMessageText}>
+                  {'「'}ぜひ顧問契約お願いします{'」'}
+                </Text>
+                <Text style={styles.aceReplyText}>
+                  {'「'}来年も再来年も、末永くよろしく{'」'}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.aceMessageText}>
+                  {'「'}顧問契約、本当に頼りになります{'」'}
+                </Text>
+                <Text style={styles.aceReplyText}>
+                  {'「'}孫の代まで末永くよろしく{'」'}
+                </Text>
+              </>
+            )}
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButtonSuccess,
+              pressed && styles.actionButtonPressed,
+            ]}
+            onPress={handleNext}
+          >
+            <Text style={styles.actionButtonSuccessText}>次へ</Text>
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -295,6 +365,73 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'center',
+  },
+  // ===== 相談ラウンド専用 =====
+  aceContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    flexGrow: 1,
+  },
+  aceName: {
+    color: COLORS.textCream,
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  aceTitle: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 12,
+    letterSpacing: 1.5,
+    marginTop: 6,
+  },
+  aceDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    marginTop: 26,
+    marginBottom: 16,
+  },
+  aceDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,215,0,0.3)',
+  },
+  aceDividerText: {
+    color: '#FFD700',
+    fontSize: 12,
+    letterSpacing: 3,
+    fontWeight: '600',
+  },
+  aceConsultCard: {
+    width: '100%',
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    padding: 14,
+    marginBottom: 10,
+  },
+  // 名言として提示された助言は枠と文字で立てる
+  aceConsultCardQuote: {
+    backgroundColor: 'rgba(255,215,0,0.07)',
+    borderColor: 'rgba(255,215,0,0.35)',
+  },
+  aceConsultQuestion: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 11,
+    lineHeight: 17,
+    marginBottom: 8,
+  },
+  aceConsultAnswer: {
+    color: COLORS.textCream,
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: '600',
+  },
+  aceConsultAnswerQuote: {
+    color: '#FFD700',
   },
   // ===== ACE message =====
   aceMessageCard: {
