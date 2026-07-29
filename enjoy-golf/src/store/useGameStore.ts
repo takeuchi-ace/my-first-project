@@ -173,37 +173,60 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addContractForCharacter = useCallback((id: CharacterId): CharacterId[] => {
-    const prev = stateRef.current;
-    if (prev.contractedCharacterIds.includes(id)) return [];
+    const snapshot = stateRef.current;
+    if (snapshot.contractedCharacterIds.includes(id)) return [];
 
-    // Before: which characters are unlockable
+    // 戻り値（解放演出に渡すリスト）は呼び出し時点の値から求める
     const beforeUnlocked = new Set(
-      characters.filter((c) => canUnlockCheck(c, prev.contractedCharacterIds, prev.competitionCleared)).map((c) => c.id)
+      characters
+        .filter((c) => canUnlockCheck(c, snapshot.contractedCharacterIds, snapshot.competitionCleared))
+        .map((c) => c.id)
     );
-
-    const newContractedIds = [...prev.contractedCharacterIds, id];
-
-    // After: newly unlockable characters
-    const newlyRevealed = characters
-      .filter((c) => canUnlockCheck(c, newContractedIds, prev.competitionCleared) && !beforeUnlocked.has(c.id))
+    const revealedForCaller = characters
+      .filter(
+        (c) =>
+          canUnlockCheck(c, [...snapshot.contractedCharacterIds, id], snapshot.competitionCleared) &&
+          !beforeUnlocked.has(c.id)
+      )
       .map((c) => c.id);
 
-    // ACE contract → refill balls
-    const aceChar = characters.find((c) => c.isAce);
-    const isAceContract = aceChar?.id === id;
-    const newAceBalls = isAceContract ? ACE_BALL_MAX : prev.aceBalls;
+    // 実際の更新は必ず関数形で行う。
+    // stateRef.current のスナップショットで全体を置き換えると、同じ tick で
+    // 先に積まれた更新が消える。実際に markCompetitionCleared → この関数の順で
+    // 呼ばれる結果画面で competitionCleared が巻き戻り、コンペをクリアしても
+    // 対象キャラが解放されない不具合が出ていた（ResultScreenSimple でも
+    // incrementRoundCounter と handleRoundComplete が同様に消えていた）。
+    setState((prev) => {
+      if (prev.contractedCharacterIds.includes(id)) return prev;
 
-    setState({
-      ...prev,
-      contractedCharacterIds: newContractedIds,
-      totalContracts: prev.totalContracts + 1,
-      unlockedCharacterIds: [
-        ...new Set([...prev.unlockedCharacterIds, ...newlyRevealed]),
-      ],
-      aceBalls: newAceBalls,
+      const newContractedIds = [...prev.contractedCharacterIds, id];
+      const before = new Set(
+        characters
+          .filter((c) => canUnlockCheck(c, prev.contractedCharacterIds, prev.competitionCleared))
+          .map((c) => c.id)
+      );
+      const newlyRevealed = characters
+        .filter(
+          (c) => canUnlockCheck(c, newContractedIds, prev.competitionCleared) && !before.has(c.id)
+        )
+        .map((c) => c.id);
+
+      // ACE contract → refill balls
+      const aceChar = characters.find((c) => c.isAce);
+      const isAceContract = aceChar?.id === id;
+
+      return {
+        ...prev,
+        contractedCharacterIds: newContractedIds,
+        totalContracts: prev.totalContracts + 1,
+        unlockedCharacterIds: [
+          ...new Set([...prev.unlockedCharacterIds, ...newlyRevealed]),
+        ],
+        aceBalls: isAceContract ? ACE_BALL_MAX : prev.aceBalls,
+      };
     });
 
-    return newlyRevealed;
+    return revealedForCaller;
   }, []);
 
   const useAceBallFn = useCallback(() => {

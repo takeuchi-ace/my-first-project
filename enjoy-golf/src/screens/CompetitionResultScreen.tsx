@@ -21,7 +21,10 @@ export default function CompetitionResultScreen({ navigation, route }: Props) {
   const targetChar = characters.find((c) => c.id === result.targetCharacterId);
   const store = useGameStore();
   const processed = useRef(false);
-  const isFirstClear = !store.isCompetitionCleared(competitionId);
+  // 画面に入った時点の値で固定する。毎レンダー store を見ると、
+  // 下の effect が markCompetitionCleared を呼んだ直後に false へ変わり、
+  // 解放メッセージ（この値を表示条件にしている）が即座に消えてしまう。
+  const isFirstClear = useRef(!store.isCompetitionCleared(competitionId)).current;
 
   const [unlockMessage, setUnlockMessage] = useState('');
 
@@ -35,8 +38,11 @@ export default function CompetitionResultScreen({ navigation, route }: Props) {
     processed.current = true;
 
     if (result.contractSuccess && isFirstClear) {
+      // コンペのクリアは「通常ラウンドの解放」であって契約ではない。
+      // 対象キャラの解放条件は competitionClear なので markCompetitionCleared だけで足りる。
+      // ここで addContractForCharacter を呼ぶと、1度も回っていない相手が契約済になり、
+      // 契約数が水増しされて後続キャラ（ミツキ・早瀬・ハジメ）の解放条件まで狂う。
       store.markCompetitionCleared(competitionId);
-      store.addContractForCharacter(result.targetCharacterId);
       setUnlockMessage(comp.unlockText);
     }
   }, [result, competitionId, comp, isFirstClear, store]);

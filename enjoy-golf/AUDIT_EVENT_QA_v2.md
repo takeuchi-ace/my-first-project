@@ -1450,3 +1450,83 @@ const headerName =
 | 430×932・坊っちゃん | 「二代目オーナー・坊っちゃん」フル表示。カードも全体が見える |
 
 `tsc --noEmit` 通過。
+
+---
+
+## コンペラウンドのバグ調査
+
+### 実機で再現した症状
+
+春の名門オープンを trust 100 / rep 100 で勝ち切った直後の保存データ。
+
+| 項目 | 期待 | 実際 |
+|---|---|---|
+| `competitionCleared` | `{springOpen:true}` | **`{}`** |
+| `unlockedCharacterIds` に篠原(17) | 含まれる | **含まれない** |
+| `contractedCharacterIds` | `[1]` | **`[1,17]`** |
+| `totalContracts` | 1 | **2** |
+| 誤って解放されたキャラ | なし | **ミツキ(21)** |
+
+画面には「篠原さんとの通常ラウンドが解放されました！」と出るのに、**篠原は解放されず、代わりにミツキが解放される**。コンペのクリアも記録されないので何度でも繰り返せる。
+
+### 原因1: スナップショットでの全体置き換え
+
+`useGameStore` の `addContractForCharacter` だけが、唯一 `setState((prev) => ...)` ではなく `stateRef.current` のスナップショットで**状態全体を置き換えていた**（他は全て関数形。例外は意図的な全リセットのみ）。
+
+`stateRef.current = state` はレンダー時代入なので、同じ tick で2つ呼ぶと2つ目が1つ目の更新を消す。結果画面は次の順で呼んでいた。
+
+```ts
+store.markCompetitionCleared(competitionId);           // setState((prev) => ...) で積まれる
+store.addContractForCharacter(result.targetCharacterId); // 古い state で全体を上書き → 上が消える
+```
+
+**同じ被害が通常ラウンドにも出ていた。** `ResultScreenSimple` は契約成立時に `incrementRoundCounter()` → `handleRoundComplete(characterId)` → `addContractForCharacter(characterId)` の順で呼ぶため、**契約が取れたラウンドではラウンド数の加算とクールダウンの設定が消えていた**（コンペの解放が遅れ、契約した相手をすぐ再プレーできる）。
+
+更新を関数形に変えた。戻り値（解放演出に渡すリスト）は従来どおり呼び出し時点の値から求めている。
+
+### 原因2: コンペのクリアで契約が付いていた
+
+対象キャラの解放条件は `competitionClear` なので、`markCompetitionCleared` だけで解放は足りる。`addContractForCharacter` は解放に不要な上、1度も回っていない相手が契約済になっていた。
+
+- 契約数が水増しされ、`totalContractsAtLeast: 5` の銀座ハジメが3件ぶん早く解放される
+- `contractWith: 17` のミツキ、`contractWithAny: [21,18]` の早瀬が誤って解放される
+- 一覧に「契約済」と嘘が出る
+
+`unlockText` が「通常ラウンドが解放されました」と書いている通り、コンペは解放であって契約ではない。呼び出しを削除した。
+
+### 原因3（原因1を直して露出）: 解放メッセージが即座に消える
+
+`isFirstClear` を毎レンダー `store.isCompetitionCleared()` から計算していた。クリアを記録した瞬間に `false` になり、これを表示条件にしている解放メッセージが消える。
+
+**このバグは以前から存在したが、原因1に隠れていた**（クリアが記録されないので `isFirstClear` が `true` のままだった）。同画面の他所と同じく `useRef` で初回値を固定した。
+
+### 修正後（同手順で再実行）
+
+```
+competitionCleared: { springOpen: true }
+contractedCharacterIds: [1]
+totalContracts: 1
+unlockedCharacterIds: [1, 2, 3, 17]
+画面: 「篠原さんとの通常ラウンドが解放されました！」
+一覧: 「春の名門オープン クリア済」／契約 1/21
+```
+
+`characterList` は19件で篠原も `status='unlocked'` で含まれる（リスト内17番目）。
+
+> 調査中、一覧の DOM に篠原が出ないため4つ目のバグを疑ったが、`FlatList` の仮想化（`initialNumToRender` 既定10）で10行しか DOM に載らないだけだった。ロジックを Node で再現して19件・篠原ありを確認済み。私の計測側の問題。
+
+### バランス（バグではない）
+
+4イベントの全組み合わせ 3^4 を全探索した結果。難易度の並びは意図通り。
+
+| コンペ | 閾値 | 成功する組み合わせ |
+|---|---|---|
+| 春の名門オープン（easy） | trust 60 / rep 45 | 59/81（73%） |
+| シーサイドチャリティ（medium） | trust 65 / rep 50 | 24/81（30%） |
+| 経営者杯（hard） | trust 70 / rep 50 | 27/81（33%） |
+
+### 未修正（軽微・報告のみ）
+
+- `CompetitionGameState.finished` はどこでも `true` にならない死んだフィールド
+- `phase` の `'lunch'` は型にあるが代入箇所がない（昼は画面側の `step` で管理しているため）
+- コンペ用エンジンには通常ラウンドで入れたタグ減衰（`tagDecayRate`）と creep 爆発による中断がない。4択の短いモードなので現状のままでも成立するが、通常ラウンドと挙動が違う
