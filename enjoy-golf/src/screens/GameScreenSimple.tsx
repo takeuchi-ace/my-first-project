@@ -80,9 +80,11 @@ import { useGameStore } from '../store/useGameStore';
 import { FaceSprite, MoodLevel } from '../faces';
 import { COLORS } from '../theme/colors';
 
-// 名言は「その助言が名言かどうか」で決まる。以前は isQuote に加えて25%抽選を
-// 掛けていたため、名言候補を平均2.5回選んでいるのに実際の発動は0.63回/ラウンドまで
-// 落ち、約半分のラウンドで一度も名言が出なかった。抽選は外す。
+// 名言の発動率。名言候補（isQuote）は5手中で平均2.4回選ばれるので、
+// この率を掛けた回数が1ラウンドの発動回数になる。
+// 0.25 では 0.63回/ラウンドまで落ち、約半分のラウンドで一度も出なかった。
+// 「ラウンドに1回強」を狙って 0.5 にしてある（実測 1.23回・出ないラウンド24%）。
+const QUOTE_RATE = 0.5;
 const ACE_HOLE_COUNT = 5;
 
 // ミニゲームの判定窓（中心 0.5 からの片側幅）。集中力で伸縮する
@@ -543,7 +545,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     // ===== ACE round early return =====
     if (isAceRound) {
       const consult = getSelectedAceConsult(choiceIndex);
-      const isQuoteMoment = consult?.isQuote === true;
+      const isQuoteMoment = consult?.isQuote === true && Math.random() < QUOTE_RATE;
 
       setMood(isQuoteMoment ? 5 : 4);
 

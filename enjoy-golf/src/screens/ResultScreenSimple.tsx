@@ -102,6 +102,12 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
     }
   }, [result.contractSuccess, characterId, isAceRound]);
 
+  // 相談ラウンドで受けた助言（通常ラウンドでは空）
+  const aceConsults = useMemo(
+    () => (isAceRound && lastGameState ? getAceRoundConsults(lastGameState) : []),
+    [isAceRound, lastGameState],
+  );
+
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (contractResult) {
@@ -117,76 +123,6 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
       navigation.popToTop();
     }
   };
-
-  // 相談ラウンドの結果は通常ラウンドと別物。
-  // 18ホールのスコアも「接待グレード」も存在しないので、共通レイアウトを流用しない
-  // （流用していたため「18H: 96」という架空の数値と、「接待グレード」と
-  //  「接待ではない」が同じ画面に並ぶ矛盾が出ていた）。
-  if (isAceRound) {
-    const consults = lastGameState ? getAceRoundConsults(lastGameState) : [];
-    return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <ScrollView contentContainerStyle={styles.aceContent}>
-          <Text style={styles.aceName}>{character.fullName}</Text>
-          {character.title && (
-            <Text style={styles.aceTitle}>{character.title}</Text>
-          )}
-
-          <View style={styles.aceDivider}>
-            <View style={styles.aceDividerLine} />
-            <Text style={styles.aceDividerText}>今日いただいた言葉</Text>
-            <View style={styles.aceDividerLine} />
-          </View>
-
-          {consults.map((c, i) => (
-            <View
-              key={`${c.id}-${i}`}
-              style={[styles.aceConsultCard, c.isQuote && styles.aceConsultCardQuote]}
-            >
-              <Text style={styles.aceConsultQuestion}>{c.text}</Text>
-              <Text
-                style={[styles.aceConsultAnswer, c.isQuote && styles.aceConsultAnswerQuote]}
-              >
-                {'「'}{c.answer}{'」'}
-              </Text>
-            </View>
-          ))}
-
-          <View style={styles.aceMessageCard}>
-            {isFirstAceRound ? (
-              <>
-                <Text style={styles.aceMessageText}>
-                  {'「'}ぜひ顧問契約お願いします{'」'}
-                </Text>
-                <Text style={styles.aceReplyText}>
-                  {'「'}来年も再来年も、末永くよろしく{'」'}
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.aceMessageText}>
-                  {'「'}顧問契約、本当に頼りになります{'」'}
-                </Text>
-                <Text style={styles.aceReplyText}>
-                  {'「'}孫の代まで末永くよろしく{'」'}
-                </Text>
-              </>
-            )}
-          </View>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButtonSuccess,
-              pressed && styles.actionButtonPressed,
-            ]}
-            onPress={handleNext}
-          >
-            <Text style={styles.actionButtonSuccessText}>次へ</Text>
-          </Pressable>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -232,6 +168,31 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
           <Text style={styles.playTypeLabel}>{result.playTypeLabel}</Text>
           <Text style={styles.playTypeComment}>{result.playTypeComment}</Text>
         </View>
+
+        {/* 相談ラウンドで受けた助言。holeResults の複合IDと選んだ index から
+            復元できるので追加の状態は持たない */}
+        {isAceRound && aceConsults.length > 0 && (
+          <>
+            <View style={styles.aceDivider}>
+              <View style={styles.aceDividerLine} />
+              <Text style={styles.aceDividerText}>今日いただいた言葉</Text>
+              <View style={styles.aceDividerLine} />
+            </View>
+            {aceConsults.map((c, i) => (
+              <View
+                key={`${c.id}-${i}`}
+                style={[styles.aceConsultCard, c.isQuote && styles.aceConsultCardQuote]}
+              >
+                <Text style={styles.aceConsultQuestion}>{c.text}</Text>
+                <Text
+                  style={[styles.aceConsultAnswer, c.isQuote && styles.aceConsultAnswerQuote]}
+                >
+                  {'\u300C'}{c.answer}{'\u300D'}
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
 
         {/* ACE専用メッセージ */}
         {isAceRound && (
@@ -367,24 +328,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // ===== 相談ラウンド専用 =====
-  aceContent: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 28,
-    flexGrow: 1,
-  },
-  aceName: {
-    color: COLORS.textCream,
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: 2,
-  },
-  aceTitle: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 12,
-    letterSpacing: 1.5,
-    marginTop: 6,
-  },
   aceDivider: {
     flexDirection: 'row',
     alignItems: 'center',
