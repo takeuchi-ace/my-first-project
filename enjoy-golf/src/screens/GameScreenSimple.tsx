@@ -930,6 +930,16 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   }, [currentEvent, charsPerLine]);
   const compactLayout = choicesEstimatedHeight > windowHeight - CHOICES_TOP_OFFSET;
 
+  // 画面が高いとき、固定pxのまま上詰めで並べると下が空く（430×932 で下3割が空白だった）。
+  // iPhone SE 相当の 667pt を基準に、余った高さの分だけ顔と余白を広げて埋める。
+  // compactLayout（内容が入りきらない）のときは逆に詰めたいので効かせない。
+  const roomyScale = compactLayout
+    ? 1
+    : Math.min(1.4, Math.max(1, windowHeight / 667));
+  const faceScale = compactLayout ? 1.4 : 2.5 * roomyScale;
+  const roomyGap = Math.round(16 * roomyScale);
+  const roomyPad = Math.round(14 * roomyScale);
+
   // ===== Display helpers =====
   const phaseLabel = isAceRound
     ? '相談ラウンド'
@@ -1062,8 +1072,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           </View>
 
           {/* Face */}
-          <View style={styles.faceCenter}>
-            <FaceSprite mood={mood} scale={2.5} characterId={characterId} />
+          <View style={[styles.faceCenter, { marginVertical: roomyGap }]}>
+            <FaceSprite mood={mood} scale={faceScale} characterId={characterId} />
           </View>
 
           {/* Hole view (always visible during morning shot) */}
@@ -1214,8 +1224,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           </View>
 
           {/* Face */}
-          <View style={styles.faceCenter}>
-            <FaceSprite mood={4} scale={2.5} characterId={characterId} />
+          <View style={[styles.faceCenter, { marginVertical: roomyGap }]}>
+            <FaceSprite mood={4} scale={faceScale} characterId={characterId} />
           </View>
 
           {/* Green view (visible during both putt phases) */}
@@ -1578,7 +1588,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       )}
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <Animated.View style={{ opacity: baseLayerOpacity }}>
+        <Animated.View style={{ opacity: baseLayerOpacity, flex: 1 }}>
           {/* Header (Competition style) */}
           <View style={styles.compHeader}>
             <View style={styles.compHeaderLeft}>
@@ -1611,17 +1621,23 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               （選択肢の表示領域を38pt空けるため。iPhone SE 相当では長文3択が収まらなかった） */}
 
           {/* Centered face (Competition style) */}
-          <View style={[styles.faceCenter, compactLayout && styles.faceCenterCompact]}>
+          <View
+            style={[
+              styles.faceCenter,
+              compactLayout && styles.faceCenterCompact,
+              !compactLayout && { marginVertical: roomyGap },
+            ]}
+          >
             <FaceSprite
               mood={moodOverride ?? mood}
-              scale={compactLayout ? 1.4 : 2.5}
+              scale={faceScale}
               characterId={characterId}
               anim={faceAnim}
             />
           </View>
 
           {/* Event card */}
-          <View style={styles.eventBox}>
+          <View style={[styles.eventBox, { padding: roomyGap, marginBottom: roomyGap }]}>
             {currentEvent.id.startsWith('morning_shot_') && (
               <View style={styles.morningBadge}>
                 <Text style={styles.morningBadgeText}>朝イチのショット</Text>
@@ -1649,6 +1665,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             </View>
           )}
 
+          {/* 余った高さは選択肢の上に集める。ボタンが下に寄って親指で届きやすくなり、
+              内容が入りきらないときは flex:1 が 0 に潰れて従来どおり上詰めになる */}
+          {!compactLayout && <View style={styles.slackSpacer} />}
+
           {/* Choices (visible but disabled during reaction, like Competition) */}
           <View style={styles.choicesContainer}>
             {currentEvent.choices.map((choice, i) => {
@@ -1660,6 +1680,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                   disabled={disabled}
                   style={({ pressed }) => [
                     styles.choiceButton,
+                    { padding: roomyPad },
                     !allowed && styles.choiceDisabled,
                     !choosing && styles.choiceReacting,
                     pressed && allowed && choosing && styles.choicePressed,
@@ -1678,6 +1699,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               );
             })}
           </View>
+
+          {/* 余りの一部は選択肢の下にも残す。ボタンが画面の端に貼り付くのを避ける */}
+          {!compactLayout && <View style={styles.slackSpacerBottom} />}
         </Animated.View>
       </ScrollView>
 
@@ -1761,6 +1785,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
+    // 固定pxの積み上げだけだと、画面が高いほど余りが下に溜まる
+    // （430×932 で下3割が空白になっていた）。余った高さは上下に均等に配る。
+    // 内容が画面より高いときは flexGrow で伸びた分がゼロになるので、
+    // 従来どおり上端から並んでスクロールする。
+    flexGrow: 1,
   },
   // ===== Overlays =====
   quoteOverlay: {
@@ -1972,6 +2001,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(139,105,20,0.5)',
   },
   // ===== Choices =====
+  slackSpacer: {
+    flex: 1,
+  },
+  slackSpacerBottom: {
+    flex: 0.45,
+  },
   choicesContainer: {
     gap: 8,
     marginBottom: 16,

@@ -228,6 +228,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 28,
     flexGrow: 1,
+    // 上詰めのままだと画面が高いほど下が空く（430×932 で下3割が空白だった）。
+    // 内容が画面より高いときは flexGrow で伸びた分がゼロになり、従来どおり上端から並ぶ。
+    justifyContent: 'center',
   },
   // ===== Avatar =====
   avatarContainer: {
