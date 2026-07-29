@@ -940,6 +940,26 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const roomyGap = Math.round(16 * roomyScale);
   const roomyPad = Math.round(14 * roomyScale);
 
+  // 320幅ではヘッダーの氏名がホールマップのカードを画面外へ押し出していた。
+  // 「外資エリート・アレクサンダー・スミス」は18字あり、fontSize 18 では
+  // 名前だけで幅を使い切る。
+  //
+  // 画面幅で切るのではなく「入るかどうか」で判定する。末尾を省略すると
+  // 「外資エリート・アレクサン…」のように本人の名前が消えてしまうため、
+  // 入らないときは役割を落として呼び名にする（役割はプロフィール画面で読める。
+  // callName は最長5字）。
+  const narrowLayout = windowWidth < 360;
+  const nameFontSize = narrowLayout ? 16 : 18;
+  const holeMapSize = narrowLayout
+    ? { width: 46, height: 34 }
+    : { width: 56, height: 42 };
+  // ホールマップのカードの実測幅（狭い版 110pt / 通常 124pt）と左右の余白を引いた残り
+  const nameRoom = windowWidth - 32 - (narrowLayout ? 110 : 124) - 8;
+  const headerName =
+    character.name.length * nameFontSize <= nameRoom
+      ? character.name
+      : character.callName;
+
   // ===== Display helpers =====
   const phaseLabel = isAceRound
     ? '相談ラウンド'
@@ -1046,7 +1066,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           {/* Header */}
           <View style={styles.compHeader}>
             <View style={styles.compHeaderLeft}>
-              <Text style={styles.compHeaderName}>{character.name}</Text>
+              <Text
+                style={[styles.compHeaderName, narrowLayout && styles.compHeaderNameNarrow]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {headerName}
+              </Text>
             </View>
             {courseHole ? (
               <Pressable
@@ -1054,7 +1080,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 onPress={() => setHoleMapVisible(true)}
               >
                 <View style={styles.holeMapBtnMap}>
-                  <HoleMap layout={courseHole} width={56} height={42} />
+                  <HoleMap layout={courseHole} {...holeMapSize} />
                 </View>
                 <View style={styles.holeMapBtnInfo}>
                   <Text style={styles.holeMapBtnPhase}>前半 1/4</Text>
@@ -1198,7 +1224,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           {/* Header */}
           <View style={styles.compHeader}>
             <View style={styles.compHeaderLeft}>
-              <Text style={styles.compHeaderName}>{character.name}</Text>
+              <Text
+                style={[styles.compHeaderName, narrowLayout && styles.compHeaderNameNarrow]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {headerName}
+              </Text>
             </View>
             {courseHole ? (
               <Pressable
@@ -1206,7 +1238,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 onPress={() => setHoleMapVisible(true)}
               >
                 <View style={styles.holeMapBtnMap}>
-                  <HoleMap layout={courseHole} width={56} height={42} />
+                  <HoleMap layout={courseHole} {...holeMapSize} />
                 </View>
                 <View style={styles.holeMapBtnInfo}>
                   <Text style={styles.holeMapBtnPhase}>後半 4/4</Text>
@@ -1592,7 +1624,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           {/* Header (Competition style) */}
           <View style={styles.compHeader}>
             <View style={styles.compHeaderLeft}>
-              <Text style={styles.compHeaderName}>{character.name}</Text>
+              <Text
+                style={[styles.compHeaderName, narrowLayout && styles.compHeaderNameNarrow]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {headerName}
+              </Text>
               {store.aceBalls > 0 && (
                 <View style={styles.aceBallBadge}>
                   <Text style={styles.aceBallText}>ACE x{store.aceBalls}</Text>
@@ -1605,7 +1643,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 onPress={() => setHoleMapVisible(true)}
               >
                 <View style={styles.holeMapBtnMap}>
-                  <HoleMap layout={courseHole} width={56} height={42} />
+                  <HoleMap layout={courseHole} {...holeMapSize} />
                 </View>
                 <View style={styles.holeMapBtnInfo}>
                   <Text style={styles.holeMapBtnPhase}>{phaseLabel} {holeDisplay}</Text>
@@ -2100,6 +2138,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: 'rgba(255,215,0,0.4)',
+    // 残弾数なので潰させない（縮むのは氏名側）
+    flexShrink: 0,
   },
   aceBallText: {
     color: '#FFD700',
@@ -2197,11 +2237,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    // 氏名側だけが縮むようにする。minWidth を 0 にしないと
+    // Text の内容が最小幅として効いて、右のカードを押し出してしまう
+    flex: 1,
+    minWidth: 0,
   },
   compHeaderName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFD700',
+    flexShrink: 1,
+  },
+  compHeaderNameNarrow: {
+    fontSize: 16,
   },
   compHeaderPhase: {
     fontSize: 14,
@@ -2211,6 +2259,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    // 情報表示なので縮ませない（縮むのは氏名側）
+    flexShrink: 0,
     backgroundColor: 'rgba(0,0,0,0.25)',
     borderRadius: 8,
     borderWidth: 1,
