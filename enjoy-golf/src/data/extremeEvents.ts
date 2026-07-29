@@ -12,7 +12,7 @@ export const extremeEvents: GameEvent[] = [
     description: '相手のカートがまさかの暴走。坂道を転がり始めた！',
     stage: 2,
     choices: [
-      { text: '全力ダッシュでカートを止めに行く', delta: { trust: 12, fun: 5, focus: -5 }, tags: ['bold', 'extreme'] },
+      { text: '「危ない！！」と叫んで全力ダッシュでカートを止めに行く', delta: { trust: 12, fun: 5, focus: -5 }, tags: ['bold', 'extreme'] },
       { text: '「危ない！」と叫んで注意を促す', delta: { trust: 5, fun: 2 }, tags: ['safe'] },
       { text: 'スマホで動画を撮る', delta: { fun: -5, trust: -10, creep: 15 }, tags: ['extreme', 'snitch'] },
     ],
@@ -23,7 +23,7 @@ export const extremeEvents: GameEvent[] = [
     description: '相手が「1ホール10万で行かない？」と提案してきた。',
     stage: 3,
     choices: [
-      { text: '「面白い！乗りましょう！」', delta: { fun: 10, trust: 3, focus: 8 }, tags: ['bold', 'risk', 'extreme'] },
+      { text: '「面白い！！乗りましょう！！」', delta: { fun: 10, trust: 3, focus: 8 }, tags: ['bold', 'risk', 'extreme'] },
       { text: '「さすがにそれは…笑」とやんわり断る', delta: { trust: 3, fun: -1, focus: 3 }, tags: ['safe', 'ethics', 'serious'] },
       { text: '「じゃあ20万で」と倍プッシュ', delta: { fun: 7, trust: 3, creep: 3 }, tags: ['bold', 'risk', 'kiai', 'extreme'] },
     ],
