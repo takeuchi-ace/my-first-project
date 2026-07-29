@@ -32,8 +32,24 @@ export interface CompetitionGameState {
   usedEventIds: string[];
   tagHistory: Tag[];
   lunchMood: LunchMood;
-  finished: boolean;
 }
+
+// ===== Tag decay =====
+// 同じタグを重ねるほど良い反応が鈍る。通常ラウンドの engine.ts と同じ扱いに揃える。
+// 嫌がることの罰（hatesTags と負の reaction）は減衰させない。
+const TAG_DECAY = [1, 0.7, 0.45, 0.25];
+
+const tagDecayRate = (tagHistory: Tag[], tag: Tag): number => {
+  const used = tagHistory.filter((t) => t === tag).length;
+  return TAG_DECAY[Math.min(used, TAG_DECAY.length - 1)];
+};
+
+const scaleDelta = (delta: Partial<Gauge>, rate: number): Partial<Gauge> => ({
+  fun: delta.fun != null ? Math.round(delta.fun * rate) : undefined,
+  trust: delta.trust != null ? Math.round(delta.trust * rate) : undefined,
+  creep: delta.creep != null ? Math.round(delta.creep * rate) : undefined,
+  focus: delta.focus != null ? Math.round(delta.focus * rate) : undefined,
+});
 
 // ===== Clamp =====
 const clamp = (v: number, min = 0, max = 100): number =>
@@ -60,7 +76,6 @@ export const createCompetitionState = (
     usedEventIds: [],
     tagHistory: [],
     lunchMood: 'neutral',
-    finished: false,
   };
 };
 
@@ -96,7 +111,8 @@ const applyDeltaWithModifiers = (
 const applyLikesHates = (
   gauge: Gauge,
   tags: Tag[],
-  characterId: CharacterId
+  characterId: CharacterId,
+  tagHistory: Tag[]
 ): Gauge => {
   const character = characters.find((c) => c.id === characterId);
   if (!character) return gauge;
@@ -104,9 +120,11 @@ const applyLikesHates = (
   let g = gauge;
   for (const tag of tags) {
     if (character.likesTags.includes(tag)) {
-      g = applyDelta(g, { trust: 2, fun: 2 });
+      // 好みへのボーナスは繰り返すほど鈍る
+      g = applyDelta(g, scaleDelta({ trust: 2, fun: 2 }, tagDecayRate(tagHistory, tag)));
     }
     if (character.hatesTags.includes(tag)) {
+      // 嫌がることの罰は減衰させない
       g = applyDelta(g, { creep: 6, trust: -4 });
     }
   }
@@ -135,13 +153,16 @@ export const applyCompetitionChoice = (
     for (const tag of choice.tags) {
       const reaction = character.reactions.find((r) => r.tag === tag);
       if (reaction) {
-        newGauge = applyDelta(newGauge, reaction.delta);
+        const rate = tagDecayRate(state.tagHistory, tag);
+        // 正の反応（喜び）だけ鈍る。負の反応（不快）はそのまま効かせる
+        const isPositive = (reaction.delta.trust ?? 0) > 0 || (reaction.delta.fun ?? 0) > 0;
+        newGauge = applyDelta(newGauge, isPositive ? scaleDelta(reaction.delta, rate) : reaction.delta);
       }
     }
   }
 
   // Apply likes/hates
-  newGauge = applyLikesHates(newGauge, choice.tags, state.targetCharacterId);
+  newGauge = applyLikesHates(newGauge, choice.tags, state.targetCharacterId, state.tagHistory);
 
   // Creep penalty
   if (newGauge.creep >= 90) {
@@ -158,7 +179,9 @@ export const applyCompetitionChoice = (
   }
 
   const nextIndex = state.eventIndex + 1;
-  const nextPhase = nextIndex < 2 ? 'front' : 'back';
+  // 前半2つを終えた時点が昼。型に 'lunch' があるのに代入箇所がなかった
+  const nextPhase: CompetitionGameState['phase'] =
+    nextIndex < 2 ? 'front' : nextIndex === 2 ? 'lunch' : 'back';
 
   return {
     ...state,
