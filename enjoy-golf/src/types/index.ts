@@ -341,6 +341,7 @@ export interface CompetitionResult {
 
 // ===== Navigation =====
 export type RootStackParamList = {
+  Title: undefined;
   CharacterSelect: undefined;
   Profile: { characterId: CharacterId };
   GameSimple: { characterId: CharacterId };

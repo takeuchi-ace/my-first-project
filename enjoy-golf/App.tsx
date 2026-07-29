@@ -8,6 +8,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './src/types';
 import { GameStoreProvider, useGameStore } from './src/store/useGameStore';
 import WoodHeader from './src/components/WoodHeader';
+import TitleScreen from './src/screens/TitleScreen';
 import CharacterSelectScreen from './src/screens/CharacterSelectScreen';
 import GameScreenSimple from './src/screens/GameScreenSimple';
 import ResultScreenSimple from './src/screens/ResultScreenSimple';
@@ -38,7 +39,7 @@ function AppInner() {
       <NavigationContainer>
         <StatusBar style="light" />
         <Stack.Navigator
-          initialRouteName="CharacterSelect"
+          initialRouteName="Title"
           screenOptions={{
             contentStyle: { backgroundColor: '#1a472a' },
             animation: 'slide_from_right',
@@ -46,6 +47,12 @@ function AppInner() {
             header: () => <WoodHeader />,
           }}
         >
+          {/* スプラッシュ〜タイトルは全画面（木目ヘッダーを出さない） */}
+          <Stack.Screen
+            name="Title"
+            component={TitleScreen}
+            options={{ headerShown: false, animation: 'fade' }}
+          />
           <Stack.Screen name="CharacterSelect" component={CharacterSelectScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="GameSimple" component={GameScreenSimple} />
