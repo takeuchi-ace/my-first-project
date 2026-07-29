@@ -1,7 +1,7 @@
 import { CharacterSpecificEvent } from '../types';
 
 /**
- * 昼休憩イベント（各キャラ1本 × 16 = 16本）
+ * 昼休憩イベント（各キャラ1本 × 21 = 21本）
  *
  * - characterLunchEvents[characterId] で1本のイベントを取得
  * - hole 5 で固定挿入

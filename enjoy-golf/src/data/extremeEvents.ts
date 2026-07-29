@@ -100,7 +100,7 @@ export const extremeEvents: GameEvent[] = [
       { text: '真剣に耳を傾け、共感する', delta: { trust: 12, fun: -2 }, tags: ['honesty', 'ethics', 'serious'] },
       { text: '「大丈夫！なんとかなりますよ！」と励ます', delta: { fun: 5, trust: 3, creep: 2 }, tags: ['hype', 'over_support'] },
       { text: '「へぇ…で、次のホールどう攻めます？」と話題を変える', delta: { trust: -8, fun: -3, creep: 5 }, tags: ['extreme', 'distance'] },
-      { text: 'その情報を他の人脈に流そうと考える', delta: { trust: -15, creep: 18 }, tags: ['extreme', 'snitch', 'risk'] },
+      { text: '聞いた話を、あとで使えるようスマホにメモする', delta: { trust: -15, creep: 18 }, tags: ['extreme', 'snitch', 'risk'] },
     ],
   },
 

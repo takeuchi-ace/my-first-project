@@ -45,7 +45,7 @@ export const events: GameEvent[] = [
     description: '着替え中、相手が「最近調子どう？」と聞いてきた。ゴルフ談義のチャンスだ。',
     stage: 1,
     choices: [
-      { text: '「○○さんこそ、相変わらずお忙しいですか？」と返す', delta: { trust: 3, fun: 2 }, tags: ['safe'] },
+      { text: '「最近はドライバーが安定してきました」と正直に答える', delta: { trust: 3, fun: 1, focus: 2 }, tags: ['honesty'] },
       { text: '「○○さんのスイング見るの楽しみです！」', delta: { fun: 5, trust: 2 }, tags: ['flattery'] },
       { text: '「今日は○○さんから色々教えてもらいたいです」', delta: { fun: 4, trust: 3 }, tags: ['humor'] },
     ],
@@ -1345,7 +1345,7 @@ export const events: GameEvent[] = [
     stage: 4,
     choices: [
       { text: '「楽しそうですね…こちらも負けずに！」と気にしない', delta: { fun: 4, trust: 2 }, tags: ['humor'] },
-      { text: '身を張って相手の視界に入り、注意をそらさないようにする', delta: { trust: 3, fun: 2, creep: 4 }, tags: ['over_support'] },
+      { text: '隣ホールが見えない位置に回り込み、騒ぎを相手の視界から外す', delta: { trust: 3, fun: 2, creep: 4 }, tags: ['over_support'] },
       { text: '隣のグループに「静かにして！」と言いに行く', delta: { fun: 2, trust: -2, creep: 5 }, tags: ['bold'] },
     ],
   },
@@ -1357,7 +1357,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '旗をしっかり保持し、ショット後すぐに抜く', delta: { trust: 5, fun: 2 }, tags: ['etiquette'] },
       { text: '旗を持ちながら「狙いやすいですよ！」と声をかける', delta: { fun: 4, trust: 2 }, tags: ['safe'] },
-      { text: 'ショットのタイミングでそっと旗を動かしてピンの位置を相手に有利な方向へ示す', delta: { fun: 3, creep: 8, trust: -2 }, tags: ['cheat_physical'] },
+      { text: '旗竿をわざと傾けて、狙う方向を無言で指し示す', delta: { fun: 3, creep: 8, trust: -2 }, tags: ['cheat_physical'] },
     ],
   },
   {
@@ -1658,8 +1658,8 @@ export const events: GameEvent[] = [
     stage: 7,
     choices: [
       { text: 'キャディさんのボールを相手にすぐ渡す', delta: { trust: 4, fun: 3, creep: 2 }, tags: ['over_support'] },
-      { text: '「使いますか？」と相手に確認する', delta: { trust: 3, fun: 2 }, tags: ['safe'] },
-      { text: '「自分のボール余ってます」と自分のを差し出す', delta: { fun: 5, trust: 2, creep: 6 }, tags: ['over_support'] },
+      { text: '「使いますか？」と相手に確認する', delta: { trust: 3, fun: 2, focus: 1 }, tags: ['etiquette'] },
+      { text: '「必要なら言ってくるはず」と口を出さない', delta: { trust: 1, fun: -1, creep: 2 }, tags: ['distance', 'safe'] },
     ],
   },
   {
@@ -1807,7 +1807,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '静かに見守る（集中を乱さない）', delta: { trust: 5, fun: 3 }, tags: ['serious', 'etiquette'] },
       { text: '「入る！絶対入る！！」と応援する', delta: { fun: 6, trust: 2 }, tags: ['bold'] },
-      { text: 'こっそりカップをわずかに有利な位置に調整しようとする', delta: { fun: 4, creep: 18, trust: -6 }, tags: ['cheat_physical', 'extreme'] },
+      { text: 'カップの縁を靴先で押さえて、球が落ちやすいようにしておく', delta: { fun: 4, creep: 18, trust: -6 }, tags: ['cheat_physical', 'extreme'] },
     ],
   },
   {
@@ -2006,7 +2006,7 @@ export const events: GameEvent[] = [
 // ============================================================
 //  イベント統計（倍増フェーズ後）
 // ============================================================
-// 総数: 154本（既存76 + 新規78）
+// 総数: 170本
 // stage別:
 //   s1 = 10(既存) + 8(新規) = 18本
 //   s2 = 10(既存) + 8(新規) = 18本
@@ -2044,11 +2044,11 @@ export const events: GameEvent[] = [
 //       back9_motivation, gallery_impression, dramatic_birdie,
 //       end_of_round_reflection, total_score_debrief,
 //       final_impression_share (21本)
-//   - over_support extreme (overwhelming help, creep 10-15):
+//   - over_support extreme (overwhelming help, creep 6-8):
 //       morning_coffee, cart_drink_service, opponent_knee_pain,
 //       equipment_malfunction, late_hole_photo, physical_exhaustion,
 //       next_round_planning (7本)
-//   - cheat extreme (very risky cheating, creep 15-20):
+//   - cheat extreme (very risky cheating, creep 5-18):
 //       opponent_birdie_miss, whiskey_offer, beer_second_round,
 //       opponent_eagle_chance, approach_lip_out,
 //       final_hole_birdie_attempt (6本)
@@ -2065,7 +2065,7 @@ export const events: GameEvent[] = [
 //   bad_lie_reaction          (s2, 足でライを平らに)
 //   rough_advice              (s2, 手でボールをラフから出す)
 //   lost_ball_drop            (s3, 新ボールをそっと配置)
-//   final_hole_birdie_attempt (s8, カップ位置調整, extreme兼務)
+//   final_hole_birdie_attempt (s8, カップの縁を踏む, extreme兼務)
 //
 // 新規 cheat_score イベント: 8本
 //   opponent_birdie_miss (s2), scorecard_calculation (s4),

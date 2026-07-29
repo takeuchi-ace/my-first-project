@@ -1,7 +1,7 @@
 import { CharacterSpecificEvent } from '../types';
 
 /**
- * キャラクター固有イベント（各キャラ5本 × 21 = 105本）
+ * キャラクター固有イベント（各キャラ5〜6本 × 21 = 107本）
  *
  * - characterSpecificEvents[characterId] で 5本の配列を取得
  * - ラウンド開始時に1〜3本がランダム選出・ランダムホールに配置
