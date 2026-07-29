@@ -236,7 +236,7 @@ export const competitionEvents: Record<CompetitionId, CharacterSpecificEvent[]> 
       choices: [
         { id: 'A', text: '全力で真剣勝負する', delta: { fun: 4, trust: 8, focus: 6, creep: 0 }, tags: ['bold', 'sportsmanship'] },
         { id: 'B', text: '「お手柔らかに」と謙虚に', delta: { fun: 2, trust: 2, focus: 2, creep: 0 }, tags: ['etiquette'] },
-        { id: 'C', text: 'わざと負ける', delta: { fun: 0, trust: -8, focus: -4, creep: 10 }, tags: ['flattery', 'cheat'] },
+        { id: 'C', text: 'わざと負ける', delta: { fun: 0, trust: -8, focus: -4, creep: 10 }, tags: ['flattery'] },
       ],
     },
   ],

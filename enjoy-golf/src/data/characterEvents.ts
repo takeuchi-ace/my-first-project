@@ -274,7 +274,7 @@ export const characterSpecificEvents: Record<number, CharacterSpecificEvent[]> =
       choices: [
         { id: 'A', text: '「待ちましょう。焦っても仕方ないです」', delta: { fun: 1, trust: 7, focus: 4, creep: 0 }, tags: ['sportsmanship'] },
         { id: 'B', text: '「文句言いに行きましょうか」', delta: { fun: 2, trust: -2, focus: 0, creep: 6 }, tags: ['bold'] },
-        { id: 'C', text: '「先に打っちゃいましょう」', delta: { fun: 2, trust: -8, focus: -2, creep: 12 }, tags: ['cheat_physical'] },
+        { id: 'C', text: '「先に打っちゃいましょう」', delta: { fun: 2, trust: -8, focus: -2, creep: 12 }, tags: ['bold'] },
       ],
     },
     {

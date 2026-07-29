@@ -113,7 +113,7 @@ export const extremeEvents: GameEvent[] = [
     choices: [
       { text: '「一緒に最高のフィニッシュにしましょう！」', delta: { fun: 8, trust: 5, focus: 5 }, tags: ['hype', 'sportsmanship'] },
       { text: '黙ってうなずき、集中を共有する', delta: { trust: 6, focus: 8 }, tags: ['silence', 'serious'] },
-      { text: 'わざとミスして相手を気持ちよく勝たせる', delta: { fun: 2, trust: -3, creep: 10 }, tags: ['cheat_physical', 'extreme', 'over_support'] },
+      { text: 'わざとミスして相手を気持ちよく勝たせる', delta: { fun: 2, trust: -3, creep: 10 }, tags: ['over_support', 'flattery', 'extreme'] },
     ],
   },
   {

@@ -1302,3 +1302,36 @@ extreme タグ付き58件を並べると、ファイルで完全に二分され�
 | 0% | 12.9% | 57.2 | 2.5% |
 
 難易度曲線は維持。`○○` 残留 0件、ハング 0 / 5250 ラウンド、`tsc --noEmit` 通過。
+
+### 追補: 不正でない行為に付いていた cheat タグを外した
+
+F の項で「据え置き」と書いた3件を修正した。実測すると、罰の量ではなく**終了文が嘘になる**問題だった。
+
+`CREEP_SOURCE_TAGS.cheat` に `cheat_physical` / `cheat` が入っているため、これらを選んで creep が振り切れると結果画面に「ごまかしを見透かされてしまった...」と出る。わざと負けた人・打ち込んだ人はごまかしていない。E-2 で整理した「引かれ方の言い分け」と矛盾していた。
+
+| 選択肢 | 旧タグ | 新タグ |
+|---|---|---|
+| `extreme_final_hole_allIn`「わざとミスして相手を気持ちよく勝たせる」 | cheat_physical, extreme, over_support | over_support, flattery, extreme |
+| `char_5_2`「先に打っちゃいましょう」（打ち込み） | cheat_physical | bold |
+| `comp_exec_b2`「わざと負ける」 | flattery, cheat | flattery |
+
+**罰の量は変わらない。** `extreme_final_hole_allIn` は cheat_physical を外しても worst 21人のまま（`over_support` + creep 10 + trust −3 で足りている）。creep の帰属だけが `{cheat:22}` → `{close:13}` に変わり、終了文が「距離を詰めすぎて引かれてしまった」になる。
+
+`cheat_physical` の枠（1ラウンド2回）の消費も解消したが、そもそも上限に達するのは 6,300ラウンド中 0.1% だったので実害はなかった。
+
+回帰: 98.3 / 83.7 / 62.7 / 42.9 / 13.2%（前回 98.3 / 82.4 / 62.9 / 42.4 / 12.9）、`tsc --noEmit` 通過。
+
+### 到達不能なレガシー画面 3,758行（未対応・要判断）
+
+`'Home'` へ遷移するコードが存在せず、レガシー画面が丸ごと届かない。
+
+| ファイル | 行数 | 現行の対応物 | 差 |
+|---|---|---|---|
+| `screens/GameScreen.tsx` | 1,635 | `GameScreenSimple.tsx`（2,718行） | 朝イチショット・最終パット・ホールマップが旧版に0件 |
+| `screens/HomeScreen.tsx` | 823 | `CharacterSelectScreen.tsx` | リセット機能・契約済み表示が旧版になし |
+| `screens/ResultScreen.tsx` | 560 | `ResultScreenSimple.tsx`（351行） | 終了文の出し分けが旧版になし |
+| `data/aceEvents.ts` | 308 | `aceConsults.ts`（42件） | 回答文が練り直されている |
+| `portraits/index.tsx` | 276 | — | HomeScreen だけが使用 |
+| `data/globalState.ts` | 156 | `store/useGameStore.ts` | 死んだ3画面だけが使用 |
+
+いずれも現行画面の作り直し前の版で、新しい機能は含まれていない。今セッションの改修（`diagnoseCreepCause` / `applyMinigameResult` / `focusWindowScale`）はどれも死んだ側に入っていない一方、`insight` / `faces` / `lunchMiniGame` / `types` を import しているため型を合わせ続ける負担だけが残る。
