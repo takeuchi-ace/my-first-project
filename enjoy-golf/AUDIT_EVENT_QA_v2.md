@@ -1335,3 +1335,23 @@ F の項で「据え置き」と書いた3件を修正した。実測すると�
 | `data/globalState.ts` | 156 | `store/useGameStore.ts` | 死んだ3画面だけが使用 |
 
 いずれも現行画面の作り直し前の版で、新しい機能は含まれていない。今セッションの改修（`diagnoseCreepCause` / `applyMinigameResult` / `focusWindowScale`）はどれも死んだ側に入っていない一方、`insight` / `faces` / `lunchMiniGame` / `types` を import しているため型を合わせ続ける負担だけが残る。
+
+### 到達不能なレガシー画面 3,758行を削除（対応済み）
+
+`'Home'` へ遷移するコードが存在せず、レガシー画面が丸ごと届かない状態だった。3枚とも現行画面の作り直し前の版で、新しい機能は一つも含まれていない。
+
+| 削除したファイル | 行数 | 現行の対応物 |
+|---|---|---|
+| `screens/GameScreen.tsx` | 1,635 | `GameScreenSimple.tsx`（朝イチショット・最終パット・ホールマップは現行のみ） |
+| `screens/HomeScreen.tsx` | 823 | `CharacterSelectScreen.tsx`（リセット・契約済み表示は現行のみ） |
+| `screens/ResultScreen.tsx` | 560 | `ResultScreenSimple.tsx`（終了文の出し分けは現行のみ） |
+| `data/aceEvents.ts` | 308 | `aceConsults.ts`（回答文を練り直した42件） |
+| `portraits/index.tsx` | 276 | HomeScreen だけが使用していた |
+| `data/globalState.ts` | 156 | `store/useGameStore.ts` |
+| 計 | **3,758** | |
+
+あわせて `App.tsx` から3つの import と3つの `Stack.Screen`、`types/index.ts` の `RootStackParamList` から `Home` / `Game` / `Result` を削除（16行）。
+
+**検証**: `tsc --noEmit` 通過。ブラウザでキャラ選択 → プロフィール → ラウンド開始 → 朝イチのショット → 自分のショット（ミニゲーム）まで実際に通し、コンソールエラーなし（`transform-origin` の DOM プロパティ警告2件は SVG 由来の既存警告で、削除とは無関係）。
+
+契約成功率 97.8 / 82.8 / 61.6 / 43.4 / 13.1%（前回 98.3 / 83.7 / 62.7 / 42.9 / 13.2）、共通プール到達 167/167、ハング 0 / 4200 ラウンド。

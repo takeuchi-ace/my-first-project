@@ -11,9 +11,6 @@ import WoodHeader from './src/components/WoodHeader';
 import CharacterSelectScreen from './src/screens/CharacterSelectScreen';
 import GameScreenSimple from './src/screens/GameScreenSimple';
 import ResultScreenSimple from './src/screens/ResultScreenSimple';
-import HomeScreen from './src/screens/HomeScreen';
-import GameScreen from './src/screens/GameScreen';
-import ResultScreen from './src/screens/ResultScreen';
 import IntroScreen from './src/screens/IntroScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import CompetitionScreen from './src/screens/CompetitionScreen';
@@ -53,10 +50,6 @@ function AppInner() {
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="GameSimple" component={GameScreenSimple} />
           <Stack.Screen name="ResultSimple" component={ResultScreenSimple} />
-          {/* Legacy screens — kept for compatibility */}
-          <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Game" component={GameScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Result" component={ResultScreen} options={{ headerShown: false }} />
           <Stack.Screen name="Intro" component={IntroScreen} />
           <Stack.Screen name="Competition" component={CompetitionScreen} />
           <Stack.Screen name="CompetitionResult" component={CompetitionResultScreen} />

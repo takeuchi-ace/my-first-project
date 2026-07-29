@@ -343,19 +343,10 @@ export interface CompetitionResult {
 export type RootStackParamList = {
   CharacterSelect: undefined;
   Profile: { characterId: CharacterId };
-  Home: undefined;
-  Game: { characterId: CharacterId };
   GameSimple: { characterId: CharacterId };
   ResultSimple: {
     characterId: CharacterId;
     finishReason: 'complete' | 'creep_explosion';
-    isAceRound?: boolean;
-  };
-  Result: {
-    result: GameResult;
-    characterId: CharacterId;
-    finishReason: 'complete' | 'creep_explosion';
-    lunchMood: LunchMood;
     isAceRound?: boolean;
   };
   Intro: {
