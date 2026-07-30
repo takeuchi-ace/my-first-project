@@ -237,15 +237,20 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 相手の本音を見抜いたときの報酬。すでに上限なら false を返す（演出も出さない）
-  const gainedRef = useRef(false);
+  //
+  // 以前は setState の更新関数の中で ref を立て、その直後に ref を読んで
+  // 戻り値にしていた。React は更新関数を必ず同期実行するわけではないので
+  // （同じ tick に他の更新が積まれていると遅延する）、ボールは増えたのに
+  // false が返り、獲得の演出が出ないことがあった。
+  // 判定は同期的に読める stateRef から行う。
   const gainAceBallFn = useCallback(() => {
-    gainedRef.current = false;
-    setState((prev) => {
-      if (prev.aceBalls >= ACE_BALL_MAX) return prev;
-      gainedRef.current = true;
-      return { ...prev, aceBalls: prev.aceBalls + 1 };
-    });
-    return gainedRef.current;
+    if (stateRef.current.aceBalls >= ACE_BALL_MAX) return false;
+    setState((prev) =>
+      prev.aceBalls >= ACE_BALL_MAX
+        ? prev
+        : { ...prev, aceBalls: prev.aceBalls + 1 }
+    );
+    return true;
   }, []);
 
   const refillAceBallsFn = useCallback(() => {

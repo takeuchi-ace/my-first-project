@@ -42,6 +42,8 @@ import {
   getTrustMultiplier,
   checkJiwaNetsu,
   getTanakaClosing,
+  snapshotTanakaState,
+  restoreTanakaState,
 } from '../logic/tanaka';
 import {
   initOnizukaRound,
@@ -49,6 +51,8 @@ import {
   getOnizukaFunMultiplier,
   checkNetsuMore,
   getOnizukaClosing,
+  snapshotOnizukaState,
+  restoreOnizukaState,
 } from '../logic/onizuka';
 import {
   createAceInitialState,
@@ -164,6 +168,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     isAceRound ? selectAceEvent(gameState) : selectEvent(gameState),
   );
   const [previousState, setPreviousState] = useState<GameState | null>(null);
+  // ACEボールでの「やり直す」で戻すもの。engine の外にある状態は
+  // GameState に入っていないため、選択の直前を別に控えておく必要がある
+  const redoSnapshotRef = useRef<{
+    tanaka: ReturnType<typeof snapshotTanakaState>;
+    onizuka: ReturnType<typeof snapshotOnizukaState>;
+    insightStreak: number;
+    prevWasMismatch: boolean;
+  } | null>(null);
 
   // ===== UI state =====
   const [choosing, setChoosing] = useState(true);
@@ -516,6 +528,12 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
     // Save previous state for ACE ball
     setPreviousState(gameState);
+    redoSnapshotRef.current = {
+      tanaka: snapshotTanakaState(),
+      onizuka: snapshotOnizukaState(),
+      insightStreak,
+      prevWasMismatch,
+    };
 
     // Apply choice via engine
     let newState = isAceRound
@@ -804,6 +822,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       setGameState(previousState);
       // Keep the same currentEvent — player retries the same event
     }
+    // GameState の外にある状態も戻す。ここを戻さないと、取り消した選択の
+    // 媚びスタックや不正カウントが残り、不正を取り消しても S 条件が壊れたままになる
+    const snap = redoSnapshotRef.current;
+    if (snap) {
+      restoreTanakaState(snap.tanaka);
+      restoreOnizukaState(snap.onizuka);
+      setInsightStreak(snap.insightStreak);
+      setPrevWasMismatch(snap.prevWasMismatch);
+    }
     setChoosing(true);
     resetUI();
   }, [previousState, store, resetUI]);
@@ -1077,6 +1104,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               >
                 {headerName}
               </Text>
+              {store.aceBalls > 0 && (
+                <View style={styles.aceBallBadge}>
+                  <Text style={styles.aceBallText}>ACE x{store.aceBalls}</Text>
+                </View>
+              )}
             </View>
             {courseHole ? (
               <Pressable
@@ -1235,6 +1267,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               >
                 {headerName}
               </Text>
+              {store.aceBalls > 0 && (
+                <View style={styles.aceBallBadge}>
+                  <Text style={styles.aceBallText}>ACE x{store.aceBalls}</Text>
+                </View>
+              )}
             </View>
             {courseHole ? (
               <Pressable
@@ -2160,13 +2197,20 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   aceBallPopup: {
-    backgroundColor: COLORS.cardBg,
+    // 以前は COLORS.cardBg（8%の白）でほぼ透明だったため、
+    // 後ろのセリフや仕草が透けて文字が読めなかった。不透明な板にする。
+    backgroundColor: '#14301f',
     borderRadius: 12,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,215,0,0.4)',
+    borderColor: 'rgba(255,215,0,0.45)',
     width: '100%',
     maxWidth: 320,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 10,
   },
   aceBallPopupTitle: {
     color: '#FFD700',

@@ -36,6 +36,20 @@ let state: TanakaRoundState = createFreshState();
 let ssAchieved = false;
 
 // ===== Init =====
+/**
+ * ACEボールでの「やり直す」用のスナップショット。
+ *
+ * このモジュールの state はラウンド中に加算されるだけで巻き戻せなかったため、
+ * ACEボールで選択を取り消しても、取り消した選択のスタック（媚び・不正など）が
+ * 残り続けていた。不正を取り消しても cheatCount が 0 に戻らず S 条件が
+ * 壊れたままになるので、選択の直前を控えて復元できるようにする。
+ */
+export const snapshotTanakaState = (): TanakaRoundState => ({ ...state });
+
+export const restoreTanakaState = (snap: TanakaRoundState): void => {
+  state = { ...snap };
+};
+
 export const initTanakaRound = (): void => {
   state = createFreshState();
   ssAchieved = false;
