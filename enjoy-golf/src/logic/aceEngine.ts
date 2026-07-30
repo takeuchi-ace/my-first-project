@@ -47,7 +47,6 @@ export const createAceInitialState = (characterId: CharacterId): GameState => ({
   cheatPhysicalCount: 0,
   finished: false,
   finishReason: null,
-  aceUsedThisRound: false,
   tagHistory: [],
   lunchImpactScore: 0,
   // 相談ラウンドに昼はない。'good' にすると顧問契約の場面（IntroScreen）で

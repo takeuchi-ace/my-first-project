@@ -1,7 +1,7 @@
 import { Character } from '../types';
 
 /** エース解放に必要な契約数（unique） */
-export const ACE_UNLOCK_CONTRACTS = 5;
+const ACE_UNLOCK_CONTRACTS = 5;
 
 export const characters: Character[] = [
   // ===== Tier 0: Starter (ID 1–3) =====

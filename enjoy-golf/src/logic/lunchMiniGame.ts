@@ -223,34 +223,3 @@ export const applyLunchBiasOnly = (
   };
 };
 
-// ===== State遷移（フル — hole 6へ進行） =====
-export const applyLunchMiniGame = (
-  state: GameState,
-  layout: TableLayout,
-  playerSeat: SeatId,
-  opponentSeat: SeatId | null,
-  playerMenuId: number
-): GameState => {
-  const result = calcLunchResult(layout, playerSeat, opponentSeat, playerMenuId, state.characterId);
-
-  return {
-    ...state,
-    holeResults: [
-      ...state.holeResults,
-      {
-        hole: 5,
-        eventId: 'lunch_mini',
-        choiceIndex: 0,
-        focusSnapshot: state.gauge.focus,
-      },
-    ],
-    currentHole: 6,
-    phase: 'back',
-    usedEventIds: [...state.usedEventIds, 'lunch_mini'],
-    afternoonTrustBias: result.bias.afternoonTrustBias,
-    afternoonCreepBias: result.bias.afternoonCreepBias,
-    afternoonFocusBias: result.bias.afternoonFocusBias,
-    lunchImpactScore: result.lunchImpactScore,
-    lunchMood: result.lunchMood,
-  };
-};

@@ -2,7 +2,7 @@ import { ReactionRank } from '../types';
 
 export type GestureClass = 'positive' | 'neutral' | 'negative';
 
-export const positiveGestures: string[] = [
+const positiveGestures: string[] = [
   '嬉しそうに目を細めている',
   '小さくガッツポーズをした',
   'クラブを軽く掲げた',
@@ -15,7 +15,7 @@ export const positiveGestures: string[] = [
   '帽子のつばに手をやり微笑んだ',
 ];
 
-export const neutralGestures: string[] = [
+const neutralGestures: string[] = [
   'グローブを直している',
   'ボールマーカーを弄っている',
   '空を見上げている',
@@ -28,7 +28,7 @@ export const neutralGestures: string[] = [
   '風の方向を確認している',
 ];
 
-export const negativeGestures: string[] = [
+const negativeGestures: string[] = [
   '腕を組んでこちらを見ている',
   '目を逸らした',
   '足元を見つめている',
@@ -50,17 +50,6 @@ export function rankToGestureClass(rank: ReactionRank): GestureClass {
     case 'bad':
     case 'worst':
       return 'negative';
-  }
-}
-
-export function swapGestureClass(cls: GestureClass): GestureClass {
-  switch (cls) {
-    case 'positive':
-      return 'negative';
-    case 'negative':
-      return 'positive';
-    case 'neutral':
-      return Math.random() < 0.5 ? 'positive' : 'negative';
   }
 }
 

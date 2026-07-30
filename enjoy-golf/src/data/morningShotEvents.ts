@@ -825,7 +825,7 @@ const mitsukiMorningShotEvent: MorningShotEvent = {
 };
 
 // ===== フォールバック（未登録キャラ用）=====
-export const buildGenericMorningShotEvent = (characterId: number): MorningShotEvent => ({
+const buildGenericMorningShotEvent = (characterId: number): MorningShotEvent => ({
   characterId,
   variants: [
     {

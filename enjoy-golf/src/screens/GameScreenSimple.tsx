@@ -186,7 +186,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const [mood, setMood] = useState<MoodLevel>(3);
   const [holeMapVisible, setHoleMapVisible] = useState(false);
 
-  // ホールマップ用: ACE ラウンドはコース未定義のため、id 1/2 ラウンド時のみ表示
+  // ホールマップ用。相談ラウンドはコースを持たないので出さない
+  // （通常ラウンドは21キャラ全員に9ホール分のレイアウトがある）
   const courseHole = useMemo(
     () => (isAceRound ? undefined : getHoleLayout(characterId, gameState.currentHole)),
     [isAceRound, characterId, gameState.currentHole],

@@ -258,7 +258,6 @@ export interface GameState {
   cheatPhysicalCount: number;
   finished: boolean;
   finishReason: 'complete' | 'creep_explosion' | null;
-  aceUsedThisRound: boolean;
   tagHistory: Tag[];
   lunchImpactScore: number;
   lunchMood: LunchMood;

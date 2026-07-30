@@ -1884,3 +1884,40 @@ store 側にも `wear: 10` が永続化され `getWear` / `addWear` が公開さ
 | キャラの必須フィールドの空 | 0件 |
 | キャラ id の重複・欠番 | 重複0 / 1〜21 欠番なし |
 | セリフのフォールバック落ち | 0人 |
+
+### 掃除（ステップ2）— 死んだコード 356行を削除
+
+「未使用」を**死んだコード**と**未使用の文章資産**に分け、前者だけを削除した。
+
+**削除したもの**
+
+| 対象 | 行数 | 死んでいた理由 |
+|---|---|---|
+| `engine.getReactionText` | 304 | セリフ生成が `insight.ts` の系統に置き換わった残骸 |
+| `lunchMiniGame.applyLunchMiniGame` | 31 | 画面が `calcLunchResult` を直接呼ぶ形になった |
+| `gestures.swapGestureClass` | 11 | 仕草を常に本音のままにした改修（E-2 の読み合い整理）で不要に |
+| `engine.isBadChoice` | 10 | 呼び出し元なし |
+
+**export だけ余っていたもの**（自ファイル内でしか使っていないので `export` を外した）
+
+`calcEntertainScore` / `positiveGestures` / `neutralGestures` / `negativeGestures` / `ACE_UNLOCK_CONTRACTS` / `buildGenericMorningShotEvent`
+
+**死んだフラグ**
+
+`GameState.aceUsedThisRound` — 型と2箇所の初期化のみで読み手ゼロ。最終パットのゲートを外したときの残骸。型ごと削除。
+
+**陳腐化コメント2件**
+
+「コースは id 1/2 のみ定義」と書かれていたが、実測では21キャラ全員に9ホール分ある。`GameScreenSimple.tsx` と `holeLayouts.ts` の記述を実態に合わせた。
+
+**削除しなかったもの（文章資産なので活かす方針）**
+
+| 対象 | 規模 | 判断 |
+|---|---|---|
+| `logic/wear.ts` | 131行 | ステップ1で配線する |
+| `Character.reactionLines` | 170行 | ステップ3で配線する |
+| `Character.role` | 21行 | `hint` とも `targetHint` とも違う独自の文章。ステップ3で表示する |
+| `data/lunchMenu.ts` | 50行 | 自身のコメント通り「使われていない上位版」（22品・詳細フラグ付き）。将来メニューを増やすときの素材 |
+| `settings.bgmEnabled` / `sfxEnabled` | — | 音のライブラリ自体が未導入。真偽値2つなので、音を入れるときの受け皿として残す |
+
+**回帰**: 契約成功率 97.8 / 82.3 / 64.2 / 42.5 / 12.9%（前回 98.0 / 83.7 / 60.4 / 41.7 / 13.2）、共通プール到達 167/167、ハング 0 / 4200、相談ラウンド 100/100 正常終了、`tsc --noEmit` 通過。
