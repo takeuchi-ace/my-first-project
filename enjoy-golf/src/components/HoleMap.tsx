@@ -174,7 +174,10 @@ export function HoleMap({ layout, width, height, showInfo = false }: Props) {
         {/* ラフ（背景全面） */}
         <Rect x={0} y={0} width={width} height={height} fill="url(#rough)" />
 
-        <G x={offsetX} y={offsetY} scale={scale} originX={0} originY={0}>
+        {/* x/y/scale ではなく標準の transform で指定する。react-native-svg 15 は
+            web で scale を transform-origin という無効な DOM 属性に変換し、
+            React が毎描画で警告を出していた */}
+        <G transform={`translate(${offsetX},${offsetY}) scale(${scale})`}>
           {/* OB を真っ先に描く（フェアウェイの下に来るよう） */}
           {layout.hazards
             .filter((h) => h.type === 'ob')

@@ -263,7 +263,10 @@ export function PuttGreenView({ slope, aim, result, width, height, onAnimationDo
         {/* ラフ背景 */}
         <Rect x={0} y={0} width={width} height={height} fill="url(#puttRough)" />
 
-        <G x={offsetX} y={offsetY} scale={scale} originX={0} originY={0}>
+        {/* x/y/scale ではなく標準の transform で指定する。react-native-svg 15 は
+            web で scale を transform-origin という無効な DOM 属性に変換し、
+            React が毎描画で警告を出していた */}
+        <G transform={`translate(${offsetX},${offsetY}) scale(${scale})`}>
           {/* グリーン本体 */}
           <Ellipse
             cx={GREEN_CX}
