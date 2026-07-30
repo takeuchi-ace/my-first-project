@@ -1813,3 +1813,74 @@ store 側にも `wear: 10` が永続化され `getWear` / `addWear` が公開さ
 **3. 45字以上の選択肢の最悪率 44%**
 
 偶然の水準33%より高いが、該当は9件のみで統計的に意味のある差ではない。D-5 の主眼だった「！！」は13%まで落ちている。
+
+---
+
+## 全体の詳細バグチェック（ここまでの総点検）
+
+クラッシュや進行不能は見つからなかった。出てきたのはすべて「書かれているのに使われていない」類。
+
+### 1. 摩耗（Wear）システムが完全に未配線 — 131行
+
+`src/logic/wear.ts` は設計・実装ともに完成しているが、**どこからも import されていない**。
+
+| 実装済みの機能 | 内容 |
+|---|---|
+| `calcWearDelta` | `self_suppress` +2 / `over_adjust` +2 / `over_flatter` +4 / `forced_laugh` +4、`honesty`・`sportsmanship` で −1 |
+| `getWearMismatchBonus` | 40以上で +0.05、70以上で +0.10（相手の反応がチグハグになる） |
+| `getWearScoreMultiplier` | 90以上で entertainScore ×0.95 |
+| `shouldSuppressInsight` | 70以上で20%、90以上で50%の確率で洞察を抑制 |
+| `rollInnerVoice` | 70以上で15%、90以上で30%で内なる声（6種） |
+| `getWearHint` | 60以上でエースに相談したときのヒスト（2種） |
+| `WEAR_ROUND_END` / `WEAR_CONTRACT` / `WEAR_ACE_ROUND` | −3 / −5 / −15 の回復量 |
+
+ストア側にも `wear`（初期値10）・`getWear`・`addWear` があり **localStorage に永続化までされている**が、`addWear` / `getWear` の呼び出し元はゼロ。値は10から一切動かない。
+
+「接待で自分を殺し続けると摩耗し、誠実さと休息で回復する」という軸がまるごと眠っている。
+
+### 2. キャラ別の台詞 170行が読まれていない
+
+`Character.reactionLines`（21キャラ全員が保持・合計170行）は、**型宣言以外に参照が1件もない**。
+
+`insight.ts` が文書化しているセリフ決定の優先順位のうち、
+
+| 手順 | 内容 | 状態 |
+|---|---|---|
+| 1 | `speechOverride` | 動作 |
+| 2 | `character.mismatchSpeechLines[rank]` | **実データ 0/21 → 常に空振り** |
+| 3 | `character.speechLines[rank].default` | **実データ 0/21 → 常に空振り** |
+| 4 | `speechLineTemplates[speechStyleId][rank]` | ここが実質の本番 |
+| 5 | `speechStyles.sampleLines` | 到達しない |
+
+つまり `reactionLines` は手順に入っておらず、`speechLines` / `mismatchSpeechLines` は型だけあって中身がない。C-5（`Choice.speech` 未設定1,112件）と同じ根の話で、**セリフは「キャラ別」ではなく「口調スタイル別」で出ている**。
+
+ただしスタイル側は健全だった。
+
+- 18スタイル × 各24行、21キャラ全員がテンプレートを持つ
+- 手順5（弱いフォールバック）に落ちるキャラは0人
+- 同じスタイルを共有しているのは3組だけ（坊っちゃん/ハジメ、中村/篠原、大門/鷹宮）
+
+### 3. その他の未使用
+
+| 対象 | 規模 | 状況 |
+|---|---|---|
+| `src/data/lunchMenu.ts` | 50行 | 冒頭コメントで自ら「`lunchMiniGame.ts` の `menuItems` を使う」と書いた上で、参照ゼロ |
+| `Character.role` | 21件 | 画面に一切出ない |
+| `settings.bgmEnabled` / `sfxEnabled` | — | 永続化されているが、音のライブラリ自体が未導入（`expo-av` なし）。設定UIもない |
+
+### 4. 陳腐化したコメント
+
+- `GameScreenSimple.tsx:189`「ACE ラウンドはコース未定義のため、id 1/2 ラウンド時のみ表示」
+- `holeLayouts.ts:4`「各ラウンド（田中=1, 鬼塚=2）ごとに 9 ホール分のコース構成を定義」
+
+実際は**21キャラ全員に9ホール分のレイアウトが揃っている**（実測）。コメントだけが初期状態のまま。
+
+### 5. 健全だったもの
+
+| 検査 | 結果 |
+|---|---|
+| `holeLayouts` の網羅 | 21/21キャラ × 9ホール、欠落0 |
+| 朝イチのショット | 21/21キャラ分 |
+| キャラの必須フィールドの空 | 0件 |
+| キャラ id の重複・欠番 | 重複0 / 1〜21 欠番なし |
+| セリフのフォールバック落ち | 0人 |
