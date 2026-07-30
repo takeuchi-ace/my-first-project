@@ -66,6 +66,13 @@ import {
   updateInsightStreak,
   resolveChoiceSpeech,
 } from '../lib/insight';
+import {
+  calcWearDelta,
+  calcRoundEndRecovery,
+  rollInnerVoice,
+  getWearHint,
+  WEAR_ACE_ROUND,
+} from '../logic/wear';
 import { applyLunchBiasOnly, calcLunchResult } from '../logic/lunchMiniGame';
 import {
   TableLayout,
@@ -175,6 +182,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     onizuka: ReturnType<typeof snapshotOnizukaState>;
     insightStreak: number;
     prevWasMismatch: boolean;
+    wear: number;
+    roundWear: number;
   } | null>(null);
 
   // ===== UI state =====
@@ -198,6 +207,12 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   // ===== Insight state =====
   const [insightStreak, setInsightStreak] = useState(0);
   const [showInsight, setShowInsight] = useState(false);
+  /** 内なる声。迎合が通って摩耗が溜まったビートだけ出る（null = 出さない） */
+  const [innerVoice, setInnerVoice] = useState<string | null>(null);
+  /** 創業者の気づかいを1ラウンドに1回だけ出すための記録 */
+  const wearHintShownRef = useRef(false);
+  /** このラウンドで溜まった摩耗の合計。ラウンド終了時の回復量がこれで決まる */
+  const roundWearRef = useRef(0);
   // 直前のターンで相手が本音を隠したか（見抜けたかは次の一手で判定する）
   const [prevWasMismatch, setPrevWasMismatch] = useState(false);
   // 表示中の仕草が「本音の手がかり」かどうか。強調表示に使う
@@ -424,6 +439,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     setGestureText(null);
     setGestureIsNarration(false);
     setGestureIsTell(false);
+    setInnerVoice(null);
     setShowSpeech(false);
     setShowGesture(false);
     setQuoteMode(false);
@@ -446,6 +462,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     setLunchSubPhase(null);
 
     if (newState.finished) {
+      // 摩耗の回復。相談ラウンドは創業者と本音で話す場なので大きく戻る。
+      // 通常ラウンドは「そのラウンドで自分を殺した量」で回復量が変わり、
+      // 迎合せずに終えたラウンドが摩耗を戻す手になる。
+      // 契約成功では回復させない（迎合で勝った代償を勝利が打ち消してしまう）
+      store.addWear(
+        isAceRound ? WEAR_ACE_ROUND : calcRoundEndRecovery(roundWearRef.current)
+      );
+
       // Character closing check (Tanaka / Onizuka) before navigating to result
       if (!isAceRound && newState.finishReason === 'complete') {
         let closing: { type: 'SS' | 'S' | 'none'; speech: string; gesture: string | null; pauseMs: number } | null = null;
@@ -537,6 +561,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       onizuka: snapshotOnizukaState(),
       insightStreak,
       prevWasMismatch,
+      wear: store.getWear(),
+      roundWear: roundWearRef.current,
     };
 
     // Apply choice via engine
@@ -589,7 +615,18 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         }, 3500);
       } else {
         // 通常吹き出し表示
-        const speechContent = consult?.answer ?? choice.speechOverride ?? '';
+        let speechContent = consult?.answer ?? choice.speechOverride ?? '';
+
+        // 摩耗している相手にだけ、答える前に一言添える。
+        // ラウンドで一度だけ（名言演出のターンには乗せないので、最初の通常回答に出る）
+        if (!wearHintShownRef.current) {
+          const hint = getWearHint(store.getWear());
+          if (hint) {
+            speechContent = `${hint}\n${speechContent}`;
+            wearHintShownRef.current = true;
+          }
+        }
+
         setSpeechText(speechContent);
         setGestureText(null);
         setShowSpeech(true);
@@ -616,6 +653,19 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
     // Evaluate rank
     const rank: ReactionRank = evaluateReactionRank(appliedDelta);
+
+    // ===== 摩耗: 相手に合わせて、それが通ったときだけ溜まる =====
+    // 内なる声はここでしか出さない。溜まった瞬間に出すことで、
+    // 隠しパラメータのまま「今の一手が自分を削った」と分かる
+    const wearDelta = calcWearDelta(choice.tags ?? [], rank);
+    if (wearDelta > 0) {
+      roundWearRef.current += wearDelta;
+      // getWear() は stateRef を読むため addWear の直後でも古い値を返す。
+      // 声のしきい値判定には、加算後の値を自分で組み立てて渡す
+      const wearAfter = Math.min(100, store.getWear() + wearDelta);
+      store.addWear(wearDelta);
+      setInnerVoice(rollInnerVoice(wearAfter));
+    }
 
     // Compute reaction plan (single call for consistent randomness)
     const plan = computeReactionPlan(rank, characterId, choice.speechOverride);
@@ -835,6 +885,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       restoreOnizukaState(snap.onizuka);
       setInsightStreak(snap.insightStreak);
       setPrevWasMismatch(snap.prevWasMismatch);
+      // 摩耗も戻す。取り消した迎合の分が残ると、選び直したのに
+      // 自分を殺した記録だけが積まれてしまう
+      store.addWear(snap.wear - store.getWear());
+      roundWearRef.current = snap.roundWear;
     }
     setChoosing(true);
     resetUI();
@@ -1816,6 +1870,16 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         </View>
       )}
 
+      {/* 内なる声 — 相手の言葉ではなく自分の声なので、鍵括弧も仕草の枠も使わない。
+          迎合が通って摩耗が溜まったビートにだけ出る */}
+      {showSpeech && innerVoice && (
+        <View style={styles.innerVoiceContainer} pointerEvents="none">
+          <Animated.View style={{ opacity: gestureOpacity }}>
+            <Text style={styles.innerVoiceText}>{innerVoice}</Text>
+          </Animated.View>
+        </View>
+      )}
+
       {/* Quote overlay (名言演出) */}
       {quoteMode && (
         <Animated.View style={[styles.quoteOverlay, { opacity: quoteOpacity }]}>
@@ -2439,6 +2503,23 @@ const styles = StyleSheet.create({
   gestureOverlayTell: {
     color: '#FFD700',
     fontWeight: '700',
+  },
+  /** 内なる声。相手の仕草より下・より暗く置いて、自分の内側の声だと分かるようにする */
+  innerVoiceContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 96,
+    zIndex: 51,
+  },
+  innerVoiceText: {
+    fontSize: 12,
+    color: 'rgba(200,210,200,0.55)',
+    textAlign: 'center',
   },
   gestureOverlayText: {
     fontSize: 13,
