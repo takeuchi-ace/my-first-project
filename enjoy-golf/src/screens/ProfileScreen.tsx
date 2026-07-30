@@ -132,6 +132,12 @@ export default function ProfileScreen({ route, navigation }: Props) {
           <Text style={styles.mottoText}>{character.motto}</Text>
         </View>
 
+        {/* 気質（role）。hint（攻略のヒント）や targetHint（紹介文）とは別の
+            人物描写で、これまでどこにも表示されていなかった */}
+        {character.role && (
+          <Text style={styles.roleText}>{character.role}</Text>
+        )}
+
         {/* Hint */}
         {character.hint && (
           <Text style={styles.hintText}>{character.hint}</Text>
@@ -334,6 +340,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   // ===== Motto =====
+  roleText: {
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 12,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: 6,
+    paddingHorizontal: 8,
+  },
   quotesCard: {
     backgroundColor: 'rgba(255,215,0,0.07)',
     borderRadius: 12,

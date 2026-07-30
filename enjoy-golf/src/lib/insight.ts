@@ -17,6 +17,11 @@ export interface ReactionPlan {
   rank: ReactionRank;
   gestureText: string | null;
   gestureClass: GestureClass | null;
+  /**
+   * 仕草テキストがキャラ別に書かれた地の文か（true）、汎用の仕草プールか（false）。
+   * 地の文は文末が「。」の完全な文なので、表示側でアスタリスクで囲まない。
+   */
+  gestureIsNarration: boolean;
   isMismatch: boolean;
   gestureDelayMs: number;
 }
@@ -116,6 +121,39 @@ export function resolveChoiceSpeech(
 }
 
 /**
+ * 仕草（＝本音の手がかり）のテキストを決める。
+ *
+ * `character.reactionLines` にはキャラ別の反応描写が書かれている
+ * （「黒田の視線が厳しくなった。」のような地の文）。汎用の仕草プールは
+ * 全キャラ共通の動作（「目を逸らした」）なので、キャラ別の描写があれば
+ * そちらを優先する。ランク4段階で引けるぶん、汎用プールの3クラスより細かい。
+ *
+ * ただし本音を隠しているターンでは、セリフを含む描写は使わない。
+ * 吹き出しの建前と地の文の本音で「」が二重に出ると、
+ * 仕込んだ食い違いではなく文章の破綻に見えてしまう。
+ *
+ * キャラ別の描写だけを使うと、1キャラ1ランクあたり2行しかないため同じ文が
+ * すぐ繰り返される（汎用プールは1クラス10件）。逆に単純に足し合わせると
+ * キャラ別が2/12でほとんど出てこない。NARRATION_RATE の確率でキャラ別を
+ * 選び、残りは汎用プールから引くことで、個性と手数の両方を残す。
+ */
+const NARRATION_RATE = 0.6;
+
+function resolveGesture(
+  rank: ReactionRank,
+  character: (typeof characters)[number],
+  isMismatch: boolean,
+  gestureClass: GestureClass
+): { text: string; isNarration: boolean } {
+  const lines = character.reactionLines?.[rank] ?? [];
+  const usable = isMismatch ? lines.filter((l) => !l.includes('\u300C')) : lines;
+  if (usable.length > 0 && Math.random() < NARRATION_RATE) {
+    return { text: pick(usable), isNarration: true };
+  }
+  return { text: pick(getGesturePool(gestureClass)), isNarration: false };
+}
+
+/**
  * セリフ+仕草を一括計算
  *
  * - 通常は 70% の確率で仕草を添える
@@ -135,6 +173,7 @@ export function computeReactionPlan(
       rank,
       gestureText: null,
       gestureClass: null,
+      gestureIsNarration: false,
       isMismatch: false,
       gestureDelayMs: 0,
     };
@@ -154,6 +193,7 @@ export function computeReactionPlan(
       rank,
       gestureText: null,
       gestureClass: null,
+      gestureIsNarration: false,
       isMismatch,
       gestureDelayMs: 0,
     };
@@ -162,9 +202,8 @@ export function computeReactionPlan(
   // 仕草は常に本当のランクを表す（本音は態度に出る）
   const gestureClass = rankToGestureClass(rank);
 
-  // 仕草テキスト
-  const pool = getGesturePool(gestureClass);
-  const gestureText = pick(pool);
+  // 仕草テキスト（キャラ別の描写があればそちらを使う）
+  const gesture = resolveGesture(rank, character, isMismatch, gestureClass);
 
   // 仕草ディレイ: 500〜700ms
   const gestureDelayMs = 500 + Math.floor(Math.random() * 200);
@@ -172,8 +211,9 @@ export function computeReactionPlan(
   return {
     speechText,
     rank,
-    gestureText,
+    gestureText: gesture.text,
     gestureClass,
+    gestureIsNarration: gesture.isNarration,
     isMismatch,
     gestureDelayMs,
   };

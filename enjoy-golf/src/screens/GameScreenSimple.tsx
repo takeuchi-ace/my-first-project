@@ -181,6 +181,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const [choosing, setChoosing] = useState(true);
   const [speechText, setSpeechText] = useState('');
   const [gestureText, setGestureText] = useState<string | null>(null);
+  // 仕草がキャラ別の地の文か（true なら完全な文なのでアスタリスクで囲まない）
+  const [gestureIsNarration, setGestureIsNarration] = useState(false);
   const [showSpeech, setShowSpeech] = useState(false);
   const [showGesture, setShowGesture] = useState(false);
   const [mood, setMood] = useState<MoodLevel>(3);
@@ -420,6 +422,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const resetUI = useCallback(() => {
     setSpeechText('');
     setGestureText(null);
+    setGestureIsNarration(false);
     setGestureIsTell(false);
     setShowSpeech(false);
     setShowGesture(false);
@@ -647,6 +650,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     // Set speech & gesture
     setSpeechText(resolvedSpeech);
     setGestureText(plan.gestureText);
+    setGestureIsNarration(plan.gestureIsNarration);
     setGestureIsTell(plan.isMismatch);
 
     // ===== Tanaka: じわ熱 override =====
@@ -1806,7 +1810,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         <View style={styles.gestureOverlayContainer} pointerEvents="none">
           <Animated.View style={[styles.gestureOverlayContent, { opacity: gestureOpacity }]}>
             <Text style={[styles.gestureOverlayText, gestureIsTell && styles.gestureOverlayTell]}>
-              *{gestureText}*
+              {gestureIsNarration ? gestureText : `*${gestureText}*`}
             </Text>
           </Animated.View>
         </View>
