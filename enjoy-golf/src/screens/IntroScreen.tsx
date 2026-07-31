@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -95,7 +96,13 @@ export default function IntroScreen({ navigation, route }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    /* 解放ヒント2枚＋エース解放カード＋昼の一言が重なると、小さい端末では
+       画面に収まらない。固定の View だと中央寄せのまま上下が切れて
+       「次へ」に届かなくなるため、収まらないときだけスクロールさせる */
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.containerContent}
+    >
       <Animated.View style={[styles.introContent, { opacity: fadeAnim }]}>
         {/* Face */}
         <View style={isAceContract ? styles.aceFaceWrap : styles.faceWrap}>
@@ -186,7 +193,7 @@ export default function IntroScreen({ navigation, route }: Props) {
           </Animated.View>
         )}
       </Animated.View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -194,6 +201,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'rgba(26,71,42,0.95)',
+  },
+  /** 収まるときは中央寄せ、溢れたときはスクロール */
+  containerContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,

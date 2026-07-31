@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -76,7 +77,12 @@ export default function CompetitionResultScreen({ navigation, route }: Props) {
     : comp.awardFailText;
 
   return (
-    <View style={styles.container}>
+    /* 結果＋解放メッセージが小さい端末で収まらないと、中央寄せのまま
+       上下が切れてボタンに届かなくなる。溢れたときだけスクロールさせる */
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.containerContent}
+    >
       {/* Result Section */}
       <Animated.View style={[styles.resultSection, { opacity: fadeResult }]}>
         <Text style={styles.title}>コンペ結果</Text>
@@ -140,7 +146,7 @@ export default function CompetitionResultScreen({ navigation, route }: Props) {
           </Text>
         </TouchableOpacity>
       </Animated.View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -148,6 +154,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1a3a2a',
+  },
+  /** 収まるときは中央寄せ、溢れたときはスクロール */
+  containerContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,

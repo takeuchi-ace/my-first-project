@@ -118,7 +118,7 @@ function CharacterCard({
           <FaceSprite mood={2} scale={1.5} characterId={char.id} titleMode />
         </View>
         <View style={styles.cardInfo}>
-          <Text style={[styles.cardName, { opacity: 0.5 }]} numberOfLines={1}>
+          <Text style={[styles.cardName, { opacity: 0.5 }]} numberOfLines={2}>
             {char.name}
           </Text>
           <Text style={styles.cooldownText}>
@@ -145,7 +145,10 @@ function CharacterCard({
 
         {/* 中央: 情報 */}
         <View style={styles.cardInfo}>
-          <Text style={styles.cardName} numberOfLines={1}>
+          {/* 表記が「肩書き・名前」なので、1行に収めると右から切れて
+              肝心の名前が消える（「外資エリート・アレクサンダー…」）。
+              375px幅でも収まらない名前があるため2行まで許す */}
+          <Text style={styles.cardName} numberOfLines={2}>
             {char.name}
           </Text>
           {char.title ? (
