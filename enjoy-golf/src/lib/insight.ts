@@ -7,6 +7,7 @@ import {
 import { characters } from '../data/characters';
 import { speechLineTemplates } from '../data/speechLineTemplates';
 import { speechStyles } from '../data/speechStyles';
+import { resolveTagSpeech, resolveStyleTagSpeech } from '../data/tagSpeechLines';
 import { applyChoice, evaluateReactionRank } from '../logic/engine';
 import { applyCompetitionChoice, CompetitionGameState } from '../logic/competitionEngine';
 
@@ -96,28 +97,34 @@ function resolveSpeechText(
 }
 
 /**
- * curatedEvents の共通セリフ（choice.speech）を使ってよいかを判定して返す。
+ * 「何を選んだか」に噛み合った返事を返す。無ければ null。
  *
- * 共通セリフは「選択肢ごと・反応ランクごと」に書かれた質の高いテキストだが、
- * 全キャラで同じ文章が出るため、口調がキャラの正体になっている相手
- * （speechStyle.distinctVoice = 体育会・方言・英語混じり等）では
- * キャラ崩れを起こす。その場合は null を返し、呼び出し側で
- * そのキャラ専用の speechLineTemplates にフォールバックさせる。
+ * 優先順位:
+ *  1. `choice.speech` — 選択肢ごと・ランクごとに書き下ろした専用セリフ（48件）
+ *  2. タグ別のセリフ — その選択がどういう行為かで引く（全1,070選択肢を覆う）
+ *
+ * どちらも全キャラ共通の文章なので、口調がキャラの正体になっている相手
+ * （speechStyle.distinctVoice = 体育会・方言・英語混じり等）ではキャラ崩れを起こす。
+ * その場合は null を返し、呼び出し側でキャラ専用の speechLineTemplates に戻す。
  */
 export function resolveChoiceSpeech(
-  choice: Pick<Choice, 'speech'>,
+  choice: Pick<Choice, 'speech' | 'tags'>,
   rank: ReactionRank,
   characterId: CharacterId,
   isMismatch = false
 ): string | null {
-  if (!choice.speech) return null;
   // 本音を隠すときは、その選択肢に対する正反対のランクのセリフを口にする
   const spokenRank = isMismatch ? MASK_RANK[rank] : rank;
   const character = characters.find((c) => c.id === characterId);
-  if (!character) return choice.speech[spokenRank];
-  const style = speechStyles.find((s) => s.id === character.speechStyleId);
-  if (style?.distinctVoice) return null;
-  return choice.speech[spokenRank];
+  if (character) {
+    const style = speechStyles.find((s) => s.id === character.speechStyleId);
+    if (style?.distinctVoice) {
+      // 共通の文章はキャラが崩れるので使えない。その口調で書いたものだけ使う
+      return resolveStyleTagSpeech(character.speechStyleId, choice.tags ?? [], spokenRank);
+    }
+  }
+  if (choice.speech) return choice.speech[spokenRank];
+  return resolveTagSpeech(choice.tags ?? [], spokenRank);
 }
 
 /**

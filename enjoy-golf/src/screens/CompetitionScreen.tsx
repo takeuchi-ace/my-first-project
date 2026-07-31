@@ -28,7 +28,12 @@ import {
   calcCompetitionResult,
   CompetitionGameState,
 } from '../logic/competitionEngine';
-import { computeReactionPlan, findBestCompChoiceIndex, updateInsightStreak } from '../lib/insight';
+import {
+  computeReactionPlan,
+  findBestCompChoiceIndex,
+  updateInsightStreak,
+  resolveChoiceSpeech,
+} from '../lib/insight';
 import { useGameStore } from '../store/useGameStore';
 import { calcWearDelta, calcRoundEndRecovery, rollInnerVoice } from '../logic/wear';
 import InsightOverlay from '../components/InsightOverlay';
@@ -210,7 +215,9 @@ export default function CompetitionScreen({ navigation, route }: Props) {
       }
 
       const plan = computeReactionPlan(rank, targetChar.id, choice.speechOverride);
-      const text = plan.speechText;
+      // 選択の中身に噛み合った返事を優先する（無ければキャラ専用テンプレート）
+      const text =
+        resolveChoiceSpeech(choice, rank, targetChar.id, plan.isMismatch) ?? plan.speechText;
       const bestIdx = findBestCompChoiceIndex(gameState, currentEvent);
 
       setSelectedChoiceText(choice.text);
