@@ -295,6 +295,12 @@ export default function CompetitionScreen({ navigation, route }: Props) {
             setShowWorstVignette(false);
           });
         }
+        // 内なる声も仕草と同じように消す
+        Animated.timing(innerVoiceOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
         // Gesture fade out 200ms after speech fade starts
         if (plan.gestureText) {
           gestureFadeTimer.current = setTimeout(() => {

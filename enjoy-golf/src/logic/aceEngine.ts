@@ -23,11 +23,21 @@ import {
 } from '../types';
 import { AceConsult, aceConsultPool } from '../data/aceConsults';
 
-// ===== Module-level state for current consults =====
-let currentEventConsults: AceConsult[] = [];
-
-export const getSelectedAceConsult = (choiceIndex: number): AceConsult | null => {
-  return currentEventConsults[choiceIndex] ?? null;
+/**
+ * 表示中のイベントで、その選択肢に対応する相談を返す。
+ *
+ * 以前はモジュール変数に選出結果を控えていたが、`selectAceEvent` が
+ * 表示より先にもう一度呼ばれると（StrictMode の二重実行など）
+ * 画面の選択肢と答えがずれる作りだった。
+ * 複合ID（"ac_01+ac_07+ac_15"）から引けば、結果画面の復元
+ * （`getAceRoundConsults`）と同じ経路になり、ずれようがない。
+ */
+export const getSelectedAceConsult = (
+  event: GameEvent,
+  choiceIndex: number
+): AceConsult | null => {
+  const id = event.id.split('+')[choiceIndex];
+  return aceConsultPool.find((c) => c.id === id) ?? null;
 };
 
 // ===== Phase helper (5-hole, no lunch) =====
@@ -85,9 +95,6 @@ export const selectAceEvent = (state: GameState): GameEvent | null => {
   // ランダム3件を選出
   const shuffled = [...available].sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, 3);
-
-  // モジュールレベルで保持（handleChoice から参照）
-  currentEventConsults = selected;
 
   const D0 = { fun: 0, trust: 0, creep: 0, focus: 0 };
 

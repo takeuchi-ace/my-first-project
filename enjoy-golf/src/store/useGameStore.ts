@@ -112,7 +112,8 @@ async function loadState(): Promise<GameStoreState | null> {
       roundsSinceLastCompetition: parsed.roundsSinceLastCompetition ?? 0,
       aceQuotes: parsed.aceQuotes ?? [],
       cooldowns: parsed.cooldowns ?? {},
-      wear: parsed.wear ?? 10,
+      // 保存データが壊れていても範囲外の摩耗を持ち込ませない
+      wear: Math.max(0, Math.min(100, parsed.wear ?? 10)),
     };
   } catch {
     return null;

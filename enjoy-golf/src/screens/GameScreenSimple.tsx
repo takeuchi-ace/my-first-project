@@ -600,7 +600,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
     // ===== ACE round early return =====
     if (isAceRound) {
-      const consult = getSelectedAceConsult(choiceIndex);
+      const consult = getSelectedAceConsult(currentEvent, choiceIndex);
       const isQuoteMoment = consult?.isQuote === true && Math.random() < QUOTE_RATE;
 
       setMood(isQuoteMoment ? 5 : 4);
@@ -886,6 +886,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           toValue: 0, duration: 300, useNativeDriver: true,
         }).start(() => setShowWorstFlash(false));
       }
+      // 内なる声も仕草と同じように消す（瞬間的に消えると浮く）
+      Animated.timing(innerVoiceOpacity, {
+        toValue: 0, duration: 200, useNativeDriver: true,
+      }).start();
       // Restore base layer
       Animated.timing(baseLayerOpacity, {
         toValue: 1, duration: 200, useNativeDriver: true,
