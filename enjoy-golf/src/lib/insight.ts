@@ -97,15 +97,29 @@ function resolveSpeechText(
 }
 
 /**
- * 「何を選んだか」に噛み合った返事を返す。無ければ null。
+ * 共通のタグ別セリフを使う確率。
+ *
+ * タグ別セリフは「何を選んだか」に噛み合う代わりに、全キャラ同じ文章になる。
+ * 100% これにすると `speechLineTemplates` の13口調が完全に出番を失い（実測 0%）、
+ * 坊っちゃんの「あはは、いいじゃない！」黒田の「…悪くない。」
+ * ミツキの「わかる〜！それ大事！」が全部同じ丁寧語に潰れる。
+ * 噛み合わせを得るためにキャラの声を失うのは本末転倒なので、混ぜる。
+ *
+ * 1ラウンド約10ビートのうち、3〜4回はそのキャラ自身の口調が出る配分。
+ * 口調がキャラの正体になっている5人は専用の文章を書いてあるため、この確率を通さない。
+ */
+const TAG_SPEECH_RATE = 0.65;
+
+/**
+ * 「何を選んだか」に噛み合った返事を返す。無ければ null（呼び出し側でキャラ専用テンプレへ）。
  *
  * 優先順位:
  *  1. `choice.speech` — 選択肢ごと・ランクごとに書き下ろした専用セリフ（48件）
  *  2. タグ別のセリフ — その選択がどういう行為かで引く（全1,070選択肢を覆う）
  *
- * どちらも全キャラ共通の文章なので、口調がキャラの正体になっている相手
- * （speechStyle.distinctVoice = 体育会・方言・英語混じり等）ではキャラ崩れを起こす。
- * その場合は null を返し、呼び出し側でキャラ専用の speechLineTemplates に戻す。
+ * 2 は全キャラ共通の文章なので、口調がキャラの正体になっている相手
+ * （speechStyle.distinctVoice = 体育会・方言・英語混じり等）には使えない。
+ * その5口調には同じタグ体系で専用の文章を書いてあるので、そちらを引く。
  */
 export function resolveChoiceSpeech(
   choice: Pick<Choice, 'speech' | 'tags'>,
@@ -116,15 +130,28 @@ export function resolveChoiceSpeech(
   // 本音を隠すときは、その選択肢に対する正反対のランクのセリフを口にする
   const spokenRank = isMismatch ? MASK_RANK[rank] : rank;
   const character = characters.find((c) => c.id === characterId);
+  const tags = choice.tags ?? [];
+  const style = character
+    ? speechStyles.find((s) => s.id === character.speechStyleId)
+    : undefined;
+  const distinctVoice = style?.distinctVoice === true;
+
+  // 1. 選択肢ごとに書き下ろした専用セリフ。最も具体的なので最優先。
+  //    ただし全キャラ共通の文章なので、口調が正体の相手には使わない
+  if (choice.speech && !distinctVoice) return choice.speech[spokenRank];
+
+  // 2. その口調で書いたタグ別セリフ。口調と噛み合わせが両立する
   if (character) {
-    const style = speechStyles.find((s) => s.id === character.speechStyleId);
-    if (style?.distinctVoice) {
-      // 共通の文章はキャラが崩れるので使えない。その口調で書いたものだけ使う
-      return resolveStyleTagSpeech(character.speechStyleId, choice.tags ?? [], spokenRank);
-    }
+    const inVoice = resolveStyleTagSpeech(character.speechStyleId, tags, spokenRank);
+    if (inVoice) return inVoice;
   }
-  if (choice.speech) return choice.speech[spokenRank];
-  return resolveTagSpeech(choice.tags ?? [], spokenRank);
+
+  // 口調が正体の相手はここで打ち切る。書いていないタグは本人のテンプレートに任せる
+  if (distinctVoice) return null;
+
+  // 3. 共通のタグ別セリフ。null を返した分はそのキャラ自身のテンプレートが使われる
+  if (Math.random() >= TAG_SPEECH_RATE) return null;
+  return resolveTagSpeech(tags, spokenRank);
 }
 
 /**

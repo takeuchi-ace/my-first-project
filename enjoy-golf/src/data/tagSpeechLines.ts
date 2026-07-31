@@ -348,6 +348,162 @@ export function resolveTagSpeech(tags: Tag[], rank: ReactionRank): string | null
  * ここに無いタグは従来どおりキャラ専用テンプレートに戻る。
  */
 export const styleTagSpeechLines: Record<string, Partial<Record<Tag, RankLines>>> = {
+  S02: {
+    safe: { good: ['無理のない判断ですね。'], neutral: ['ええ、そうしましょう。'], bad: ['当たり障りのない返事ですね。'], worst: ['それでは何も答えていません。'] },
+    flattery: { good: ['そう言っていただけると。'], neutral: ['はは、お上手ですね。'], bad: ['そういうのは結構です。'], worst: ['見え透いていますよ。'] },
+    humor: { good: ['はは、うまいですね。'], neutral: ['…ふふ、なるほど。'], bad: ['今のは軽いですね。'], worst: ['ふざける場面ではないでしょう。'] },
+    honesty: { good: ['正直に言ってくださって助かります。'], neutral: ['ええ、率直ですね。'], bad: ['そこまで言わなくても。'], worst: ['正直と無神経は違います。'] },
+    serious: { good: ['よく見ていますね。'], neutral: ['なるほど、そうですか。'], bad: ['少し硬いですね。'], worst: ['説教は結構です。'] },
+    etiquette: { good: ['きちんとした方ですね。'], neutral: ['はい、結構です。'], bad: ['形式ばりすぎでは。'], worst: ['堅苦しいですね。'] },
+    bold: { good: ['思い切りがいいですね。'], neutral: ['強気ですね。'], bad: ['数字で見ると危ういですよ。'], worst: ['無茶です。計算が合わない。'] },
+    over_support: { good: ['お気遣いいただいて。'], neutral: ['いえ、大丈夫です。'], bad: ['そこまでしなくても。'], worst: ['ご遠慮ください。自分でできます。'] },
+    logic: { good: ['筋が通っています。'], neutral: ['理屈ではそうですね。'], bad: ['理屈が先に立ちますね。'], worst: ['数字で言ってもらえますか。'] },
+    over_praise: { good: ['…言いすぎですよ。'], neutral: ['大げさですね。'], bad: ['盛りすぎです。'], worst: ['数字にならない話は結構です。'] },
+  },
+  S03: {
+    safe: { good: ['まあ、それでいいんじゃない？'], neutral: ['うん、そうだね。'], bad: ['ふーん、無難だねぇ。'], worst: ['それ、何も言ってないよね。'] },
+    flattery: { good: ['えー、嬉しいこと言うねぇ！'], neutral: ['あはは、上手いなあ。'], bad: ['おだてても何も出ないよ。'], worst: ['見え透いてるってば。'] },
+    humor: { good: ['あはは、それ面白い！'], neutral: ['ふふ、まあね。'], bad: ['え、今笑うとこ？'], worst: ['ちょっと引くなあ、それ。'] },
+    honesty: { good: ['お、正直だねぇ。いいよ。'], neutral: ['うん、そうなんだ。'], bad: ['うわ、言うなあ。'], worst: ['それ言わなくてよくない？'] },
+    serious: { good: ['よく見てるねぇ。'], neutral: ['ふーん、なるほど。'], bad: ['固いなあ、話が。'], worst: ['説教はやめてよ。'] },
+    etiquette: { good: ['きちんとしてるねぇ。'], neutral: ['うん、いいよ。'], bad: ['堅いなあ。'], worst: ['息が詰まるよ、それ。'] },
+    bold: { good: ['お、いいねぇその勢い！'], neutral: ['強気だねぇ。'], bad: ['無理じゃない？それ。'], worst: ['無茶苦茶だってば。'] },
+    over_support: { good: ['えー、ありがとう！'], neutral: ['うん、平気だよ。'], bad: ['やりすぎだってば。'], worst: ['子ども扱いしないでよ。'] },
+    logic: { good: ['なるほどねぇ。'], neutral: ['うん、理屈ではね。'], bad: ['理屈っぽいなあ。'], worst: ['難しい話は分かんないよ。'] },
+    over_praise: { good: ['あはは、褒めすぎ！'], neutral: ['大げさだなあ。'], bad: ['盛りすぎだってば。'], worst: ['馬鹿にしてる？'] },
+  },
+  S04: {
+    safe: { good: ['…悪くない。'], neutral: ['…そうか。'], bad: ['…無難だな。'], worst: ['…何も言っていない。'] },
+    flattery: { good: ['…そうか。'], neutral: ['…ふん。'], bad: ['…要らん。'], worst: ['…見え透いている。'] },
+    humor: { good: ['…ふ。悪くない。'], neutral: ['…そうか。'], bad: ['…笑えんな。'], worst: ['…ふざけるな。'] },
+    honesty: { good: ['…それでいい。'], neutral: ['…わかった。'], bad: ['…言い方を選べ。'], worst: ['…無神経だ。'] },
+    serious: { good: ['…よく見ている。'], neutral: ['…そうか。'], bad: ['…固いな。'], worst: ['…説教は要らん。'] },
+    etiquette: { good: ['…礼儀は要る。'], neutral: ['…ああ。'], bad: ['…堅すぎる。'], worst: ['…息が詰まる。'] },
+    bold: { good: ['…いい思い切りだ。'], neutral: ['…強気だな。'], bad: ['…無理だ。'], worst: ['…無謀だな。'] },
+    over_support: { good: ['…助かる。'], neutral: ['…いい。'], bad: ['…やりすぎだ。'], worst: ['…自分でやる。'] },
+    logic: { good: ['…筋は通っている。'], neutral: ['…理屈ではな。'], bad: ['…理屈が先か。'], worst: ['…頭でっかちだ。'] },
+    over_praise: { good: ['…言いすぎだ。'], neutral: ['…大げさだな。'], bad: ['…盛りすぎだ。'], worst: ['…馬鹿にするな。'] },
+  },
+  S06: {
+    safe: { good: ['それも一つの選択ですね！'], neutral: ['ええ、いいと思います！'], bad: ['もう少し踏み込みませんか？'], worst: ['それでは何も生まれませんよ。'] },
+    flattery: { good: ['ありがとうございます！嬉しいです！'], neutral: ['はは、お上手ですね！'], bad: ['言葉より行動ですよ。'], worst: ['心が入っていませんね。'] },
+    humor: { good: ['いいですね！笑いは大事です！'], neutral: ['ふふ、面白いです。'], bad: ['今のは軽いですね。'], worst: ['その笑いは要りません。'] },
+    honesty: { good: ['正直さは最大の武器です！'], neutral: ['ええ、率直ですね。'], bad: ['言い方も大事ですよ。'], worst: ['それは配慮が足りません。'] },
+    serious: { good: ['深いですね！学びがあります！'], neutral: ['なるほど、そうですか。'], bad: ['少し重いですね。'], worst: ['説教は要りませんよ。'] },
+    etiquette: { good: ['素晴らしい！礼儀は資産です！'], neutral: ['ええ、結構です。'], bad: ['形より中身ですよ。'], worst: ['形式ばかりですね。'] },
+    bold: { good: ['その挑戦、素晴らしい！'], neutral: ['いいですね、強気で。'], bad: ['勢いだけでは続きませんよ。'], worst: ['無計画すぎます。'] },
+    over_support: { good: ['ありがとうございます！感謝です！'], neutral: ['いえ、大丈夫ですよ。'], bad: ['ご自身を大切にしてください。'], worst: ['そこまでされると困ります。'] },
+    logic: { good: ['論理的ですね！勉強になります！'], neutral: ['なるほど、理屈では。'], bad: ['理屈だけでは動きませんよ。'], worst: ['数字の裏に人がいます。'] },
+    over_praise: { good: ['…ありがとうございます、恐縮です。'], neutral: ['大げさですよ。'], bad: ['言葉が軽いですね。'], worst: ['心が入っていません。'] },
+  },
+  S08: {
+    safe: { good: ['まあ、合理的だね。'], neutral: ['うん、それでいい。'], bad: ['無難すぎるね。'], worst: ['情報量ゼロだよ、それ。'] },
+    flattery: { good: ['お、ありがとう。'], neutral: ['はは、上手いね。'], bad: ['そういうのは要らないかな。'], worst: ['見え透いてるよ。'] },
+    humor: { good: ['はは、面白いね。'], neutral: ['…ふふ、なるほど。'], bad: ['今のは滑ってるよ。'], worst: ['冗談の場面じゃないよ。'] },
+    honesty: { good: ['正直でいいね。助かる。'], neutral: ['うん、率直だね。'], bad: ['言い方は考えた方がいい。'], worst: ['デリカシーがないね。'] },
+    serious: { good: ['よく見てるね。'], neutral: ['なるほどね。'], bad: ['固いなあ。'], worst: ['説教はいらないよ。'] },
+    etiquette: { good: ['ちゃんとしてるね。'], neutral: ['うん、いいよ。'], bad: ['形式にこだわるね。'], worst: ['非効率だよ、それ。'] },
+    bold: { good: ['お、攻めるね。悪くない。'], neutral: ['強気だね。'], bad: ['リスク計算した？'], worst: ['データ的に無理だよ。'] },
+    over_support: { good: ['ありがとう、助かるよ。'], neutral: ['いや、大丈夫。'], bad: ['やりすぎだよ。'], worst: ['自分でやるから大丈夫。'] },
+    logic: { good: ['合理的だね。いい選択だ。'], neutral: ['理屈ではそうだね。'], bad: ['理屈が先に立つね。'], worst: ['ロジックが破綻してるよ。'] },
+    over_praise: { good: ['はは、言いすぎだよ。'], neutral: ['大げさだね。'], bad: ['盛りすぎだよ。'], worst: ['データで言ってくれる？'] },
+  },
+  S09: {
+    safe: { good: ['まあ、無難だな。'], neutral: ['ふーん、そうか。'], bad: ['逃げたな、今。'], worst: ['中身がないな。'] },
+    flattery: { good: ['へえ、口が回るな。'], neutral: ['はは、上手いな。'], bad: ['そういうの、要らねえよ。'], worst: ['見え透いてるぞ。'] },
+    humor: { good: ['はは、やるじゃん。'], neutral: ['…ふっ、まあな。'], bad: ['今の、滑ってるぞ。'], worst: ['ふざけてる場合か。'] },
+    honesty: { good: ['へえ…本気だな。合格。'], neutral: ['ふーん、正直だな。'], bad: ['言い方を選べよ。'], worst: ['無神経だな。'] },
+    serious: { good: ['よく見てるな。'], neutral: ['ふーん、なるほど。'], bad: ['固いな、話が。'], worst: ['説教はやめろ。'] },
+    etiquette: { good: ['ちゃんとしてるな。'], neutral: ['ああ、いいよ。'], bad: ['堅いなあ。'], worst: ['窮屈だな。'] },
+    bold: { good: ['やるじゃん。本物だ。'], neutral: ['強気だな。'], bad: ['無理だろ、それ。'], worst: ['無謀だな。'] },
+    over_support: { good: ['お、気が利くな。'], neutral: ['いや、いいよ。'], bad: ['やりすぎだって。'], worst: ['子ども扱いすんなよ。'] },
+    logic: { good: ['筋は通ってるな。'], neutral: ['理屈ではな。'], bad: ['理屈っぽいな。'], worst: ['頭でっかちだな。'] },
+    over_praise: { good: ['はは、褒めすぎだろ。'], neutral: ['大げさだな。'], bad: ['盛りすぎだぞ。'], worst: ['試してるのか、俺を。'] },
+  },
+  S10: {
+    safe: { good: ['それもナイスです！'], neutral: ['ええ、いいですね！'], bad: ['もっといきましょうよ！'], worst: ['え、それだけですか！？'] },
+    flattery: { good: ['ナァァイス！嬉しいです！'], neutral: ['はは、上手いなあ！'], bad: ['僕の方が褒めますよ！'], worst: ['心が入ってないですよ！'] },
+    humor: { good: ['ナイス！最高です！'], neutral: ['ふふ、いいですねぇ。'], bad: ['あれ、今のは…'], worst: ['うーん、それは笑えない。'] },
+    honesty: { good: ['正直！それが一番です！'], neutral: ['ええ、率直ですね。'], bad: ['うわ、直球ですね…'], worst: ['それはちょっと冷たいなあ。'] },
+    serious: { good: ['深い！勉強になります！'], neutral: ['なるほどですね。'], bad: ['ちょっと重いなあ。'], worst: ['説教はナシで！'] },
+    etiquette: { good: ['素晴らしい！完璧です！'], neutral: ['ええ、結構です。'], bad: ['固いなあ、もっと楽に！'], worst: ['息が詰まりますよ！'] },
+    bold: { good: ['ナァァイス！その勢い！'], neutral: ['いいですね、強気！'], bad: ['うーん、無理じゃないかな。'], worst: ['それは無茶ですって！'] },
+    over_support: { good: ['えー、ありがとうございます！'], neutral: ['いえ、大丈夫ですよ。'], bad: ['そこまでしなくても！'], worst: ['かえって申し訳ないですよ。'] },
+    logic: { good: ['なるほど、賢い！'], neutral: ['理屈ではそうですね。'], bad: ['理屈っぽいなあ。'], worst: ['難しい話はナシで！'] },
+    over_praise: { good: ['うわっ、天才ですか！？'], neutral: ['はは、大げさだなあ！'], bad: ['盛りすぎですよ！'], worst: ['褒め方が下手ですね。'] },
+  },
+  S11: {
+    safe: { good: ['無理のない判断だ。'], neutral: ['ああ、それでいい。'], bad: ['当たり障りがないな。'], worst: ['君は何も言っていない。'] },
+    flattery: { good: ['…悪い気はしないな。'], neutral: ['ふ、口が回る。'], bad: ['そういうものは要らん。'], worst: ['見え透いているぞ。'] },
+    humor: { good: ['ふ、悪くない。'], neutral: ['…そうか。'], bad: ['今のは軽いな。'], worst: ['ふざける場ではない。'] },
+    honesty: { good: ['君は分かる側だな。'], neutral: ['ああ、率直だ。'], bad: ['言葉を選べ。'], worst: ['無神経だな。'] },
+    serious: { good: ['よく見ている。'], neutral: ['なるほど、そうか。'], bad: ['固いな。'], worst: ['説教は要らん。'] },
+    etiquette: { good: ['よろしい。礼儀を知っている。'], neutral: ['ああ、結構だ。'], bad: ['形式にこだわるな。'], worst: ['窮屈だな。'] },
+    bold: { good: ['いい思い切りだ。'], neutral: ['強気だな。'], bad: ['無理をするな。'], worst: ['無謀だ。'] },
+    over_support: { good: ['助かる。'], neutral: ['いや、いい。'], bad: ['やりすぎだ。'], worst: ['自分でやる。'] },
+    logic: { good: ['筋は通っている。'], neutral: ['理屈ではそうだ。'], bad: ['理屈が先に立つな。'], worst: ['理屈で人は動かん。'] },
+    over_praise: { good: ['…言いすぎだ。'], neutral: ['大げさだな。'], bad: ['盛りすぎだ。'], worst: ['私を侮るな。'] },
+  },
+  S13: {
+    safe: { good: ['無理のない判断ですね。'], neutral: ['ええ、それで。'], bad: ['当たり障りのない答えですね。'], worst: ['それは何も言っていません。'] },
+    flattery: { good: ['ありがとうございます。'], neutral: ['はは、お上手ですね。'], bad: ['そういうのは効きませんよ。'], worst: ['嘘は見抜けます。'] },
+    humor: { good: ['はは、うまいですね。'], neutral: ['…ふふ。'], bad: ['今のは弱いですね。'], worst: ['その冗談は逆効果です。'] },
+    honesty: { good: ['正直でいいですね。'], neutral: ['ええ、率直ですね。'], bad: ['言い方は選べますよ。'], worst: ['それは配慮が足りません。'] },
+    serious: { good: ['よく見ていますね。'], neutral: ['なるほど。'], bad: ['少し重いですね。'], worst: ['分析は間に合っていません。'] },
+    etiquette: { good: ['きちんとしていますね。'], neutral: ['はい、結構です。'], bad: ['形式が先に立ちますね。'], worst: ['中身が見えません。'] },
+    bold: { good: ['その判断、正解です。'], neutral: ['強気ですね。'], bad: ['根拠が薄いですね。'], worst: ['それは無謀です。'] },
+    over_support: { good: ['お気遣いありがとうございます。'], neutral: ['いえ、大丈夫です。'], bad: ['やりすぎですね。'], worst: ['過剰です。かえって引きます。'] },
+    logic: { good: ['筋が通っていますね。'], neutral: ['理屈ではそうですね。'], bad: ['理屈が独り歩きしていますね。'], worst: ['その論、穴があります。'] },
+    over_praise: { good: ['…言いすぎですよ。'], neutral: ['大げさですね。'], bad: ['嘘くさく聞こえます。'], worst: ['その褒め方は逆効果です。'] },
+  },
+  S14: {
+    safe: { good: ['妥当な判断です。'], neutral: ['ええ、それで結構です。'], bad: ['当たり障りのない回答ですね。'], worst: ['結論が出ていません。'] },
+    flattery: { good: ['恐れ入ります。'], neutral: ['はは、お上手ですね。'], bad: ['そういうのは不要です。'], worst: ['見え透いています。'] },
+    humor: { good: ['はは、うまいですね。'], neutral: ['…ふふ。'], bad: ['今のは不適切です。'], worst: ['ふざける場面ではありません。'] },
+    honesty: { good: ['筋が通ってますね。'], neutral: ['ええ、率直ですね。'], bad: ['言い方に配慮が必要です。'], worst: ['無配慮です。'] },
+    serious: { good: ['よく見ていますね。'], neutral: ['なるほど。'], bad: ['少し硬いですね。'], worst: ['説教は不要です。'] },
+    etiquette: { good: ['きちんとしていますね。'], neutral: ['はい、結構です。'], bad: ['形式が過剰ですね。'], worst: ['形だけでは意味がありません。'] },
+    bold: { good: ['結論、正しいと思います。'], neutral: ['強気ですね。'], bad: ['根拠が不足しています。'], worst: ['論外です。'] },
+    over_support: { good: ['ありがとうございます。'], neutral: ['いえ、結構です。'], bad: ['過剰です。'], worst: ['ご遠慮ください。'] },
+    logic: { good: ['筋が通ってますね。'], neutral: ['理屈ではそうです。'], bad: ['理屈が先に立ちますね。'], worst: ['その論理は成立しません。'] },
+    over_praise: { good: ['…過分なお言葉です。'], neutral: ['大げさですね。'], bad: ['根拠がありません。'], worst: ['話になりません。'] },
+  },
+  S15: {
+    safe: { good: ['まあ、それでいいと思う〜。'], neutral: ['うん、そうだね。'], bad: ['無難だね〜。'], worst: ['それ、答えになってないよ？'] },
+    flattery: { good: ['えー、嬉しい〜！'], neutral: ['あはは、上手いね。'], bad: ['そういうのはいいって。'], worst: ['見え透いてるよ？'] },
+    humor: { good: ['あはは、それ好き！'], neutral: ['ふふ、まあね。'], bad: ['え、今笑うとこ？'], worst: ['それはちょっと無いかな。'] },
+    honesty: { good: ['わかる〜！それ大事！'], neutral: ['うん、正直だね。'], bad: ['うわ、言うね〜。'], worst: ['それは言わなくてよくない？'] },
+    serious: { good: ['ちゃんと見てるね〜。'], neutral: ['うん、なるほど。'], bad: ['固いなあ。'], worst: ['お説教はいいって。'] },
+    etiquette: { good: ['きちんとしてるね〜。'], neutral: ['うん、いいよ。'], bad: ['堅いなあ〜。'], worst: ['息が詰まるって。'] },
+    bold: { good: ['いいね、その感じ！'], neutral: ['強気だね〜。'], bad: ['それ無理じゃない？'], worst: ['ちょっと無茶だよ〜。'] },
+    over_support: { good: ['えー、ありがと〜！'], neutral: ['ううん、平気。'], bad: ['やりすぎだって〜。'], worst: ['そこまでされると重いかな。'] },
+    logic: { good: ['なるほどね〜。'], neutral: ['うん、理屈ではね。'], bad: ['理屈っぽいなあ。'], worst: ['難しい話は苦手〜。'] },
+    over_praise: { good: ['あはは、褒めすぎ！'], neutral: ['大げさだなあ。'], bad: ['盛りすぎだって〜。'], worst: ['それ嘘っぽいよ？'] },
+  },
+  S16: {
+    safe: { good: ['まあ、それもアリだね。'], neutral: ['うん、いいよ。'], bad: ['地味だなあ。'], worst: ['それじゃ絵にならないよ。'] },
+    flattery: { good: ['お、嬉しいこと言うねぇ。'], neutral: ['はは、上手いなあ。'], bad: ['そういうのは要らないよ。'], worst: ['見え透いてるよ。'] },
+    humor: { good: ['それだよ！最高！'], neutral: ['ふふ、いいねぇ。'], bad: ['うーん、今のは弱いな。'], worst: ['白けたよ、それ。'] },
+    honesty: { good: ['お、正直だねぇ。いいよ。'], neutral: ['うん、率直だね。'], bad: ['言い方があるだろう。'], worst: ['無神経だなあ。'] },
+    serious: { good: ['よく見てるねぇ。'], neutral: ['なるほどね。'], bad: ['重いなあ、話が。'], worst: ['説教はナシで。'] },
+    etiquette: { good: ['ちゃんとしてるねぇ。'], neutral: ['うん、いいよ。'], bad: ['堅いなあ。'], worst: ['窮屈だよ、それ。'] },
+    bold: { good: ['映えるねぇ！それだよ！'], neutral: ['強気だねぇ。'], bad: ['無理があるなあ。'], worst: ['無茶苦茶だよ。'] },
+    over_support: { good: ['お、気が利くねぇ。'], neutral: ['いや、大丈夫だよ。'], bad: ['やりすぎだって。'], worst: ['そこまでされると引くなあ。'] },
+    logic: { good: ['なるほどねぇ。'], neutral: ['うん、理屈ではね。'], bad: ['理屈っぽいなあ。'], worst: ['数字の話は退屈だよ。'] },
+    over_praise: { good: ['はは、褒めすぎだよ！'], neutral: ['大げさだなあ。'], bad: ['盛りすぎだって。'], worst: ['演出が下手だなあ。'] },
+  },
+  S18: {
+    safe: { good: ['安全で的確な判断ですね。'], neutral: ['ええ、それで結構です。'], bad: ['当たり障りのない回答ですね。'], worst: ['それでは判断できません。'] },
+    flattery: { good: ['恐れ入ります。'], neutral: ['はは、お上手ですね。'], bad: ['そういうのは不要です。'], worst: ['見え透いていますよ。'] },
+    humor: { good: ['はは、うまいですね。'], neutral: ['…ふふ。'], bad: ['今のは軽率ですね。'], worst: ['ふざける場面ではありません。'] },
+    honesty: { good: ['正直で結構です。'], neutral: ['ええ、率直ですね。'], bad: ['言い方に配慮を。'], worst: ['無配慮です。'] },
+    serious: { good: ['慎重さが光りますね。'], neutral: ['なるほど。'], bad: ['少し硬いですね。'], worst: ['説教は不要です。'] },
+    etiquette: { good: ['きちんとしていますね。'], neutral: ['はい、結構です。'], bad: ['形式が過剰ですね。'], worst: ['形だけでは意味がありません。'] },
+    bold: { good: ['決断が早いですね。'], neutral: ['強気ですね。'], bad: ['危険域です。'], worst: ['取り返しがつきませんよ。'] },
+    over_support: { good: ['ありがとうございます。'], neutral: ['いえ、結構です。'], bad: ['過剰ですね。'], worst: ['ご遠慮ください。'] },
+    logic: { good: ['筋が通っていますね。'], neutral: ['理屈ではそうです。'], bad: ['理屈が先に立ちますね。'], worst: ['その判断は誤っています。'] },
+    over_praise: { good: ['…過分なお言葉です。'], neutral: ['大げさですね。'], bad: ['根拠がありません。'], worst: ['完全に的外れです。'] },
+  },
   // 熱血体育会（鬼塚）
   S01: {
     snitch: { good: ['記録は残しとけ。'], neutral: ['…撮っとんのか。'], bad: ['それやめろや。'], worst: ['チクる気か。'] },
@@ -506,7 +662,15 @@ export const styleTagSpeechLines: Record<string, Partial<Record<Tag, RankLines>>
 };
 
 /**
- * 口調が正体のキャラ向け。該当が無ければ null（キャラ専用テンプレートへ戻る）。
+ * その口調で書いたタグ別セリフ。無ければ null。
+ *
+ * 口調別のプールはタグを網羅していない（10〜28タグ）。
+ * そこで単純に優先順位を走査すると、書いていない上位タグを飛び越して
+ * 下位タグの行を返してしまう。不正の提案（`cheat_physical` + `safe`）に
+ * 「無難ですね」と答える、という壊れ方をする（実測13件）。
+ *
+ * そのため**その選択肢の最優先タグを持っているときだけ**答える。
+ * 持っていなければ null を返し、39タグを網羅した共通プールに任せる。
  */
 export function resolveStyleTagSpeech(
   styleId: string,
@@ -515,10 +679,8 @@ export function resolveStyleTagSpeech(
 ): string | null {
   const table = styleTagSpeechLines[styleId];
   if (!table || !tags.length) return null;
-  for (const tag of TAG_SPEECH_PRIORITY) {
-    if (!tags.includes(tag)) continue;
-    const lines = table[tag]?.[rank];
-    if (lines?.length) return pick(lines);
-  }
-  return null;
+  const topTag = TAG_SPEECH_PRIORITY.find((tag) => tags.includes(tag));
+  if (!topTag) return null;
+  const lines = table[topTag]?.[rank];
+  return lines?.length ? pick(lines) : null;
 }
