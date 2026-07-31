@@ -293,6 +293,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const puttPullRef = useRef(0);
   /** スワイプの全長として扱う高さ（px）。これを超えて引いても 1 で止まる */
   const PUTT_PULL_RANGE = 170;
+  /** これ未満で離した場合は「引いていない」とみなして打たない（誤タップ対策） */
+  const PUTT_PULL_MIN = 0.06;
   const [puttResultLabel, setPuttResultLabel] = useState('');
 
   // ===== Lunch mini-game state =====
@@ -1016,20 +1018,39 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     setPuttPhase('result');
   }, [puttPhase, puttSlopeInfo, puttAimIndex, pendingPuttState, characterId, puttFocus]);
 
-  /** 縦方向のドラッグ量を 0〜1 に変換する。上に引くほど強い */
+  /**
+   * 縦方向のドラッグ量を 0〜1 に変換する。上に引くほど強い。
+   *
+   * 引かずに離しただけ（誤タップ）でも判定を走らせると引き量0で必ずミスになり、
+   * ラウンドの山場が事故で終わる。最低量まで引いていなければ何もせず引き直させる。
+   * Capture 版で応答を取るのは、この UI が ScrollView の中にあり、
+   * 縦のドラッグをスクロールに奪われるのを防ぐため。
+   */
   const puttPan = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
         onPanResponderMove: (_e, g) => {
           if (swingLockedRef.current) return;
           const v = Math.max(0, Math.min(1, -g.dy / PUTT_PULL_RANGE));
           puttPullRef.current = v;
           setPuttPull(v);
         },
-        onPanResponderRelease: () => handlePuttRelease(),
-        onPanResponderTerminate: () => handlePuttRelease(),
+        onPanResponderRelease: () => {
+          if (puttPullRef.current < PUTT_PULL_MIN) {
+            puttPullRef.current = 0;
+            setPuttPull(0);
+            return;
+          }
+          handlePuttRelease();
+        },
+        onPanResponderTerminate: () => {
+          // 途中で奪われたら打たずに戻す
+          puttPullRef.current = 0;
+          setPuttPull(0);
+        },
       }),
     [handlePuttRelease]
   );
