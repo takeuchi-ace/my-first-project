@@ -29,6 +29,8 @@ import {
   CompetitionGameState,
 } from '../logic/competitionEngine';
 import { computeReactionPlan, findBestCompChoiceIndex, updateInsightStreak } from '../lib/insight';
+import { useGameStore } from '../store/useGameStore';
+import { calcWearDelta, calcRoundEndRecovery, rollInnerVoice } from '../logic/wear';
 import InsightOverlay from '../components/InsightOverlay';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Competition'>;
@@ -63,6 +65,8 @@ export default function CompetitionScreen({ navigation, route }: Props) {
   );
   const events = useMemo(() => competitionEvents[competitionId], [competitionId]);
 
+  const store = useGameStore();
+
   const [step, setStep] = useState<CompStep>('reception');
   const [gameState, setGameState] = useState<CompetitionGameState>(() =>
     createCompetitionState(competitionId)
@@ -90,6 +94,17 @@ export default function CompetitionScreen({ navigation, route }: Props) {
   /** 仕草がキャラ別の地の文か。地の文は完結した文なのでアスタリスクで囲まない */
   const [gestureIsNarration, setGestureIsNarration] = useState(false);
   const gestureOpacity = useRef(new Animated.Value(0)).current;
+  /**
+   * 内なる声。コンペも接待の場なので通常ラウンドと同じように摩耗する
+   * （「鷹宮さんと同じです」と合わせる・わざと負ける、が入っている）
+   */
+  const [innerVoice, setInnerVoice] = useState<string | null>(null);
+  const innerVoiceOpacity = useRef(new Animated.Value(0)).current;
+  const innerVoiceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** このコンペで溜まった摩耗の合計。終了時の回復量がこれで決まる */
+  const roundWearRef = useRef(0);
+  /** 表彰式の「次へ」を二度押ししても摩耗の回復が二重に入らないようにする */
+  const awardsDoneRef = useRef(false);
   const [showInsight, setShowInsight] = useState(false);
   const gestureTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gestureFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,6 +127,7 @@ export default function CompetitionScreen({ navigation, route }: Props) {
       if (speechFadeTimer.current) clearTimeout(speechFadeTimer.current);
       if (speechCleanupTimer.current) clearTimeout(speechCleanupTimer.current);
       if (gestureTimer.current) clearTimeout(gestureTimer.current);
+      if (innerVoiceTimer.current) clearTimeout(innerVoiceTimer.current);
       if (gestureFadeTimer.current) clearTimeout(gestureFadeTimer.current);
     };
   }, []);
@@ -179,6 +195,20 @@ export default function CompetitionScreen({ navigation, route }: Props) {
       };
       const rank = evaluateReactionRank(appliedDelta);
 
+      // ===== 摩耗: 相手に合わせて、それが通ったときだけ溜まる =====
+      // コンペも接待の場。「わざと負ける」「鷹宮さんと同じです」と合わせる、が
+      // 摩耗しないとシステムとして筋が通らない
+      const wearDelta = calcWearDelta(choice.tags ?? [], rank);
+      let innerVoiceLine: string | null = null;
+      if (wearDelta > 0) {
+        roundWearRef.current += wearDelta;
+        // getWear() は stateRef を読むため addWear の直後でも古い値を返す
+        const wearAfter = Math.min(100, store.getWear() + wearDelta);
+        store.addWear(wearDelta);
+        innerVoiceLine = rollInnerVoice(wearAfter);
+        setInnerVoice(innerVoiceLine);
+      }
+
       const plan = computeReactionPlan(rank, targetChar.id, choice.speechOverride);
       const text = plan.speechText;
       const bestIdx = findBestCompChoiceIndex(gameState, currentEvent);
@@ -238,6 +268,18 @@ export default function CompetitionScreen({ navigation, route }: Props) {
         }, plan.gestureDelayMs);
       }
 
+      // 内なる声は仕草の有無に関わらず出す（共用にすると仕草が無いターンで消える）
+      innerVoiceOpacity.setValue(0);
+      if (innerVoiceLine) {
+        innerVoiceTimer.current = setTimeout(() => {
+          Animated.timing(innerVoiceOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }).start();
+        }, (plan.gestureDelayMs || 600) + 200);
+      }
+
       speechFadeTimer.current = setTimeout(() => {
         Animated.timing(speechOpacity, {
           toValue: 0,
@@ -271,6 +313,7 @@ export default function CompetitionScreen({ navigation, route }: Props) {
         );
         setInsightStreak(newStreak);
         setGestureText(null);
+        setInnerVoice(null);
 
         const doProc = () => proceedAfterCompReactionRef.current(newState);
         pendingProceedRef.current = doProc;
@@ -371,12 +414,17 @@ export default function CompetitionScreen({ navigation, route }: Props) {
 
   // Awards → navigate to CompetitionResult
   const handleAwardsNext = useCallback(() => {
+    // 二度押しで回復が二重に入るのを防ぐ
+    if (awardsDoneRef.current) return;
+    awardsDoneRef.current = true;
+    // 通常ラウンドと同じ回復。迎合せずに終えたコンペは摩耗が戻る
+    store.addWear(calcRoundEndRecovery(roundWearRef.current));
     const result = calcCompetitionResult(gameState);
     navigation.replace('CompetitionResult', {
       result,
       competitionId,
     });
-  }, [gameState, competitionId, navigation]);
+  }, [gameState, competitionId, navigation, store]);
 
   const opponentMenuItem = menuItems.find((m) => m.id === opponentMenu);
   const opponentMenuName = opponentMenuItem?.name ?? 'メニュー';
@@ -668,6 +716,15 @@ export default function CompetitionScreen({ navigation, route }: Props) {
         </View>
       )}
 
+      {/* 内なる声 — 相手の言葉ではなく自分の声なので鍵括弧も仕草の枠も使わない */}
+      {isReacting && innerVoice && (
+        <View style={styles.innerVoiceContainer} pointerEvents="none">
+          <Animated.View style={{ opacity: innerVoiceOpacity }}>
+            <Text style={styles.innerVoiceText}>{innerVoice}</Text>
+          </Animated.View>
+        </View>
+      )}
+
       {/* Insight overlay */}
       <InsightOverlay isActive={showInsight} onDone={() => {
         setShowInsight(false);
@@ -823,6 +880,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 120,
     zIndex: 51,
+  },
+  /** 内なる声。相手の仕草より下・より暗く置いて、自分の内側の声だと分かるようにする */
+  innerVoiceContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 96,
+    zIndex: 51,
+  },
+  innerVoiceText: {
+    fontSize: 12,
+    color: 'rgba(200,210,200,0.55)',
+    textAlign: 'center',
   },
   gestureContainer: {
     backgroundColor: 'rgba(0,0,0,0.6)',
