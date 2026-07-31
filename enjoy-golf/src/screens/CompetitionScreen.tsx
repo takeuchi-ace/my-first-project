@@ -87,6 +87,8 @@ export default function CompetitionScreen({ navigation, route }: Props) {
   // Insight / gesture state
   const [insightStreak, setInsightStreak] = useState(0);
   const [gestureText, setGestureText] = useState<string | null>(null);
+  /** 仕草がキャラ別の地の文か。地の文は完結した文なのでアスタリスクで囲まない */
+  const [gestureIsNarration, setGestureIsNarration] = useState(false);
   const gestureOpacity = useRef(new Animated.Value(0)).current;
   const [showInsight, setShowInsight] = useState(false);
   const gestureTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -226,6 +228,7 @@ export default function CompetitionScreen({ navigation, route }: Props) {
       if (plan.gestureText) {
         gestureTimer.current = setTimeout(() => {
           setGestureText(plan.gestureText);
+          setGestureIsNarration(plan.gestureIsNarration);
           gestureOpacity.setValue(0);
           Animated.timing(gestureOpacity, {
             toValue: 1,
@@ -658,7 +661,9 @@ export default function CompetitionScreen({ navigation, route }: Props) {
       {isReacting && gestureText && (
         <View style={styles.gestureOverlayContainer} pointerEvents="none">
           <Animated.View style={[styles.gestureContainer, { opacity: gestureOpacity }]}>
-            <Text style={styles.gestureTextStyle}>*{gestureText}*</Text>
+            <Text style={styles.gestureTextStyle}>
+              {gestureIsNarration ? gestureText : `*${gestureText}*`}
+            </Text>
           </Animated.View>
         </View>
       )}

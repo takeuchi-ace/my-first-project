@@ -289,9 +289,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const speechOpacity = useRef(new Animated.Value(0)).current;
   const speechScale = useRef(new Animated.Value(0.98)).current;
   const gestureOpacity = useRef(new Animated.Value(0)).current;
+  /**
+   * 内なる声の不透明度。仕草と共用にすると、仕草が出ないターン（3割）で
+   * gestureOpacity が 0 のまま残り、声が表示されずに消える
+   */
+  const innerVoiceOpacity = useRef(new Animated.Value(0)).current;
   const worstFlashOpacity = useRef(new Animated.Value(0)).current;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gestureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const innerVoiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ===== Face animation (Competition style) =====
   const faceAnim = useRef(new Animated.Value(1)).current;
@@ -312,6 +318,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (gestureTimerRef.current) clearTimeout(gestureTimerRef.current);
+      if (innerVoiceTimerRef.current) clearTimeout(innerVoiceTimerRef.current);
     };
   }, []);
 
@@ -452,10 +459,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     speechOpacity.setValue(0);
     speechScale.setValue(0.98);
     gestureOpacity.setValue(0);
+    innerVoiceOpacity.setValue(0);
     quoteOpacity.setValue(0);
     charClosingOpacity.setValue(0);
     baseLayerOpacity.setValue(1);
-  }, [speechOpacity, speechScale, gestureOpacity, quoteOpacity, charClosingOpacity, baseLayerOpacity]);
+  }, [speechOpacity, speechScale, gestureOpacity, innerVoiceOpacity, quoteOpacity, charClosingOpacity, baseLayerOpacity]);
 
   // ===== Advance to next hole =====
   const advanceToNext = useCallback((newState: GameState) => {
@@ -658,13 +666,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     // 内なる声はここでしか出さない。溜まった瞬間に出すことで、
     // 隠しパラメータのまま「今の一手が自分を削った」と分かる
     const wearDelta = calcWearDelta(choice.tags ?? [], rank);
+    let innerVoiceLine: string | null = null;
     if (wearDelta > 0) {
       roundWearRef.current += wearDelta;
       // getWear() は stateRef を読むため addWear の直後でも古い値を返す。
       // 声のしきい値判定には、加算後の値を自分で組み立てて渡す
       const wearAfter = Math.min(100, store.getWear() + wearDelta);
       store.addWear(wearDelta);
-      setInnerVoice(rollInnerVoice(wearAfter));
+      innerVoiceLine = rollInnerVoice(wearAfter);
+      setInnerVoice(innerVoiceLine);
     }
 
     // Compute reaction plan (single call for consistent randomness)
@@ -698,6 +708,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     }
 
     // Set speech & gesture
+    // キャラ固有の演出が下で仕草を差し替えるため、表示予約の判定にはこのローカル値を使う。
+    // plan.gestureText を直接見ると、差し替えで足された仕草が予約されず表示されない
+    let gestureToShow: string | null = plan.gestureText;
+
     setSpeechText(resolvedSpeech);
     setGestureText(plan.gestureText);
     setGestureIsNarration(plan.gestureIsNarration);
@@ -708,7 +722,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       const jiwa = checkJiwaNetsu(newState.phase);
       if (jiwa.fired) {
         setSpeechText(jiwa.line);
-        setGestureText(jiwa.isSuperRare ? '目が少し潤んでいるように見えた' : null);
+        // 差し替えの仕草は汎用の動作（文末が「。」でない）なので地の文扱いを外す
+        gestureToShow = jiwa.isSuperRare ? '目が少し潤んでいるように見えた' : null;
+        setGestureText(gestureToShow);
+        setGestureIsNarration(false);
         setMood(4);
       }
     }
@@ -718,7 +735,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       const netsu = checkNetsuMore(newState.phase);
       if (netsu.fired) {
         setSpeechText(netsu.line);
-        setGestureText(netsu.isSuperRare ? 'ふっと真顔になり、遠くを見つめた' : null);
+        gestureToShow = netsu.isSuperRare ? 'ふっと真顔になり、遠くを見つめた' : null;
+        setGestureText(gestureToShow);
+        setGestureIsNarration(false);
         setMood(5);
       }
     }
@@ -738,6 +757,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     speechOpacity.setValue(0);
     speechScale.setValue(0.98);
     gestureOpacity.setValue(0);
+    innerVoiceOpacity.setValue(0);
     setShowSpeech(true);
     setShowGesture(false);
 
@@ -746,11 +766,18 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       Animated.timing(speechScale, { toValue: 1.0, duration: 200, useNativeDriver: true }),
     ]).start();
 
-    if (plan.gestureText) {
+    if (gestureToShow) {
       gestureTimerRef.current = setTimeout(() => {
         setShowGesture(true);
         Animated.timing(gestureOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
       }, plan.gestureDelayMs || 600);
+    }
+
+    // 内なる声は仕草の有無に関わらず出す（仕草と同じ間で遅らせる）
+    if (innerVoiceLine) {
+      innerVoiceTimerRef.current = setTimeout(() => {
+        Animated.timing(innerVoiceOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      }, (plan.gestureDelayMs || 600) + 200);
     }
 
     // 朝イチのショット選択後 → 自分のショットミニゲームへ
@@ -1874,7 +1901,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           迎合が通って摩耗が溜まったビートにだけ出る */}
       {showSpeech && innerVoice && (
         <View style={styles.innerVoiceContainer} pointerEvents="none">
-          <Animated.View style={{ opacity: gestureOpacity }}>
+          <Animated.View style={{ opacity: innerVoiceOpacity }}>
             <Text style={styles.innerVoiceText}>{innerVoice}</Text>
           </Animated.View>
         </View>
