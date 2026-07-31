@@ -23,7 +23,12 @@ import {
   RootStackParamList,
   SlopeType,
 } from '../types';
-import { getPuttSlopeVariant, getPuttReactionText } from '../data/puttingEvent';
+import {
+  getPuttSlopeVariant,
+  getPuttReactionText,
+  getAdvisedAim,
+  getPuttAimReply,
+} from '../data/puttingEvent';
 import { characters } from '../data/characters';
 import {
   createInitialState,
@@ -812,6 +817,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       const variant = getPuttSlopeVariant(slope);
       setPuttAimIndex(choiceIndex);
       setPuttSlopeInfo({ slope, correctAim: variant.correctAim });
+
+      // 反応ランクはそのまま使う（相手の読みに乗ったかで割れるようになった）。
+      // セリフだけは汎用テンプレではなくこの場面用のものに差し替える
+      const advisedAim = getAdvisedAim(slope, parts[3] === 'correct');
+      const followedAdvice = PUTT_AIM_BY_INDEX[choiceIndex] === advisedAim;
+      setSpeechText(getPuttAimReply(followedAdvice, rank));
+
       timerRef.current = setTimeout(() => {
         if (rank === 'worst') {
           Animated.timing(worstFlashOpacity, {

@@ -1,4 +1,4 @@
-import { SlopeType, PuttAim, PuttResult, GameEvent } from '../types';
+import { SlopeType, PuttAim, PuttResult, GameEvent, ReactionRank, Tag } from '../types';
 import { withCharacterName } from '../lib/characterText';
 
 // ===== Slope variant definition =====
@@ -45,6 +45,12 @@ const WRONG_AIM: Record<SlopeType, PuttAim> = {
   right: 'right',  // 正解は left
   flat: 'right',   // 正解は center
   uphill: 'left',  // 正解は center
+};
+
+const AIM_CHOICE_TEXT: Record<PuttAim, string> = {
+  left: '左にずらして打つ',
+  center: 'カップを直接狙う',
+  right: '右にずらして打つ',
 };
 
 const AIM_WORD: Record<PuttAim, string> = {
@@ -439,6 +445,43 @@ export const getPuttReactionText = (
   return withCharacterName(text, characterId);
 };
 
+/**
+ * そのとき相手が指した狙い所。
+ * 誤アドバイスのときは WRONG_AIM、正しいときは correctAim を指している。
+ */
+export const getAdvisedAim = (
+  slope: SlopeType,
+  adviceIsCorrect: boolean
+): PuttAim => (adviceIsCorrect ? getPuttSlopeVariant(slope).correctAim : WRONG_AIM[slope]);
+
+/**
+ * 狙いを決めた直後に相手が言うこと。
+ *
+ * 通常の反応テンプレートは「何を選んだか」を見ないので、
+ * ここでは場面に合った言葉を選択とランクの組み合わせで返す。
+ */
+const AIM_REPLIES: Record<'follow' | 'defy', Record<'up' | 'mid' | 'down', string[]>> = {
+  follow: {
+    up: ['そう、そこです。', '信じてもらえましたね。', 'ええ、そのラインです。'],
+    mid: ['では、決めてください。', '…はい、そこで。'],
+    down: ['…言われた通りに、ですか。', '自分の目は、使わないんですね。'],
+  },
+  defy: {
+    up: ['…自分で読みましたか。いい目だ。', 'なるほど、そう見ましたか。'],
+    mid: ['…その線もありますね。', 'ふむ。お手並み拝見です。'],
+    down: ['…私の読みが、信用できませんか。', 'そうですか。ご自由に。'],
+  },
+};
+
+export const getPuttAimReply = (
+  followedAdvice: boolean,
+  rank: ReactionRank
+): string => {
+  const tier = rank === 'good' ? 'up' : rank === 'neutral' ? 'mid' : 'down';
+  const pool = AIM_REPLIES[followedAdvice ? 'follow' : 'defy'][tier];
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
 // ===== Build GameEvent for putting =====
 export const buildPuttingGameEvent = (
   slope: SlopeType,
@@ -448,16 +491,40 @@ export const buildPuttingGameEvent = (
   const variant = getPuttSlopeVariant(slope);
   const profile = getPuttingProfile(characterId);
   const adviceText = profile.getAdviceText(slope, adviceIsCorrect);
+  const advisedAim = getAdvisedAim(slope, adviceIsCorrect);
 
   return {
     id: `putting_event_${slope}_${adviceIsCorrect ? 'correct' : 'wrong'}`,
     title: '最終パット',
     description: `${variant.description}\n\n${adviceText}`,
     stage: 9,
-    choices: [
-      { text: '左にずらして打つ', delta: { focus: 1 }, tags: ['focus'] },
-      { text: 'カップを直接狙う', delta: { focus: 1 }, tags: ['bold'] },
-      { text: '右にずらして打つ', delta: { focus: 1 }, tags: ['focus'] },
-    ],
+    choices: (['left', 'center', 'right'] as PuttAim[]).map((aim) => {
+      // 3択は社交的に3通りの意味を持つ。
+      //   相手の読みに乗る       … 顔を立てる（おもねる）
+      //   自分で正しい線を読む   … 相手の読みを退けて自分の目を信じる
+      //   どちらでもない         … 誰の読みでもない場所。判断を放棄している
+      // 全部 focus+1 のままだと trust が動かず 94% が bad に落ち、
+      // 狙いを決めただけで相手が毎ラウンド不機嫌になっていた（実測）。
+      if (aim === advisedAim) {
+        return {
+          text: AIM_CHOICE_TEXT[aim],
+          delta: { trust: 3, fun: 2, focus: 1 },
+          tags: ['etiquette', 'flattery'] as Tag[],
+        };
+      }
+      if (aim === variant.correctAim) {
+        return {
+          text: AIM_CHOICE_TEXT[aim],
+          delta: { trust: 2, focus: 2 },
+          tags: ['honesty', 'bold'] as Tag[],
+        };
+      }
+      return {
+        text: AIM_CHOICE_TEXT[aim],
+        // 誰の読みでもない場所。相手の顔も立てず自分の目も使っていない
+        delta: { trust: -1, focus: 1 },
+        tags: ['safe'] as Tag[],
+      };
+    }),
   };
 };
