@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -106,6 +107,28 @@ const ACE_HOLE_COUNT = 5;
 // ミニゲームの判定窓（中心 0.5 からの片側幅）。集中力で伸縮する
 const OWN_SHOT_WINDOW = { perfect: 0.10, good: 0.20 };
 const PUTT_WINDOW = { perfect: 0.05, good: 0.10 };
+
+/**
+ * 傾斜ごとに必要な「引きの強さ」（0〜1 のスワイプ距離）。
+ *
+ * 朝イチと同じ「バーを中央でタップ」だと、1ラウンドに同じ操作が2回出てきて単調になる。
+ * パットは「どれだけ強く打つか」を決める場面なので、スワイプの長さで表す方が素直で、
+ * かつ傾斜によって目標が変わるぶん状況を読む必要が出る。
+ *
+ * 上りは届かせるために強く、下りは転がるので弱く、曲がる傾斜は少し強めに。
+ */
+const PUTT_POWER_TARGET: Record<SlopeType, number> = {
+  uphill: 0.74,
+  flat: 0.50,
+  left: 0.58,
+  right: 0.58,
+};
+
+/** 引きの強さの目標帯を縦ゲージの描画位置に変換する（判定と見た目を同じ数値から作る） */
+const powerZoneStyle = (target: number, half: number) => ({
+  bottom: `${Math.max(0, target - half) * 100}%` as `${number}%`,
+  height: `${Math.min(1, target + half) * 100 - Math.max(0, target - half) * 100}%` as `${number}%`,
+});
 
 /** focus を反映した判定窓を返す */
 const scaledWindow = (base: { perfect: number; good: number }, focus: number) => {
@@ -265,6 +288,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const puttFocus = pendingPuttState?.gauge.focus ?? gameState.gauge.focus;
   const ownShotZone = useMemo(() => scaledWindow(OWN_SHOT_WINDOW, ownShotFocus), [ownShotFocus]);
   const puttZone = useMemo(() => scaledWindow(PUTT_WINDOW, puttFocus), [puttFocus]);
+  /** 引いている量（0〜1）。指を離した時点の値で強さが決まる */
+  const [puttPull, setPuttPull] = useState(0);
+  const puttPullRef = useRef(0);
+  /** スワイプの全長として扱う高さ（px）。これを超えて引いても 1 で止まる */
+  const PUTT_PULL_RANGE = 170;
   const [puttResultLabel, setPuttResultLabel] = useState('');
 
   // ===== Lunch mini-game state =====
@@ -338,27 +366,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     }
   }, [gameState.gauge.creep]);
 
-  // ===== Swing animation for putt mini-game =====
+  // ===== パットの引きをリセット =====
+  // パットは横バーのタップではなく縦のスワイプなので、バーのアニメーションは動かさない
   useEffect(() => {
     if (puttPhase !== 'power_tap') return;
-    swingBarAnim.setValue(0);
     swingLockedRef.current = false;
-    const listenerId = swingBarAnim.addListener(({ value }) => {
-      swingPositionRef.current = value;
-    });
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(swingBarAnim, { toValue: 1, duration: 1500, useNativeDriver: false }),
-        Animated.timing(swingBarAnim, { toValue: 0, duration: 1500, useNativeDriver: false }),
-      ])
-    );
-    swingAnimRef.current = anim;
-    anim.start();
-    return () => {
-      anim.stop();
-      swingBarAnim.removeListener(listenerId);
-    };
-  }, [puttPhase, swingBarAnim]);
+    puttPullRef.current = 0;
+    setPuttPull(0);
+  }, [puttPhase]);
 
   // ===== Swing animation for morning mini-game =====
   useEffect(() => {
@@ -954,16 +969,22 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     return 'miss';
   };
 
-  const handlePuttTap = useCallback(() => {
+  /**
+   * 指を離した時点の引きの量で強さを決める。
+   *
+   * 目標は傾斜ごとに変わる（上りは強く、平らは中間）。
+   * 判定窓は朝イチと同じく集中力で狭くなる。
+   */
+  const handlePuttRelease = useCallback(() => {
     if (swingLockedRef.current || puttPhase !== 'power_tap') return;
     swingLockedRef.current = true;
-    swingAnimRef.current?.stop();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const pos = swingPositionRef.current;
+    const pull = puttPullRef.current;
+    const target = puttSlopeInfo ? PUTT_POWER_TARGET[puttSlopeInfo.slope] : 0.5;
     // 集中力が低いほど判定窓が狭くなる（目標ゾーンの表示も同じ数値から作っている）
     const w = scaledWindow(PUTT_WINDOW, puttFocus);
-    const off = Math.abs(pos - 0.5);
+    const off = Math.abs(pull - target);
     let power: PuttPower;
     if (off <= w.perfect) {
       power = 'perfect';
@@ -993,7 +1014,25 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     }
 
     setPuttPhase('result');
-  }, [puttPhase, puttSlopeInfo, puttAimIndex, pendingPuttState, characterId]);
+  }, [puttPhase, puttSlopeInfo, puttAimIndex, pendingPuttState, characterId, puttFocus]);
+
+  /** 縦方向のドラッグ量を 0〜1 に変換する。上に引くほど強い */
+  const puttPan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderMove: (_e, g) => {
+          if (swingLockedRef.current) return;
+          const v = Math.max(0, Math.min(1, -g.dy / PUTT_PULL_RANGE));
+          puttPullRef.current = v;
+          setPuttPull(v);
+        },
+        onPanResponderRelease: () => handlePuttRelease(),
+        onPanResponderTerminate: () => handlePuttRelease(),
+      }),
+    [handlePuttRelease]
+  );
 
   // ===== Lunch handlers =====
   const handleSeatSelect = useCallback((seat: SeatId) => {
@@ -1425,38 +1464,48 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 <View style={styles.puttBadge}>
                   <Text style={styles.puttBadgeText}>最終パット</Text>
                 </View>
-                <Text style={styles.eventBoxTitle}>パワーを合わせろ</Text>
-                <Text style={styles.eventBoxDesc}>バーが中央に来たときにタップ</Text>
+                <Text style={styles.eventBoxTitle}>強さを決める</Text>
+                <Text style={styles.eventBoxDesc}>
+                  {puttSlopeInfo?.slope === 'uphill'
+                    ? '上りだ。しっかり引いて、離す'
+                    : puttSlopeInfo?.slope === 'flat'
+                      ? '平ら。引きすぎるとオーバーする'
+                      : '曲がる。少し強めに引いて、離す'}
+                </Text>
               </View>
 
-              <Pressable style={styles.swingArea} onPress={handlePuttTap}>
-                <View style={styles.swingZoneLabels}>
-                  <Text style={styles.swingZoneMiss}>WEAK</Text>
-                  <Text style={styles.swingZoneGood}>GOOD</Text>
-                  <Text style={styles.swingZonePerfect}>PERFECT</Text>
-                  <Text style={styles.swingZoneGood}>GOOD</Text>
-                  <Text style={styles.swingZoneMiss}>STRONG</Text>
+              {/* 引いて離す。朝イチのタップと操作を分けるため、縦のスワイプ量で強さを決める */}
+              <View style={styles.puttPullArea} {...puttPan.panHandlers}>
+                {/* ヒントはゲージの上。下に置くと画面下端で切れる */}
+                <Text style={styles.swingTapHint}>
+                  {puttPull > 0.02 ? '離す！' : '下から上へ引く'}
+                </Text>
+                <View style={styles.puttPullGaugeWrap}>
+                  <View style={styles.puttPullGauge}>
+                    <View
+                      style={[
+                        styles.puttPullZone,
+                        styles.puttPullZoneGood,
+                        powerZoneStyle(
+                          puttSlopeInfo ? PUTT_POWER_TARGET[puttSlopeInfo.slope] : 0.5,
+                          puttZone.good
+                        ),
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.puttPullZone,
+                        styles.puttPullZonePerfect,
+                        powerZoneStyle(
+                          puttSlopeInfo ? PUTT_POWER_TARGET[puttSlopeInfo.slope] : 0.5,
+                          puttZone.perfect
+                        ),
+                      ]}
+                    />
+                    <View style={[styles.puttPullFill, { height: `${puttPull * 100}%` }]} />
+                  </View>
                 </View>
-
-                {/* パットは窓が狭い。従来は表示だけ朝イチと同じ幅で、実判定と食い違っていた */}
-                <View style={styles.swingTrack}>
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightGood, zoneStyle(puttZone.good)]} />
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightPerfect, zoneStyle(puttZone.perfect)]} />
-                  <Animated.View
-                    style={[
-                      styles.swingIndicator,
-                      {
-                        left: swingBarAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['2%', '88%'],
-                        }),
-                      },
-                    ]}
-                  />
-                </View>
-
-                <Text style={styles.swingTapHint}>タップ！</Text>
-              </Pressable>
+              </View>
             </View>
           )}
 
@@ -2543,6 +2592,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   // 本音の手がかりになっている仕草。言葉と食い違っているサイン
+  /** パットの引き — 縦ゲージ。朝イチの横バーと操作・見た目の両方を分ける */
+  puttPullArea: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  puttPullGaugeWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  puttPullGauge: {
+    width: 46,
+    height: 170,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+  },
+  puttPullZone: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  puttPullZoneGood: {
+    backgroundColor: 'rgba(80, 170, 220, 0.30)',
+  },
+  puttPullZonePerfect: {
+    backgroundColor: 'rgba(220, 200, 90, 0.45)',
+  },
+  puttPullFill: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
   gestureOverlayTell: {
     color: '#FFD700',
     fontWeight: '700',
