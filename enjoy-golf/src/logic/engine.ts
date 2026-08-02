@@ -789,11 +789,20 @@ export const applyChoice = (
   // 1. Apply base delta with traitModifiers（昼の増幅と進行の重みを乗せた後）
   //    進行が進むほど信頼が大きく動く。序盤は様子見、終盤に本音が出るという理屈で、
   //    かつ「前半で契約ラインに届いて後半が消化試合になる」構造を崩すため。
+  // 作戦の係数は信頼が**伸びる**ときだけ掛ける。
+  // 負の分にも掛けると、裏目の作戦（0.45倍）を宣言したときに
+  // 路線に乗った悪手のダメージまで半分以下になり、
+  // 「外した作戦を宣言すると失点しにくくなる」という逆の効果が出る。
+  // 路線に乗る選択肢の 8%（587件中45件）が信頼マイナスなので実際に起きる。
   const phaseWeighted: Partial<Gauge> = {
     ...baseDelta,
     trust:
       baseDelta.trust != null
-        ? Math.round(baseDelta.trust * trustPhaseWeight(state, event) * stratMult)
+        ? Math.round(
+            baseDelta.trust *
+              trustPhaseWeight(state, event) *
+              (baseDelta.trust > 0 ? stratMult : 1)
+          )
         : undefined,
     creep: (baseDelta.creep ?? 0) + stratCreep,
   };

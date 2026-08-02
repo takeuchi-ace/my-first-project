@@ -15,7 +15,7 @@ import { characters } from '../data/characters';
 import { aceConsultPool } from '../data/aceConsults';
 import { getTagInsight } from '../data/tagInsights';
 import { Strategy, drawStrategyOptions } from '../data/strategies';
-import { RoundMood, rollRoundMood, getRoundMood } from '../data/roundMoods';
+import { RoundMood, pickRoundMood, getRoundMood } from '../data/roundMoods';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite } from '../faces';
 import { COLORS } from '../theme/colors';
@@ -89,14 +89,20 @@ export default function ProfileScreen({ route, navigation }: Props) {
       return;
     }
     setStrategyOptions(drawStrategyOptions(characterId));
-    setRoundMood(getRoundMood(rollRoundMood()));
+    // 乱数で引かない。この画面は戻れるので、引き直せると
+    // 「上機嫌が出るまで入り直す」が最適手になってしまう
+    setRoundMood(
+      getRoundMood(
+        pickRoundMood(characterId, store.roundsSinceLastCompetition + store.totalContracts)
+      )
+    );
     strategyOpacity.setValue(0);
     Animated.timing(strategyOpacity, {
       toValue: 1,
       duration: PRE_ROUND_FADE_MS,
       useNativeDriver: true,
     }).start();
-  }, [character.isAce, characterId, navigation, strategyOpacity]);
+  }, [character.isAce, characterId, navigation, strategyOpacity, store]);
 
   const startRound = useCallback(
     (strategy: Strategy) => {
@@ -291,7 +297,7 @@ export default function ProfileScreen({ route, navigation }: Props) {
             )}
             <Text style={styles.strategyTitle}>今日はどう攻めますか</Text>
             <Text style={styles.strategyNote}>
-              決めた路線で押すほど、良くも悪くも大きく振れます
+              決めた路線で押すほど、当たれば大きく伸び、外せば裏目に出ます
             </Text>
             {strategyOptions.map((s) => (
               <Pressable
@@ -306,6 +312,18 @@ export default function ProfileScreen({ route, navigation }: Props) {
                 <Text style={styles.strategyVow}>{s.vow}</Text>
               </Pressable>
             ))}
+            {/* 宣言せずに閉じる道は残す。塞ぐと、様子を見に来ただけの人が
+                作戦を選ぶまで画面から出られなくなる。
+                閉じても機嫌は変わらない（`pickRoundMood`）ので粘り得にはならない */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.strategyCancel,
+                pressed && { opacity: 0.6 },
+              ]}
+              onPress={() => setStrategyOptions(null)}
+            >
+              <Text style={styles.strategyCancelText}>やめる</Text>
+            </Pressable>
           </Animated.View>
         </View>
       )}
@@ -688,5 +706,15 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
     lineHeight: 18,
+  },
+  strategyCancel: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    marginTop: 4,
+  },
+  strategyCancelText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 13,
   },
 });

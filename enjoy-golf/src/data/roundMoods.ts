@@ -85,6 +85,33 @@ export const ROUND_MOODS: RoundMood[] = [
 export const getRoundMood = (id: RoundMoodId | null): RoundMood | null =>
   id ? (ROUND_MOODS.find((m) => m.id === id) ?? null) : null;
 
+/**
+ * その日の機嫌を決める。
+ *
+ * **乱数で引かない。** 作戦を決める画面は戻れる（戻れないと詰む）ので、
+ * 毎回引き直すと「上機嫌が出るまで入り直す」が最適手になってしまう。
+ * 機嫌ごとの成功率は 23pt 開くので、粘る価値が大きすぎる。
+ *
+ * 相手と「これまで回った回数」から決めれば、
+ * 入り直しても同じ機嫌のままで、1ラウンド回せば変わる。
+ *
+ * @param characterId 相手
+ * @param roundCount これまでのラウンド数（ラウンドごとに増える値なら何でもよい）
+ */
+export const pickRoundMood = (
+  characterId: number,
+  roundCount: number
+): RoundMoodId => {
+  // 線形な式を 6 で割ると偏る。(id*7 + count*3) % 6 は 0 と 3 しか取らず、
+  // 定数を大きくしても（40503 % 6 === 3）同じことで、機嫌が2種類で交互になる。
+  // シフトと XOR で崩してから丸める。
+  let h = Math.imul(characterId, 374761393) + Math.imul(roundCount, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h = (h ^ (h >>> 16)) >>> 0;
+  return ROUND_MOODS[h % ROUND_MOODS.length].id;
+};
+
+/** 計測用。実プレイでは `pickRoundMood` を使う */
 export const rollRoundMood = (rand: () => number = Math.random): RoundMoodId =>
   ROUND_MOODS[Math.floor(rand() * ROUND_MOODS.length)].id;
 
