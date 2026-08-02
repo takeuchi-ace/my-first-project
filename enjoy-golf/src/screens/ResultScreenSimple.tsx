@@ -165,9 +165,11 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
     const fit = strategyFit(s.id, characterId);
     const count = lastGameState.onStrategyCount;
     const name = character?.name.split('・').pop() ?? '相手';
+    // 「効いた」と書くと、惨敗したラウンドでも成果があったように読める。
+    // ここで言えるのは作戦と相手の相性であって、その日の結果ではない。
     const verdict =
       fit === 'fit'
-        ? `${name}さんには効いた`
+        ? `${name}さんとは相性がよかった`
         : fit === 'miss'
           ? `${name}さんには裏目だった`
           : `${name}さんには響きも障りもしなかった`;
