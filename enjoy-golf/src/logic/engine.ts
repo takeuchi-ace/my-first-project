@@ -17,6 +17,7 @@ import {
   BonusBeat,
   HoleResult,
   MorningShotResult,
+  StrategyId,
 } from '../types';
 import { events } from '../data/events';
 import { extremeEvents } from '../data/extremeEvents';
@@ -31,6 +32,7 @@ import { getMorningShotEvent, pickMorningShotVariant, rollMorningShotResult } fr
 import { SlopeType } from '../types';
 import { getPuttSlopeVariant, getPuttingProfile, buildPuttingGameEvent } from '../data/puttingEvent';
 import { localizeEvent, getCallName } from '../lib/characterText';
+import { isOnStrategy, strategyMultiplier, strategyCreep } from '../data/strategies';
 
 /** 女性キャラ専用イベントの出現確率 */
 const FEMALE_EVENT_RATE = 0.3;
@@ -233,7 +235,10 @@ const generateCharEventSlots = (characterId: CharacterId): CharEventSlot[] => {
 };
 
 // ===== Init =====
-export const createInitialState = (characterId: CharacterId): GameState => ({
+export const createInitialState = (
+  characterId: CharacterId,
+  strategy: StrategyId | null = null
+): GameState => ({
   characterId,
   gauge: { ...INITIAL_GAUGE },
   currentHole: 1,
@@ -260,6 +265,8 @@ export const createInitialState = (characterId: CharacterId): GameState => ({
   lastAppliedDelta: { fun: 0, trust: 0, creep: 0, focus: 0 },
   creepBySource: { cheat: 0, close: 0, distant: 0 },
   coldStreak: 0,
+  strategy,
+  onStrategyCount: 0,
 });
 
 // ===== Find event by id across all sources =====
@@ -731,6 +738,13 @@ export const applyChoice = (
     };
   }
 
+  // 0.5. 宣言した作戦（今日の作戦）
+  //      宣言した路線に沿った手にだけ係数が乗る。外した作戦を引いたときに
+  //      「路線を捨てて上振れを失う」か「罰を飲んで押し通す」かの判断が生まれる。
+  const onStrategy = isOnStrategy(state.strategy, choice.tags);
+  const stratMult = strategyMultiplier(state.strategy, state.characterId, choice.tags);
+  const stratCreep = strategyCreep(state.strategy, state.characterId, choice.tags);
+
   // 1. Apply base delta with traitModifiers（昼の増幅と進行の重みを乗せた後）
   //    進行が進むほど信頼が大きく動く。序盤は様子見、終盤に本音が出るという理屈で、
   //    かつ「前半で契約ラインに届いて後半が消化試合になる」構造を崩すため。
@@ -738,8 +752,9 @@ export const applyChoice = (
     ...baseDelta,
     trust:
       baseDelta.trust != null
-        ? Math.round(baseDelta.trust * trustPhaseWeight(state, event))
+        ? Math.round(baseDelta.trust * trustPhaseWeight(state, event) * stratMult)
         : undefined,
+    creep: (baseDelta.creep ?? 0) + stratCreep,
   };
   let newGauge = applyDeltaWithModifiers(
     state.gauge,
@@ -809,6 +824,7 @@ export const applyChoice = (
       lastAppliedDelta: finalDelta,
       creepBySource: attributeCreep(state.creepBySource, choice.tags, finalDelta.creep),
       coldStreak: newColdStreak,
+      onStrategyCount: state.onStrategyCount + (onStrategy ? 1 : 0),
       phase: state.phase,
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
@@ -859,6 +875,7 @@ export const applyChoice = (
       lastAppliedDelta: appliedDelta,
       creepBySource: newCreepBySource,
       coldStreak: newColdStreak,
+      onStrategyCount: state.onStrategyCount + (onStrategy ? 1 : 0),
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
       holeResults: [
@@ -889,6 +906,7 @@ export const applyChoice = (
     lastAppliedDelta: appliedDelta,
     creepBySource: newCreepBySource,
     coldStreak: newColdStreak,
+    onStrategyCount: state.onStrategyCount + (onStrategy ? 1 : 0),
     currentHole: isComplete ? 9 : newHole,
     phase: isComplete ? state.phase : getPhase(newHole),
     cheatPhysicalCount: newCheatCount,

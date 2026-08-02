@@ -14,6 +14,7 @@ import { calcAceResult, getAceRoundConsults } from '../logic/aceEngine';
 import { wasSSAchieved as wasTanakaSSAchieved } from '../logic/tanaka';
 import { wasOnizukaSSAchieved } from '../logic/onizuka';
 import { useGameStore } from '../store/useGameStore';
+import { getStrategy, strategyFit } from '../data/strategies';
 import { COLORS } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultSimple'>;
@@ -149,6 +150,30 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
     return { hits, misses };
   }, [isAceRound, lastGameState, characterId]);
 
+  /**
+   * 今日の作戦の答え合わせ。
+   *
+   * 賭けたまま結果が返らないと、次に活かすものが残らない。
+   * 当たり／裏目そのものを言い切るのは、ここが唯一の答え合わせの場だから。
+   * 「沿って打った回数」も出す。宣言だけして路線を捨てたラウンドは
+   * 効果がほぼ乗っていないので、それが分かるようにする。
+   */
+  const strategyReview = useMemo(() => {
+    if (isAceRound || !lastGameState?.strategy) return null;
+    const s = getStrategy(lastGameState.strategy);
+    if (!s) return null;
+    const fit = strategyFit(s.id, characterId);
+    const count = lastGameState.onStrategyCount;
+    const name = character?.name.split('・').pop() ?? '相手';
+    const verdict =
+      fit === 'fit'
+        ? `${name}さんには効いた`
+        : fit === 'miss'
+          ? `${name}さんには裏目だった`
+          : `${name}さんには響きも障りもしなかった`;
+    return { label: s.label, verdict, count, fit };
+  }, [isAceRound, lastGameState, characterId, character]);
+
   /** 契約に届かなかった理由（成立時・相談ラウンドは null） */
   const contractMiss = useMemo(() => {
     if (isAceRound || !lastGameState || result.contractSuccess) return null;
@@ -236,6 +261,28 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
                 : contractMiss.kind === 'creep'
                   ? '距離を詰めすぎて引かれていた'
                   : 'スコアを伸ばしてあげられなかった'}
+            </Text>
+          </View>
+        )}
+
+        {/* 今日の作戦 — 賭けの答え合わせ。分かれ目より先に出す */}
+        {strategyReview && (
+          <View style={styles.stratCard}>
+            <Text style={styles.stratTitle}>今日の作戦</Text>
+            <Text style={styles.stratLabel}>{strategyReview.label}</Text>
+            <Text
+              style={[
+                styles.stratVerdict,
+                strategyReview.fit === 'fit' && styles.stratVerdictFit,
+                strategyReview.fit === 'miss' && styles.stratVerdictMiss,
+              ]}
+            >
+              {strategyReview.verdict}
+            </Text>
+            <Text style={styles.stratCount}>
+              {strategyReview.count === 0
+                ? 'この路線では一度も打たなかった'
+                : `この路線で打ったのは ${strategyReview.count} 回`}
             </Text>
           </View>
         )}
@@ -456,6 +503,42 @@ const styles = StyleSheet.create({
     color: '#dcdcdc',
     lineHeight: 20,
     marginBottom: 2,
+  },
+  // ===== 今日の作戦の答え合わせ =====
+  stratCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  stratTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textCream,
+    marginBottom: 8,
+  },
+  stratLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#f5f5f5',
+    marginBottom: 4,
+  },
+  stratVerdict: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#dcdcdc',
+    marginBottom: 6,
+  },
+  stratVerdictFit: {
+    color: '#8FD48F',
+  },
+  stratVerdictMiss: {
+    color: '#E39A9A',
+  },
+  stratCount: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
   },
   playTypeCard: {
     backgroundColor: COLORS.cardBg,

@@ -181,7 +181,7 @@ const getOwnShotResultText = (result: OwnShotResult, charId: number, charName: s
 };
 
 export default function GameScreenSimple({ route, navigation }: Props) {
-  const { characterId } = route.params;
+  const { characterId, strategy } = route.params;
   const character = useMemo(
     () => characters.find((c) => c.id === characterId)!,
     [characterId],
@@ -194,7 +194,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   // ===== Game State (engine-driven) =====
   // 同一の初期stateからeventを選出（charEventSlotsの不一致を防ぐ）
   const [gameState, setGameState] = useState<GameState>(() => {
-    const initial = isAceRound ? createAceInitialState(characterId) : createInitialState(characterId);
+    const initial = isAceRound
+      ? createAceInitialState(characterId)
+      : createInitialState(characterId, strategy ?? null);
     if (characterId === 1 && !isAceRound) initTanakaRound();
     if (characterId === 2 && !isAceRound) initOnizukaRound();
     return initial;

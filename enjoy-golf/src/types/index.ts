@@ -314,7 +314,29 @@ export interface GameState {
    * trustDrift による目減りが混ざってランクが下振れする。
    */
   lastAppliedDelta: Gauge;
+  /**
+   * ラウンド開始前に宣言した「今日の作戦」。
+   * 宣言した路線に沿って打ったときだけ信頼の伸びに係数が乗る（`strategies.ts`）。
+   * 相談ラウンドとコンペでは宣言しないので null のまま。
+   */
+  strategy: StrategyId | null;
+  /** 宣言した路線に沿って打った回数。結果画面の答え合わせに使う */
+  onStrategyCount: number;
 }
+
+// ===== Strategy =====
+/**
+ * 今日の作戦。実体（文言・タグ・効果）は `src/data/strategies.ts`。
+ * 型だけここに置くのは、`GameState` から参照すると
+ * types → data → types の循環になるため。
+ */
+export type StrategyId =
+  | 'honest'
+  | 'principle'
+  | 'praise'
+  | 'laugh'
+  | 'attack'
+  | 'adapt';
 
 // ===== Play Type =====
 export type PlayType =
@@ -366,7 +388,7 @@ export type RootStackParamList = {
   Title: undefined;
   CharacterSelect: undefined;
   Profile: { characterId: CharacterId };
-  GameSimple: { characterId: CharacterId };
+  GameSimple: { characterId: CharacterId; strategy?: StrategyId | null };
   ResultSimple: {
     characterId: CharacterId;
     finishReason: 'complete' | 'creep_explosion';

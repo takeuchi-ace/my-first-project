@@ -14,6 +14,7 @@ import { RootStackParamList } from '../types';
 import { characters } from '../data/characters';
 import { aceConsultPool } from '../data/aceConsults';
 import { getTagInsight } from '../data/tagInsights';
+import { Strategy, drawStrategyOptions } from '../data/strategies';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite } from '../faces';
 import { COLORS } from '../theme/colors';
@@ -71,11 +72,37 @@ export default function ProfileScreen({ route, navigation }: Props) {
     };
   }, []);
 
-  const startRound = useCallback(() => {
+  // ===== 今日の作戦（宣言の3択）=====
+  // 相手の一言を聞いたあとに決める。順序が逆だと「誰と回るか」を
+  // 忘れたまま賭けることになり、読む材料が活きない。
+  // 相談ラウンドは創業者と本音で話す場なので宣言しない。
+  const [strategyOptions, setStrategyOptions] = useState<Strategy[] | null>(null);
+  const strategyOpacity = useRef(new Animated.Value(0)).current;
+
+  const openStrategyPicker = useCallback(() => {
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
     setShowPreRound(false);
-    navigation.replace('GameSimple', { characterId });
-  }, [characterId, navigation]);
+    if (character.isAce) {
+      navigation.replace('GameSimple', { characterId });
+      return;
+    }
+    setStrategyOptions(drawStrategyOptions(characterId));
+    strategyOpacity.setValue(0);
+    Animated.timing(strategyOpacity, {
+      toValue: 1,
+      duration: PRE_ROUND_FADE_MS,
+      useNativeDriver: true,
+    }).start();
+  }, [character.isAce, characterId, navigation, strategyOpacity]);
+
+  const startRound = useCallback(
+    (strategy: Strategy) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setStrategyOptions(null);
+      navigation.replace('GameSimple', { characterId, strategy: strategy.id });
+    },
+    [characterId, navigation]
+  );
 
   const handleRoundPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -93,13 +120,13 @@ export default function ProfileScreen({ route, navigation }: Props) {
 
       // Auto advance
       autoTimerRef.current = setTimeout(() => {
-        startRound();
+        openStrategyPicker();
       }, PRE_ROUND_AUTO_MS);
     } else {
-      // No line → go directly
-      navigation.replace('GameSimple', { characterId });
+      // No line → 作戦の宣言へ
+      openStrategyPicker();
     }
-  }, [character, characterId, navigation, preRoundOpacity, startRound]);
+  }, [character, preRoundOpacity, openStrategyPicker]);
 
   const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -232,7 +259,7 @@ export default function ProfileScreen({ route, navigation }: Props) {
 
       {/* ===== Pre-round line modal overlay ===== */}
       {showPreRound && (
-        <Pressable style={styles.preRoundOverlay} onPress={startRound}>
+        <Pressable style={styles.preRoundOverlay} onPress={openStrategyPicker}>
           <Animated.View style={[styles.preRoundContent, { opacity: preRoundOpacity }]}>
             <View style={styles.preRoundFaceWrap}>
               <FaceSprite mood={4} scale={2} characterId={characterId} />
@@ -245,6 +272,32 @@ export default function ProfileScreen({ route, navigation }: Props) {
             <Text style={styles.preRoundSkip}>TAPでスキップ</Text>
           </Animated.View>
         </Pressable>
+      )}
+
+      {/* ===== 今日の作戦 =====
+          外側のタップでは閉じない。宣言せずに始められると賭けが成立しない */}
+      {strategyOptions && (
+        <View style={styles.strategyOverlay}>
+          <Animated.View style={[styles.strategyContent, { opacity: strategyOpacity }]}>
+            <Text style={styles.strategyTitle}>今日はどう攻めますか</Text>
+            <Text style={styles.strategyNote}>
+              決めた路線で押すほど、良くも悪くも大きく振れます
+            </Text>
+            {strategyOptions.map((s) => (
+              <Pressable
+                key={s.id}
+                style={({ pressed }) => [
+                  styles.strategyCard,
+                  pressed && styles.strategyCardPressed,
+                ]}
+                onPress={() => startRound(s)}
+              >
+                <Text style={styles.strategyLabel}>{s.label}</Text>
+                <Text style={styles.strategyVow}>{s.vow}</Text>
+              </Pressable>
+            ))}
+          </Animated.View>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -569,5 +622,54 @@ const styles = StyleSheet.create({
   preRoundSkip: {
     color: 'rgba(255,255,255,0.35)',
     fontSize: 11,
+  },
+  // ===== 今日の作戦 =====
+  strategyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    zIndex: 110,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 28,
+  },
+  strategyContent: {
+    width: '100%',
+    maxWidth: 340,
+  },
+  strategyTitle: {
+    color: '#f5f5f5',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  strategyNote: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  strategyCard: {
+    backgroundColor: '#1e5035',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  strategyCardPressed: {
+    backgroundColor: '#2a6b47',
+  },
+  strategyLabel: {
+    color: '#f5f5f5',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  strategyVow: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    lineHeight: 18,
   },
 });
