@@ -124,10 +124,10 @@ const PUTT_POWER_TARGET: Record<SlopeType, number> = {
   right: 0.58,
 };
 
-/** 引きの強さの目標帯を縦ゲージの描画位置に変換する（判定と見た目を同じ数値から作る） */
+/** 引きの強さの目標帯を横ゲージの描画位置に変換する（判定と見た目を同じ数値から作る） */
 const powerZoneStyle = (target: number, half: number) => ({
-  bottom: `${Math.max(0, target - half) * 100}%` as `${number}%`,
-  height: `${Math.min(1, target + half) * 100 - Math.max(0, target - half) * 100}%` as `${number}%`,
+  left: `${Math.max(0, target - half) * 100}%` as `${number}%`,
+  width: `${Math.min(1, target + half) * 100 - Math.max(0, target - half) * 100}%` as `${number}%`,
 });
 
 /** focus を反映した判定窓を返す */
@@ -291,8 +291,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   /** 引いている量（0〜1）。指を離した時点の値で強さが決まる */
   const [puttPull, setPuttPull] = useState(0);
   const puttPullRef = useRef(0);
-  /** スワイプの全長として扱う高さ（px）。これを超えて引いても 1 で止まる */
-  const PUTT_PULL_RANGE = 170;
+  /** スワイプの全長として扱う幅（px）。これを超えて引いても 1 で止まる */
+  const PUTT_PULL_RANGE = 200;
   /** これ未満で離した場合は「引いていない」とみなして打たない（誤タップ対策） */
   const PUTT_PULL_MIN = 0.06;
   const [puttResultLabel, setPuttResultLabel] = useState('');
@@ -1034,7 +1034,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         onMoveShouldSetPanResponderCapture: () => true,
         onPanResponderMove: (_e, g) => {
           if (swingLockedRef.current) return;
-          const v = Math.max(0, Math.min(1, -g.dy / PUTT_PULL_RANGE));
+          const v = Math.max(0, Math.min(1, g.dx / PUTT_PULL_RANGE));
           puttPullRef.current = v;
           setPuttPull(v);
         },
@@ -1499,7 +1499,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               <View style={styles.puttPullArea} {...puttPan.panHandlers}>
                 {/* ヒントはゲージの上。下に置くと画面下端で切れる */}
                 <Text style={styles.swingTapHint}>
-                  {puttPull > 0.02 ? '離す！' : '下から上へ引く'}
+                  {puttPull > 0.02 ? '離す！' : '右へ引く'}
                 </Text>
                 <View style={styles.puttPullGaugeWrap}>
                   <View style={styles.puttPullGauge}>
@@ -1523,7 +1523,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                         ),
                       ]}
                     />
-                    <View style={[styles.puttPullFill, { height: `${puttPull * 100}%` }]} />
+                    <View style={[styles.puttPullFill, { width: `${puttPull * 100}%` }]} />
                   </View>
                 </View>
               </View>
@@ -2613,30 +2613,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   // 本音の手がかりになっている仕草。言葉と食い違っているサイン
-  /** パットの引き — 縦ゲージ。朝イチの横バーと操作・見た目の両方を分ける */
+  /**
+   * パットの引き — 横ゲージ。
+   * 朝イチも横バーだが、あちらは「動くバーを止める」、こちらは「引いて離す」で操作が違う。
+   * 縦引きより横引きの方が持ち方に無理がない。
+   */
   puttPullArea: {
     alignItems: 'center',
     paddingVertical: 12,
   },
   puttPullGaugeWrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
+    alignItems: 'center',
+    width: '100%',
   },
   puttPullGauge: {
-    width: 46,
-    height: 170,
+    width: '86%',
+    height: 46,
     borderRadius: 10,
     backgroundColor: 'rgba(0,0,0,0.35)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
     overflow: 'hidden',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
   puttPullZone: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    top: 0,
+    bottom: 0,
   },
   puttPullZoneGood: {
     backgroundColor: 'rgba(80, 170, 220, 0.30)',
@@ -2645,6 +2648,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(220, 200, 90, 0.45)',
   },
   puttPullFill: {
+    height: '100%',
     backgroundColor: 'rgba(255,255,255,0.55)',
   },
   gestureOverlayTell: {
