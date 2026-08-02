@@ -26,6 +26,7 @@ import { characterSpecificEvents } from '../data/characterEvents';
 import { characterLunchEvents } from '../data/lunchEvents';
 import { goodBackEvents } from '../data/goodBackEvents';
 import { tensionBackEvents } from '../data/tensionBackEvents';
+import { comebackEvents, COMEBACK_HOLE, COMEBACK_TRUST_MAX } from '../data/comebackEvents';
 import { femaleEvents } from '../data/femaleEvents';
 import { characters } from '../data/characters';
 import { getMorningShotEvent, pickMorningShotVariant, rollMorningShotResult } from '../data/morningShotEvents';
@@ -60,6 +61,8 @@ const BEAT_STAGE: Record<BonusBeat, number> = {
   pre: 1,
   lunchTalk: 5,
   closing: 9,
+  // 挽回は専用プール（comebackEvents）から引くので共通プールの stage は使わない
+  comeback: 8,
 };
 
 /**
@@ -267,6 +270,7 @@ export const createInitialState = (
   coldStreak: 0,
   strategy,
   onStrategyCount: 0,
+  comebackDone: false,
 });
 
 // ===== Find event by id across all sources =====
@@ -281,6 +285,8 @@ const findEventById = (id: string): GameEvent | undefined => {
   // goodBack / tensionBack
   const gb = goodBackEvents.find((e) => e.id === id);
   if (gb) return gb;
+  const cb = comebackEvents.find((e) => e.id === id);
+  if (cb) return cb;
   const tb = tensionBackEvents.find((e) => e.id === id);
   if (tb) return tb;
 
@@ -386,6 +392,21 @@ const pickEvent = (state: GameState): GameEvent | null => {
     const lunchEvt = characterLunchEvents[state.characterId];
     if (lunchEvt) {
       return toGameEvent(lunchEvt);
+    }
+  }
+
+  // ── 挽回のビート ──
+  // 8番で信頼が明らかに足りないときだけ、大きく振れる一手を差し込む。
+  // 負け方が「惜しい」より「大差」に3倍偏っていて、大差で負けると
+  // その相手を諦めてしまう。タダの救済ではなく、読み違えれば同じだけ落ちる。
+  if (
+    state.currentHole === COMEBACK_HOLE &&
+    state.gauge.trust < COMEBACK_TRUST_MAX &&
+    !state.comebackDone
+  ) {
+    const pool = comebackEvents.filter((e) => !state.usedEventIds.includes(e.id));
+    if (pool.length > 0) {
+      return { ...pool[Math.floor(Math.random() * pool.length)], beat: 'comeback' };
     }
   }
 
@@ -825,6 +846,7 @@ export const applyChoice = (
       creepBySource: attributeCreep(state.creepBySource, choice.tags, finalDelta.creep),
       coldStreak: newColdStreak,
       onStrategyCount: state.onStrategyCount + (onStrategy ? 1 : 0),
+      comebackDone: state.comebackDone || event.id.startsWith('cb_'),
       phase: state.phase,
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
@@ -876,6 +898,7 @@ export const applyChoice = (
       creepBySource: newCreepBySource,
       coldStreak: newColdStreak,
       onStrategyCount: state.onStrategyCount + (onStrategy ? 1 : 0),
+      comebackDone: state.comebackDone || event.id.startsWith('cb_'),
       cheatPhysicalCount: newCheatCount,
       usedEventIds: [...state.usedEventIds, event.id],
       holeResults: [
@@ -887,7 +910,10 @@ export const applyChoice = (
       lunchMood: newLunchMood,
       morningShot: newMorningShot,
       morningMomentum: newMorningMomentum,
-      bonusBeatDone: event.beat === 'closing' ? state.bonusBeatDone : true,
+      bonusBeatDone:
+        event.beat === 'closing' || event.beat === 'comeback'
+          ? state.bonusBeatDone
+          : true,
       closingDone: event.beat === 'closing' ? true : state.closingDone,
       // 「締め」はラウンド最後のビートなので、ここで終了する
       finished: event.beat === 'closing',
@@ -907,6 +933,7 @@ export const applyChoice = (
     creepBySource: newCreepBySource,
     coldStreak: newColdStreak,
     onStrategyCount: state.onStrategyCount + (onStrategy ? 1 : 0),
+    comebackDone: state.comebackDone || event.id.startsWith('cb_'),
     currentHole: isComplete ? 9 : newHole,
     phase: isComplete ? state.phase : getPhase(newHole),
     cheatPhysicalCount: newCheatCount,
@@ -1026,6 +1053,18 @@ const simulateNeutralGauge = (state: GameState): Gauge => {
         }
       }
     }
+
+    // 自然減は選択に依存しない。無難に打った側にも同じだけ効く。
+    //
+    // ここを抜いていたため、自然減の大きい相手ほど基準値だけが高く出て、
+    // 信頼も距離も満たしたラウンドが「スコアが伸びなかった」だけで落ちていた。
+    // 実測（技能0.65）: 自然減0 → 1% / 3 → 19% / 4 → 29% / 5 → 34%。
+    // 自然減は「信頼を稼ぎ続けさせる」ための難易度なのに、
+    // スコア条件まで二重に殴っていた。
+    const drift = character?.trustDrift ?? 3;
+    if (drift !== 0) {
+      gauge = clampGauge({ ...gauge, trust: gauge.trust - drift });
+    }
   }
 
   return gauge;
@@ -1141,14 +1180,32 @@ const diagnosePlayType = (
  *   good → 相手スコア -2（18H）好調で改善
  *
  * 【契約成功条件】
- *   adjustedTrust >= 70 && creep <= creepThreshold && improvement > 0
+ *   adjustedTrust >= 84 && creep <= creepThreshold && improvement > 0
  *
  * 【昼係数】
  *   lunchImpactScore >= 8  → trust +5（昼ボーナス）
  *   lunchImpactScore <= -8 → trust -5（昼事故）
  */
-/** 契約に必要な信頼の下限 */
-const CONTRACT_TRUST_MIN = 70;
+/**
+ * 契約に必要な信頼の下限。
+ *
+ * 70 だったものを 84 に上げている。基準スコアの計算に自然減を入れた
+ * （`simulateNeutralGauge`）ことで「スコアが伸びなかった」だけで落ちる
+ * ラウンドが 19〜34% → 0〜3% に消え、そのぶん契約率が跳ね上がったため。
+ *
+ * 実測（技能 1.0/0.8/0.6/0.4/0.2）:
+ *   修正前            97.1 / 80.9 / 60.6 / 40.3 / 10.2
+ *   修正後・ライン70  99.8 / 92.0 / 76.8 / 59.3 / 37.1  ← 易しくなりすぎ
+ *   修正後・ライン84  94.8 / 78.0 / 56.7 / 36.4 / 22.9  ← 採用
+ *
+ * 下位層（技能0.2）だけは 10% に戻せない。以前そこを潰していたのは
+ * 「スコアが伸びなかった」という**見えない失敗条件**であって、
+ * 適当に押している人を落としていたのはそれだった。
+ * 信頼だけで同じ形にしようとすると上位層まで巻き添えになる
+ * （ライン80・自然減+1 で 88.9 / 68.6 — 完璧に打っても11%落ちる）。
+ * 見えない条件で落とすより、実力どおりの層で落とすほうを採る。
+ */
+const CONTRACT_TRUST_MIN = 84;
 /** これを超えて引かれていると契約に至らない */
 const CONTRACT_CREEP_MAX = 85;
 

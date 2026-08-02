@@ -121,8 +121,12 @@ export type TableOrientation = 'vertical' | 'parallel';
  *  - pre       : スタート前（朝イチのショットの前）／stage 1 の到着シーンを消費
  *  - lunchTalk : 昼食の追加会話（キャラ別ランチイベントの後）／stage 5 を消費
  *  - closing   : ラウンド後の締め（最終パットの後）／stage 9 を消費
+ *  - comeback  : 挽回（8番で信頼が足りないときだけ）／専用プール
+ *
+ * comeback は抽選（`BONUS_BEATS`）に入らない。発生条件が状態依存なので、
+ * ラウンド開始時に決める他の3つとは別の経路で差し込まれる。
  */
-export type BonusBeat = 'pre' | 'lunchTalk' | 'closing';
+export type BonusBeat = 'pre' | 'lunchTalk' | 'closing' | 'comeback';
 
 export interface GameEvent {
   id: string;
@@ -322,6 +326,12 @@ export interface GameState {
   strategy: StrategyId | null;
   /** 宣言した路線に沿って打った回数。結果画面の答え合わせに使う */
   onStrategyCount: number;
+  /**
+   * 挽回のビートを消化済みか。
+   * 8番で信頼が足りないときに1回だけ出す枠なので、
+   * 使ったかどうかを持たないと同じホールで再抽選され得る。
+   */
+  comebackDone: boolean;
 }
 
 // ===== Strategy =====

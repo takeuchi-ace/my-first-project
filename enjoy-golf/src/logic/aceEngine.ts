@@ -80,6 +80,7 @@ export const createAceInitialState = (characterId: CharacterId): GameState => ({
   // 相談ラウンドは創業者と本音で話す場なので作戦は立てない
   strategy: null,
   onStrategyCount: 0,
+  comebackDone: false,
 });
 
 // ===== Event Selection: AceConsult ベース =====
