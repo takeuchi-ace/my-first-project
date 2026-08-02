@@ -282,36 +282,6 @@ export const createInitialState = (
   comebackDone: false,
 });
 
-// ===== Find event by id across all sources =====
-const findEventById = (id: string): GameEvent | undefined => {
-  const common = allCommonEvents.find((e) => e.id === id);
-  if (common) return common;
-
-  // femaleEvents
-  const fe = femaleEvents.find((e) => e.id === id);
-  if (fe) return fe;
-
-  // goodBack / tensionBack
-  const gb = goodBackEvents.find((e) => e.id === id);
-  if (gb) return gb;
-  const cb = comebackEvents.find((e) => e.id === id);
-  if (cb) return cb;
-  const tb = tensionBackEvents.find((e) => e.id === id);
-  if (tb) return tb;
-
-  for (const evts of Object.values(characterSpecificEvents)) {
-    const found = evts.find((e) => e.id === id);
-    if (found) return toGameEvent(found);
-  }
-
-  // Check lunch events
-  for (const evt of Object.values(characterLunchEvents)) {
-    if (evt.id === id) return toGameEvent(evt);
-  }
-
-  return undefined;
-};
-
 // ===== cheat_physical フィルタ =====
 const filterCheatPhysical = (
   evts: GameEvent[],
@@ -1030,80 +1000,76 @@ export const evaluateReactionRank = (appliedDelta: Gauge): ReactionRank => {
 
 // =====================================================================
 // Scoring — 相手スコア算出
+//
+// 相手のスコアは「その日の平均からどれだけ動いたか」で表す。
+// 基準はプロフィールに出ている `avgScore18` そのもの。
+//
+// 以前は「無難な選択をし続けたら」という反実仮想を基準にしていたが、
+//  - 何と比べているのかプレイヤーから見えない
+//  - 自然減を入れないと自然減の大きい相手ほど不利になり、入れると基準が弱くなりすぎて
+//    条件そのものが死ぬ（実測 0.1%）
+// という二択に陥っていた。相手の平均を基準にすれば、比較対象が画面に出ている数字になる。
+//
+// 動かす要素は2つ。
+//  - ミニゲーム（主）: 朝イチの受け答え・自分のショット・最終パット
+//  - ゲージ（従）: 場の空気
+//
+// ミニゲームを主にしているのは、契約条件を信頼とは**別の軸**にするため。
+// ゲージから作った値はどう捻っても信頼の読み替えにしかならず、
+// 条件を増やしても「信頼が足りたか」を二度聞いているだけになる。
 // =====================================================================
 
-const OPPONENT_HANDICAP_9H = 9;
+/**
+ * ミニゲームが相手のスコアに与える影響（18H・マイナスが改善）。
+ *
+ * ゲージを経由しない唯一の入力なので、ここが「気持ちよく打たせたか」の軸になる。
+ *
+ * 朝イチの受け答え（`morningMomentum`）は入れない。あれは選んだ選択肢の
+ * 信頼と creep から作られる値なので、混ぜるとスコア条件がまた
+ * 信頼の写しに戻ってしまう。実測でもスコアで落ちる率が 1.9% までしぼんだ。
+ * 腕そのものである自分のショットと最終パットだけを見る。
+ *
+ * 重みは実測で決めた（選択の腕0.8固定・信頼と距離を満たしたラウンドのうち
+ * スコアで落ちる割合／ミニゲームの腕0.2・0.5・0.8）:
+ *
+ * | 重み | 下手 | 普通 | 上手 |
+ * |---|---|---|---|
+ * | momentum込み 3/1/2・4/1/3 | 1.9% | 0.7% | 0.5% |
+ * | **4/1/3・6/1/5** | **22.2%** | **7.0%** | **1.6%** |
+ * | 5/1/4・7/1/6 | 35.2% | 12.0% | 1.1% |
+ * | 5/2/5・8/2/7 | 38.6% | 16.4% | 4.2% |
+ *
+ * 5/1/4 以上にすると、パットを外す人の契約率が 25pt 落ちて罰が重すぎる。
+ */
+export const minigameScoreEffect = (state: GameState): number => {
+  let e = 0;
 
-const gaugeToScore9 = (gauge: Gauge): number => {
+  // 自分のショット。同伴者が気持ちよく打つと場のリズムが良くなる
+  if (state.ownShot === 'perfect') e -= 4;
+  else if (state.ownShot === 'good') e -= 1;
+  else if (state.ownShot === 'miss') e += 3;
+
+  // 最終パット。締めの一打で終わり方の印象が決まる
+  if (state.puttResult === 'in') e -= 6;
+  else if (state.puttResult === 'lip_out') e -= 1;
+  else if (state.puttResult === 'miss') e += 5;
+
+  return e;
+};
+
+/**
+ * 場の空気がスコアに与える影響（18H・マイナスが改善）。
+ *
+ * 係数はミニゲームより小さくしてある。ここを大きくすると
+ * スコア条件が信頼条件の写しになってしまう。
+ */
+const gaugeScoreEffect = (gauge: Gauge): number => {
   const quality = gauge.trust * 0.5 + gauge.fun * 0.3 + (100 - gauge.creep) * 0.2;
-  // 非対称: 良くなる方向はやや強め(/3.5)、悪くなる方向は弱め(/6)
   const diff = quality - 50;
-  const adjustment =
-    diff >= 0
-      ? -Math.round(diff / 3.5)  // 良い接待 → スコア改善（やや強め）
-      : Math.round(-diff / 6);   // 悪い接待 → スコア悪化（弱め）
-  return 36 + OPPONENT_HANDICAP_9H + adjustment;
+  // 非対称: 良くなる方向はやや強め、悪くなる方向は弱め
+  return diff >= 0 ? -Math.round(diff / 9) : Math.round(-diff / 14);
 };
 
-// =====================================================================
-// Baseline（接待ゼロ想定）シミュレーション
-// =====================================================================
-
-const findNeutralChoiceIndex = (event: GameEvent): number => {
-  let minMag = Infinity;
-  let minIdx = 0;
-  for (let i = 0; i < event.choices.length; i++) {
-    const d = event.choices[i].delta;
-    const mag =
-      Math.abs(d.fun ?? 0) +
-      Math.abs(d.trust ?? 0) +
-      Math.abs(d.focus ?? 0) +
-      Math.abs(d.creep ?? 0);
-    if (mag < minMag) {
-      minMag = mag;
-      minIdx = i;
-    }
-  }
-  return minIdx;
-};
-
-const simulateNeutralGauge = (state: GameState): Gauge => {
-  const character = characters.find((c) => c.id === state.characterId);
-  let gauge: Gauge = { ...INITIAL_GAUGE };
-
-  for (const hr of state.holeResults) {
-    const event = findEventById(hr.eventId);
-    if (!event) continue;
-
-    const neutralIdx = findNeutralChoiceIndex(event);
-    const choice = event.choices[neutralIdx];
-
-    gauge = applyDelta(gauge, choice.delta);
-
-    if (character) {
-      for (const tag of choice.tags) {
-        const reaction = character.reactions.find((r) => r.tag === tag);
-        if (reaction) {
-          gauge = applyDelta(gauge, reaction.delta);
-        }
-      }
-    }
-
-    // 自然減は選択に依存しない。無難に打った側にも同じだけ効く。
-    //
-    // ここを抜いていたため、自然減の大きい相手ほど基準値だけが高く出て、
-    // 信頼も距離も満たしたラウンドが「スコアが伸びなかった」だけで落ちていた。
-    // 実測（技能0.65）: 自然減0 → 1% / 3 → 19% / 4 → 29% / 5 → 34%。
-    // 自然減は「信頼を稼ぎ続けさせる」ための難易度なのに、
-    // スコア条件まで二重に殴っていた。
-    const drift = character?.trustDrift ?? 3;
-    if (drift !== 0) {
-      gauge = clampGauge({ ...gauge, trust: gauge.trust - drift });
-    }
-  }
-
-  return gauge;
-};
 
 // =====================================================================
 // Entertain Score
@@ -1224,9 +1190,9 @@ const diagnosePlayType = (
 /**
  * 契約に必要な信頼の下限。
  *
- * 70 だったものを 84 に上げている。基準スコアの計算に自然減を入れた
- * （`simulateNeutralGauge`）ことで「スコアが伸びなかった」だけで落ちる
- * ラウンドが 19〜34% → 0〜3% に消え、そのぶん契約率が跳ね上がったため。
+ * 70 だったものを 84 に上げている。スコア条件の作り直しで
+ * 「スコアが伸びなかった」だけで落ちるラウンドが 19〜34% → ごく僅かに減り、
+ * そのぶん契約率が跳ね上がったため。
  *
  * 実測（技能 1.0/0.8/0.6/0.4/0.2）:
  *   修正前            97.1 / 80.9 / 60.6 / 40.3 / 10.2
@@ -1266,29 +1232,36 @@ export const diagnoseContractMiss = (state: GameState): ContractMiss | null => {
   }
   if (state.gauge.creep > CONTRACT_CREEP_MAX) return { kind: 'creep' };
 
-  const actual9 = gaugeToScore9(state.gauge);
-  const baseline9 = gaugeToScore9(simulateNeutralGauge(state));
-  const moodAdjust =
-    state.lunchMood === 'bad' ? 3 : state.lunchMood === 'good' ? -2 : 0;
-  if (baseline9 * 2 - (actual9 * 2 + moodAdjust) <= 0) return { kind: 'score' };
+  if (calcImprovement(state) <= 0) return { kind: 'score' };
 
   return null;
 };
 
-export const calcResult = (state: GameState): GameResult => {
-  const actual9 = gaugeToScore9(state.gauge);
-  const neutralGauge = simulateNeutralGauge(state);
-  const baseline9 = gaugeToScore9(neutralGauge);
-
-  // lunchMood: フラット加算（掛け算だと振れ幅が大きすぎるため）
+/**
+ * 相手が平均より何打よく回ったか。マイナスなら平均より悪い。
+ * 判定（`contractSuccess`）と理由（`diagnoseContractMiss`）で
+ * 同じ式を使うために一本化してある。
+ */
+const calcImprovement = (state: GameState): number => {
   const moodAdjust =
-    state.lunchMood === 'bad' ? 3
-    : state.lunchMood === 'good' ? -2
-    : 0;
+    state.lunchMood === 'bad' ? 3 : state.lunchMood === 'good' ? -2 : 0;
+  const shift =
+    gaugeScoreEffect(state.gauge) + minigameScoreEffect(state) + moodAdjust;
+  // shift がマイナス（スコアが縮む）ほど改善。
+  //
+  // 上下に頭打ちを置くのは表示のため。素のままだと -15〜+18 まで開いて、
+  // 平均88の相手が 60 で回ったことになる（ほぼプロ）。
+  // 0 をまたがない丸め方なので契約の判定（improvement > 0）は変わらない。
+  return Math.max(-12, Math.min(10, -shift));
+};
 
-  const opponentGross18 = actual9 * 2 + moodAdjust;
-  const baseline18 = baseline9 * 2;
-  const improvement = baseline18 - opponentGross18;
+export const calcResult = (state: GameState): GameResult => {
+  // 基準は相手の平均スコア。プロフィールに出ている数字そのものなので、
+  // 何と比べられているのかが画面から分かる
+  const character = characters.find((c) => c.id === state.characterId);
+  const baseline18 = character?.avgScore18 ?? 90;
+  const improvement = calcImprovement(state);
+  const opponentGross18 = baseline18 - improvement;
 
   const entertainScore = calcEntertainScore(state.gauge);
 

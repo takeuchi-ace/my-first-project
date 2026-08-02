@@ -218,19 +218,20 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         <Text style={styles.label}>{character.fullName} さん</Text>
         <Text style={styles.grossScore}>18H: {result.opponentGross18}</Text>
 
-        {/* Baseline reference */}
+        {/* 基準は相手の平均スコア。プロフィールに出ている数字と同じものなので、
+            何と比べての結果なのかが分かる */}
         <Text style={styles.baselineText}>
-          ベースライン: {result.baseline18}
+          いつもの {result.baseline18}
         </Text>
 
         {/* Improvement / deterioration */}
         {result.improvement > 0 ? (
           <Text style={styles.improvement}>
-            あなたの接待で {result.improvement}打 改善しました
+            いつもより {result.improvement}打 よく回りました
           </Text>
         ) : result.improvement < 0 ? (
           <Text style={styles.deterioration}>
-            接待の影響で {Math.abs(result.improvement)}打 悪化しました
+            いつもより {Math.abs(result.improvement)}打 崩れました
           </Text>
         ) : null}
 
