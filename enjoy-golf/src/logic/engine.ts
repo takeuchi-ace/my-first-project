@@ -18,6 +18,7 @@ import {
   HoleResult,
   MorningShotResult,
   StrategyId,
+  RoundMoodId,
 } from '../types';
 import { events } from '../data/events';
 import { extremeEvents } from '../data/extremeEvents';
@@ -34,6 +35,12 @@ import { SlopeType } from '../types';
 import { getPuttSlopeVariant, getPuttingProfile, buildPuttingGameEvent } from '../data/puttingEvent';
 import { localizeEvent, getCallName } from '../lib/characterText';
 import { isOnStrategy, strategyMultiplier, strategyCreep } from '../data/strategies';
+import {
+  getRoundMood,
+  MOOD_LIKE_TRUST,
+  MOOD_HATE_TRUST,
+  MOOD_HATE_CREEP,
+} from '../data/roundMoods';
 
 /** 女性キャラ専用イベントの出現確率 */
 const FEMALE_EVENT_RATE = 0.3;
@@ -240,7 +247,8 @@ const generateCharEventSlots = (characterId: CharacterId): CharEventSlot[] => {
 // ===== Init =====
 export const createInitialState = (
   characterId: CharacterId,
-  strategy: StrategyId | null = null
+  strategy: StrategyId | null = null,
+  roundMood: RoundMoodId | null = null
 ): GameState => ({
   characterId,
   gauge: { ...INITIAL_GAUGE },
@@ -270,6 +278,7 @@ export const createInitialState = (
   coldStreak: 0,
   strategy,
   onStrategyCount: 0,
+  roundMood,
   comebackDone: false,
 });
 
@@ -685,10 +694,15 @@ const applyLikesHates = (
   gauge: Gauge,
   tags: Tag[],
   characterId: CharacterId,
-  tagHistory: Tag[]
+  tagHistory: Tag[],
+  roundMoodId: RoundMoodId | null
 ): Gauge => {
   const character = characters.find((c) => c.id === characterId);
   if (!character) return gauge;
+
+  // その日の機嫌。キャラの好みを上書きせず、上から重ねるだけ。
+  // 上書きにすると周回で溜めた「分かったこと」がその日だけ嘘になる。
+  const mood = getRoundMood(roundMoodId);
 
   let g = gauge;
   for (const tag of tags) {
@@ -699,6 +713,12 @@ const applyLikesHates = (
     if (character.hatesTags.includes(tag)) {
       // 嫌がることの罰は減衰させない
       g = applyDelta(g, { creep: 6, trust: -4 });
+    }
+    if (mood?.likes.includes(tag)) {
+      g = applyDelta(g, scaleDelta({ trust: MOOD_LIKE_TRUST }, tagDecayRate(tagHistory, tag)));
+    }
+    if (mood?.hates.includes(tag)) {
+      g = applyDelta(g, { trust: MOOD_HATE_TRUST, creep: MOOD_HATE_CREEP });
     }
   }
   return g;
@@ -798,7 +818,13 @@ export const applyChoice = (
   }
 
   // 3. Apply likes/hates bonuses
-  newGauge = applyLikesHates(newGauge, choice.tags, state.characterId, state.tagHistory);
+  newGauge = applyLikesHates(
+    newGauge,
+    choice.tags,
+    state.characterId,
+    state.tagHistory,
+    state.roundMood
+  );
 
   // 3.5. 冷たさの連続 — 距離を取り続けると加速して creep が積む
   const newColdStreak = buildsColdWall(choice.tags, state.characterId)

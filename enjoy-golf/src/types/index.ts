@@ -327,6 +327,11 @@ export interface GameState {
   /** 宣言した路線に沿って打った回数。結果画面の答え合わせに使う */
   onStrategyCount: number;
   /**
+   * その日の相手の機嫌。キャラの好みに重ねて効く（上書きはしない）。
+   * 作戦を決める画面で観察として示すので、読んだうえで賭けられる。
+   */
+  roundMood: RoundMoodId | null;
+  /**
    * 挽回のビートを消化済みか。
    * 8番で信頼が足りないときに1回だけ出す枠なので、
    * 使ったかどうかを持たないと同じホールで再抽選され得る。
@@ -340,6 +345,14 @@ export interface GameState {
  * 型だけここに置くのは、`GameState` から参照すると
  * types → data → types の循環になるため。
  */
+export type RoundMoodId =
+  | 'fine'
+  | 'tired'
+  | 'edgy'
+  | 'hungover'
+  | 'riding'
+  | 'unspoken';
+
 export type StrategyId =
   | 'honest'
   | 'principle'
@@ -398,7 +411,11 @@ export type RootStackParamList = {
   Title: undefined;
   CharacterSelect: undefined;
   Profile: { characterId: CharacterId };
-  GameSimple: { characterId: CharacterId; strategy?: StrategyId | null };
+  GameSimple: {
+    characterId: CharacterId;
+    strategy?: StrategyId | null;
+    roundMood?: RoundMoodId | null;
+  };
   ResultSimple: {
     characterId: CharacterId;
     finishReason: 'complete' | 'creep_explosion';

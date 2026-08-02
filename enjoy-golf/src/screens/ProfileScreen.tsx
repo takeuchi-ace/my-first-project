@@ -15,6 +15,7 @@ import { characters } from '../data/characters';
 import { aceConsultPool } from '../data/aceConsults';
 import { getTagInsight } from '../data/tagInsights';
 import { Strategy, drawStrategyOptions } from '../data/strategies';
+import { RoundMood, rollRoundMood, getRoundMood } from '../data/roundMoods';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite } from '../faces';
 import { COLORS } from '../theme/colors';
@@ -77,6 +78,7 @@ export default function ProfileScreen({ route, navigation }: Props) {
   // 忘れたまま賭けることになり、読む材料が活きない。
   // 相談ラウンドは創業者と本音で話す場なので宣言しない。
   const [strategyOptions, setStrategyOptions] = useState<Strategy[] | null>(null);
+  const [roundMood, setRoundMood] = useState<RoundMood | null>(null);
   const strategyOpacity = useRef(new Animated.Value(0)).current;
 
   const openStrategyPicker = useCallback(() => {
@@ -87,6 +89,7 @@ export default function ProfileScreen({ route, navigation }: Props) {
       return;
     }
     setStrategyOptions(drawStrategyOptions(characterId));
+    setRoundMood(getRoundMood(rollRoundMood()));
     strategyOpacity.setValue(0);
     Animated.timing(strategyOpacity, {
       toValue: 1,
@@ -99,9 +102,13 @@ export default function ProfileScreen({ route, navigation }: Props) {
     (strategy: Strategy) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setStrategyOptions(null);
-      navigation.replace('GameSimple', { characterId, strategy: strategy.id });
+      navigation.replace('GameSimple', {
+        characterId,
+        strategy: strategy.id,
+        roundMood: roundMood?.id ?? null,
+      });
     },
-    [characterId, navigation]
+    [characterId, navigation, roundMood]
   );
 
   const handleRoundPress = useCallback(() => {
@@ -279,6 +286,9 @@ export default function ProfileScreen({ route, navigation }: Props) {
       {strategyOptions && (
         <View style={styles.strategyOverlay}>
           <Animated.View style={[styles.strategyContent, { opacity: strategyOpacity }]}>
+            {roundMood && (
+              <Text style={styles.strategyTell}>{roundMood.tell}</Text>
+            )}
             <Text style={styles.strategyTitle}>今日はどう攻めますか</Text>
             <Text style={styles.strategyNote}>
               決めた路線で押すほど、良くも悪くも大きく振れます
@@ -635,6 +645,13 @@ const styles = StyleSheet.create({
   strategyContent: {
     width: '100%',
     maxWidth: 340,
+  },
+  strategyTell: {
+    color: '#E8D9A0',
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 14,
   },
   strategyTitle: {
     color: '#f5f5f5',

@@ -80,6 +80,8 @@ export const createAceInitialState = (characterId: CharacterId): GameState => ({
   // 相談ラウンドは創業者と本音で話す場なので作戦は立てない
   strategy: null,
   onStrategyCount: 0,
+  // 相談ラウンドに機嫌の揺れは持ち込まない
+  roundMood: null,
   comebackDone: false,
 });
 
