@@ -289,6 +289,12 @@ export interface GameState {
   /** ボーナスビートを消化済みか */
   bonusBeatDone: boolean;
   /**
+   * 締めのビートを消化済みか。
+   * 締めは抽選ではなく毎ラウンド必ず発生させるため、
+   * `bonusBeatDone`（pre / lunchTalk と共用）とは別に持つ。
+   */
+  closingDone: boolean;
+  /**
    * creep をどの振る舞いで稼いだかの内訳。
    * creep は「引かれた度合い」を1本で表しているが、引かれ方には種類がある。
    * 終了時に何をやりすぎたのかを言い分けるために、寄与量を積算しておく。

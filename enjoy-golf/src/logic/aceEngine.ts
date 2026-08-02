@@ -73,6 +73,7 @@ export const createAceInitialState = (characterId: CharacterId): GameState => ({
   // 相談ラウンドは独自フロー（5ホール・ランチなし）。ボーナスビートは発生させない
   bonusBeat: 'closing',
   bonusBeatDone: true,
+  closingDone: true,
   lastAppliedDelta: { fun: 0, trust: 0, creep: 0, focus: 0 },
   creepBySource: { cheat: 0, close: 0, distant: 0 },
   coldStreak: 0,

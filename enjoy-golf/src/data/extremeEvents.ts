@@ -122,10 +122,10 @@ export const extremeEvents: GameEvent[] = [
     description: 'ラウンド終盤。相手が「この後食事でもどう？大事な話がある」と切り出した。',
     stage: 9,
     choices: [
-      { text: '「ぜひ！お供させてください」と快諾', delta: { fun: 5, trust: 8 }, tags: ['etiquette', 'bold'] },
-      { text: '「お時間いただけるなら喜んで」と丁寧に', delta: { trust: 6, fun: 3 }, tags: ['etiquette', 'safe'] },
-      { text: '「仕事の話なら今ここで」とビジネスモードに', delta: { trust: -2, fun: -3, focus: 8 }, tags: ['boss', 'logic', 'extreme'] },
-      { text: '「食事は奢りますよ！」と先手を打つ', delta: { fun: 4, trust: 2, creep: 5 }, tags: ['over_support', 'extreme', 'over_praise'] },
+      { text: '「ぜひ！お供させてください」と快諾', delta: { fun: 5, trust: 14 }, tags: ['etiquette', 'bold'] },
+      { text: '「お時間いただけるなら喜んで」と丁寧に', delta: { trust: 11, fun: 3 }, tags: ['etiquette', 'safe'] },
+      { text: '「仕事の話なら今ここで」とビジネスモードに', delta: { trust: -4, fun: -3, focus: 8 }, tags: ['boss', 'logic', 'extreme'] },
+      { text: '「食事は奢りますよ！」と先手を打つ', delta: { fun: 4, trust: 4, creep: 5 }, tags: ['over_support', 'extreme', 'over_praise'] },
     ],
   },
 ];

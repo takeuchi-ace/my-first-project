@@ -943,9 +943,9 @@ export const events: GameEvent[] = [
     description: 'ラウンド終了。スコアカードを最終集計する。相手のスコアが微妙に合っていない…2打少ない気がする。',
     stage: 9,
     choices: [
-      { text: '「ここ、計算合ってないかもしれません」と指摘する', delta: { trust: 6, fun: -1 }, tags: ['honesty'] },
-      { text: 'そのまま署名する（相手に有利なまま）', delta: { fun: 3, creep: 8, trust: -3 }, tags: ['cheat_score'] },
-      { text: '「細かいこと気にせず楽しかったです！」と流す', delta: { fun: 5, trust: 1, creep: 3 }, tags: ['humor'] },
+      { text: '「ここ、計算合ってないかもしれません」と指摘する', delta: { trust: 11, fun: -1 }, tags: ['honesty'] },
+      { text: 'そのまま署名する（相手に有利なまま）', delta: { fun: 3, creep: 8, trust: -5 }, tags: ['cheat_score'] },
+      { text: '「細かいこと気にせず楽しかったです！」と流す', delta: { fun: 5, trust: 2, creep: 3 }, tags: ['humor'] },
     ],
   },
   {
@@ -954,10 +954,10 @@ export const events: GameEvent[] = [
     description: 'プレー後のお風呂。相手と並んで湯船に浸かっている。',
     stage: 9,
     choices: [
-      { text: '「いやー気持ちいいですね！最高の一日でした」', delta: { fun: 5, trust: 4 }, tags: ['safe'] },
-      { text: '「次はいつ行けますかね？」と次回を打診', delta: { fun: 4, trust: 5 }, tags: ['bold'] },
-      { text: '「今日の反省点を活かして次こそは…！」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['serious'] },
-      { text: '相手の背中を流しましょうかと申し出る', delta: { fun: 5, trust: -2, creep: 10 }, tags: ['over_support'] },
+      { text: '「いやー気持ちいいですね！最高の一日でした」', delta: { fun: 5, trust: 7 }, tags: ['safe'] },
+      { text: '「次はいつ行けますかね？」と次回を打診', delta: { fun: 4, trust: 9 }, tags: ['bold'] },
+      { text: '「今日の反省点を活かして次こそは…！」', delta: { fun: 3, trust: 5, focus: 3 }, tags: ['serious'] },
+      { text: '相手の背中を流しましょうかと申し出る', delta: { fun: 5, trust: -4, creep: 10 }, tags: ['over_support'] },
     ],
   },
   {
@@ -966,9 +966,9 @@ export const events: GameEvent[] = [
     description: 'コンペ形式の表彰。相手がニアピン賞を取った。',
     stage: 9,
     choices: [
-      { text: '心からの拍手を送る', delta: { fun: 4, trust: 5 }, tags: ['etiquette'] },
-      { text: '「さすが！あのショットは本当にすごかった！」', delta: { fun: 6, trust: 3 }, tags: ['flattery'] },
-      { text: '「悔しい！次こそは自分が！」と健闘を称える', delta: { fun: 5, trust: 2 }, tags: ['bold', 'humor'] },
+      { text: '心からの拍手を送る', delta: { fun: 4, trust: 9 }, tags: ['etiquette'] },
+      { text: '「さすが！あのショットは本当にすごかった！」', delta: { fun: 6, trust: 5 }, tags: ['flattery'] },
+      { text: '「悔しい！次こそは自分が！」と健闘を称える', delta: { fun: 5, trust: 4 }, tags: ['bold', 'humor'] },
     ],
   },
   {
@@ -977,10 +977,10 @@ export const events: GameEvent[] = [
     description: 'プロショップの前を通りかかった。相手への手土産を買うチャンスだ。',
     stage: 9,
     choices: [
-      { text: 'さりげなくボールを1ダース買って渡す', delta: { fun: 5, trust: 5, creep: 2 }, tags: ['etiquette'] },
-      { text: '「何かいいですか？」と一緒に見て回る', delta: { fun: 4, trust: 3 }, tags: ['safe'] },
-      { text: '高級グローブをプレゼントする', delta: { fun: 6, trust: 2, creep: 6 }, tags: ['over_support'] },
-      { text: '特に何も買わない', delta: { trust: 1 }, tags: ['neutral'] },
+      { text: 'さりげなくボールを1ダース買って渡す', delta: { fun: 5, trust: 9, creep: 2 }, tags: ['etiquette'] },
+      { text: '「何かいいですか？」と一緒に見て回る', delta: { fun: 4, trust: 5 }, tags: ['safe'] },
+      { text: '高級グローブをプレゼントする', delta: { fun: 6, trust: 4, creep: 6 }, tags: ['over_support'] },
+      { text: '特に何も買わない', delta: { trust: 2 }, tags: ['neutral'] },
     ],
   },
   {
@@ -989,10 +989,10 @@ export const events: GameEvent[] = [
     description: '帰り際、駐車場で相手と最後の会話。今日の印象が最終的に固まる瞬間。',
     stage: 9,
     choices: [
-      { text: '「今日は本当にありがとうございました」と深々お辞儀', delta: { trust: 5, fun: 3 }, tags: ['etiquette', 'honesty'] },
-      { text: '「車出るまで見送りますね！」', delta: { fun: 3, trust: 3, creep: 3 }, tags: ['over_support'] },
-      { text: '「またやりましょう！連絡します！」', delta: { fun: 5, trust: 4 }, tags: ['bold'] },
-      { text: '「お気をつけて！」と手を振る', delta: { fun: 3, trust: 3 }, tags: ['safe'] },
+      { text: '「今日は本当にありがとうございました」と深々お辞儀', delta: { trust: 9, fun: 3 }, tags: ['etiquette', 'honesty'] },
+      { text: '「車出るまで見送りますね！」', delta: { fun: 3, trust: 5, creep: 3 }, tags: ['over_support'] },
+      { text: '「またやりましょう！連絡します！」', delta: { fun: 5, trust: 7 }, tags: ['bold'] },
+      { text: '「お気をつけて！」と手を振る', delta: { fun: 3, trust: 5 }, tags: ['safe'] },
     ],
   },
   {
@@ -1001,9 +1001,9 @@ export const events: GameEvent[] = [
     description: '別れ際に相手が「また連絡するよ」と言ってくれた。',
     stage: 9,
     choices: [
-      { text: '「ぜひ！楽しみにしてます！」と笑顔で', delta: { fun: 5, trust: 5 }, tags: ['honesty'] },
-      { text: '「自分からもご連絡しますね」と積極的に', delta: { fun: 3, trust: 4 }, tags: ['bold'] },
-      { text: '「その時はぜひ○○コースに！」と具体的に提案', delta: { fun: 4, trust: 3, creep: 2 }, tags: ['bold', 'flattery'] },
+      { text: '「ぜひ！楽しみにしてます！」と笑顔で', delta: { fun: 5, trust: 9 }, tags: ['honesty'] },
+      { text: '「自分からもご連絡しますね」と積極的に', delta: { fun: 3, trust: 7 }, tags: ['bold'] },
+      { text: '「その時はぜひ○○コースに！」と具体的に提案', delta: { fun: 4, trust: 5, creep: 2 }, tags: ['bold', 'flattery'] },
     ],
   },
   {
@@ -1012,9 +1012,9 @@ export const events: GameEvent[] = [
     description: '相手の車が駐車場から出ようとしている。あなたはまだ残っている。',
     stage: 9,
     choices: [
-      { text: '車が見えなくなるまでお辞儀を続ける', delta: { trust: 1, fun: 1, creep: 6 }, tags: ['over_support', 'etiquette'] },
-      { text: '手を振って見送る', delta: { fun: 5, trust: 3 }, tags: ['humor'] },
-      { text: '「お気をつけて！」と一礼してさっと自分も帰る', delta: { trust: 4, fun: 1, focus: 2 }, tags: ['etiquette'] },
+      { text: '車が見えなくなるまでお辞儀を続ける', delta: { trust: 2, fun: 1, creep: 6 }, tags: ['over_support', 'etiquette'] },
+      { text: '手を振って見送る', delta: { fun: 5, trust: 5 }, tags: ['humor'] },
+      { text: '「お気をつけて！」と一礼してさっと自分も帰る', delta: { trust: 7, fun: 1, focus: 2 }, tags: ['etiquette'] },
     ],
   },
 
@@ -1843,9 +1843,9 @@ export const events: GameEvent[] = [
     description: 'プレー後、クラブハウスで「一杯やろう」と相手が誘ってきた。',
     stage: 9,
     choices: [
-      { text: '「ぜひ！お疲れ様でした！」と乾杯する', delta: { fun: 7, trust: 5 }, tags: ['alcohol', 'bold'] },
-      { text: '「車ですが…ノンアルで乾杯させてください！」', delta: { fun: 4, trust: 3, focus: 2 }, tags: ['honesty', 'safe'] },
-      { text: '「今日一日ありがとうございました。ビール最高ですね」と感謝を込めて飲む', delta: { fun: 6, trust: 5 }, tags: ['alcohol', 'honesty'] },
+      { text: '「ぜひ！お疲れ様でした！」と乾杯する', delta: { fun: 7, trust: 9 }, tags: ['alcohol', 'bold'] },
+      { text: '「車ですが…ノンアルで乾杯させてください！」', delta: { fun: 4, trust: 5, focus: 2 }, tags: ['honesty', 'safe'] },
+      { text: '「今日一日ありがとうございました。ビール最高ですね」と感謝を込めて飲む', delta: { fun: 6, trust: 9 }, tags: ['alcohol', 'honesty'] },
     ],
   },
   {
@@ -1854,9 +1854,9 @@ export const events: GameEvent[] = [
     description: '全スコアが出揃った。相手のトータルスコアを見て何と言う？',
     stage: 9,
     choices: [
-      { text: '「いいスコアでしたよ！楽しいラウンドでした」と称える', delta: { fun: 5, trust: 4 }, tags: ['flattery', 'safe'] },
-      { text: '「次回はさらに良いスコアで！リベンジしましょう！」と前向きに', delta: { fun: 5, trust: 3 }, tags: ['bold', 'humor'] },
-      { text: '「全ホール記録してあります。パーオン率、フェアウェイキープ率、平均パット数。製本してお送りします」と資料を出す', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「いいスコアでしたよ！楽しいラウンドでした」と称える', delta: { fun: 5, trust: 7 }, tags: ['flattery', 'safe'] },
+      { text: '「次回はさらに良いスコアで！リベンジしましょう！」と前向きに', delta: { fun: 5, trust: 5 }, tags: ['bold', 'humor'] },
+      { text: '「全ホール記録してあります。パーオン率、フェアウェイキープ率、平均パット数。製本してお送りします」と資料を出す', delta: { fun: 7, trust: 7, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1865,9 +1865,9 @@ export const events: GameEvent[] = [
     description: 'プロショップで相手がウェアを見ている。「これいいな」と手に取った。',
     stage: 9,
     choices: [
-      { text: '「似合いそうですね！」と後押しする', delta: { fun: 4, trust: 3 }, tags: ['flattery'] },
-      { text: '何も言わず一緒に見て回る', delta: { fun: 3, trust: 3 }, tags: ['safe'] },
-      { text: 'さりげなく先に購入して「プレゼントです！」と渡す', delta: { fun: 6, trust: 2, creep: 6 }, tags: ['over_support'] },
+      { text: '「似合いそうですね！」と後押しする', delta: { fun: 4, trust: 5 }, tags: ['flattery'] },
+      { text: '何も言わず一緒に見て回る', delta: { fun: 3, trust: 5 }, tags: ['safe'] },
+      { text: 'さりげなく先に購入して「プレゼントです！」と渡す', delta: { fun: 6, trust: 4, creep: 6 }, tags: ['over_support'] },
     ],
   },
   {
@@ -1876,9 +1876,9 @@ export const events: GameEvent[] = [
     description: '帰り際、「また来月やろうか？」と相手が言ってくれた。',
     stage: 9,
     choices: [
-      { text: '「ぜひ！また一緒に回りたいです！」と素直に喜ぶ', delta: { fun: 5, trust: 5 }, tags: ['honesty', 'bold'] },
-      { text: '「予定を調整してご連絡します！」と真剣に返す', delta: { trust: 5, fun: 3 }, tags: ['serious'] },
-      { text: '「半年分、先に押さえてあります」と手帳を開く', delta: { fun: 6, trust: -2, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: '「ぜひ！また一緒に回りたいです！」と素直に喜ぶ', delta: { fun: 5, trust: 9 }, tags: ['honesty', 'bold'] },
+      { text: '「予定を調整してご連絡します！」と真剣に返す', delta: { trust: 9, fun: 3 }, tags: ['serious'] },
+      { text: '「半年分、先に押さえてあります」と手帳を開く', delta: { fun: 6, trust: -4, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1887,9 +1887,9 @@ export const events: GameEvent[] = [
     description: '浴場でタオルが足りなそうだ。自分には予備がある。',
     stage: 9,
     choices: [
-      { text: '「タオル余ってますよ、使いますか？」と声をかける', delta: { trust: 4, fun: 3 }, tags: ['etiquette'] },
-      { text: 'さりげなくタオルを差し出す', delta: { trust: 4, fun: 2, creep: 2 }, tags: ['over_support'] },
-      { text: '何も言わない（相手のプライベートに干渉しない）', delta: { trust: 2, fun: 1 }, tags: ['neutral'] },
+      { text: '「タオル余ってますよ、使いますか？」と声をかける', delta: { trust: 7, fun: 3 }, tags: ['etiquette'] },
+      { text: 'さりげなくタオルを差し出す', delta: { trust: 7, fun: 2, creep: 2 }, tags: ['over_support'] },
+      { text: '何も言わない（相手のプライベートに干渉しない）', delta: { trust: 4, fun: 1 }, tags: ['neutral'] },
     ],
   },
   {
@@ -1898,9 +1898,9 @@ export const events: GameEvent[] = [
     description: '相手が「タクシー呼びたいんだけど」と言った。アプリが使いにくそうだ。',
     stage: 9,
     choices: [
-      { text: '「アプリで呼びますよ！」とすぐに手配する', delta: { fun: 4, trust: 4 }, tags: ['etiquette'] },
-      { text: '「一緒に乗って途中まで送りますよ」と申し出る', delta: { fun: 3, trust: 2, creep: 4 }, tags: ['over_support'] },
-      { text: '「アプリ教えますね！次から使えますよ」と自立を支援する', delta: { fun: 1, trust: 3, focus: 3 }, tags: ['logic', 'honesty'] },
+      { text: '「アプリで呼びますよ！」とすぐに手配する', delta: { fun: 4, trust: 7 }, tags: ['etiquette'] },
+      { text: '「一緒に乗って途中まで送りますよ」と申し出る', delta: { fun: 3, trust: 4, creep: 4 }, tags: ['over_support'] },
+      { text: '「アプリ教えますね！次から使えますよ」と自立を支援する', delta: { fun: 1, trust: 5, focus: 3 }, tags: ['logic', 'honesty'] },
     ],
   },
   {
@@ -1909,9 +1909,9 @@ export const events: GameEvent[] = [
     description: 'お風呂でくつろぎながら相手が「今日どうだった？」と今日のラウンドを振り返ろうとしている。',
     stage: 9,
     choices: [
-      { text: '「楽しかったです！またご一緒できれば嬉しいです」と正直に', delta: { fun: 5, trust: 6 }, tags: ['honesty'] },
-      { text: '「○○さんのプレーから勉強になりました！」と謙虚に', delta: { fun: 4, trust: 4 }, tags: ['flattery', 'safe'] },
-      { text: '「人生変わりました。本当に」と握手を離さない', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「楽しかったです！またご一緒できれば嬉しいです」と正直に', delta: { fun: 5, trust: 11 }, tags: ['honesty'] },
+      { text: '「○○さんのプレーから勉強になりました！」と謙虚に', delta: { fun: 4, trust: 7 }, tags: ['flattery', 'safe'] },
+      { text: '「人生変わりました。本当に」と握手を離さない', delta: { fun: 7, trust: 7, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1920,9 +1920,9 @@ export const events: GameEvent[] = [
     description: '帰り際、まだ名刺交換をしていなかったことに気づいた。',
     stage: 9,
     choices: [
-      { text: '「そういえば名刺を！」とタイミングよく名刺を渡す', delta: { trust: 5, fun: 2 }, tags: ['etiquette'] },
-      { text: '「もう顔を覚えてもらえましたよね！笑」と名刺なしで済ませる', delta: { fun: 5, trust: 2 }, tags: ['humor'] },
-      { text: '名刺を渡しながら「裏にゴルフ戦績も書いてあります！」とウソをつく', delta: { fun: 6, trust: 1, creep: 3 }, tags: ['humor', 'bold'] },
+      { text: '「そういえば名刺を！」とタイミングよく名刺を渡す', delta: { trust: 9, fun: 2 }, tags: ['etiquette'] },
+      { text: '「もう顔を覚えてもらえましたよね！笑」と名刺なしで済ませる', delta: { fun: 5, trust: 4 }, tags: ['humor'] },
+      { text: '名刺を渡しながら「裏にゴルフ戦績も書いてあります！」とウソをつく', delta: { fun: 6, trust: 2, creep: 3 }, tags: ['humor', 'bold'] },
     ],
   },
 

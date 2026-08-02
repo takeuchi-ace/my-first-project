@@ -60,7 +60,12 @@ const BEAT_STAGE: Record<BonusBeat, number> = {
   closing: 9,
 };
 
-const BONUS_BEATS: BonusBeat[] = ['pre', 'lunchTalk', 'closing'];
+/**
+ * 抽選で1つだけ発生する追加ビート。
+ * 締め（closing）はここに入れない — ラウンドの決着をつける場なので毎回必ず発生させる。
+ * 抽選にしていた頃は 2/3 のラウンドが締めの無いまま終わっていた。
+ */
+const BONUS_BEATS: BonusBeat[] = ['pre', 'lunchTalk'];
 
 /** 指定 stage の未使用イベントプール */
 const stagePool = (state: GameState, stage: number): GameEvent[] =>
@@ -86,8 +91,12 @@ const pickFromMoodPool = (state: GameState, pool: GameEvent[]): GameEvent | null
 };
 
 /** ボーナスビートが今このタイミングで発生できるか（stage プールが空なら発生しない） */
-const canFireBeat = (state: GameState, beat: BonusBeat): boolean =>
-  state.bonusBeat === beat && !state.bonusBeatDone && stagePool(state, BEAT_STAGE[beat]).length > 0;
+const canFireBeat = (state: GameState, beat: BonusBeat): boolean => {
+  if (stagePool(state, BEAT_STAGE[beat]).length === 0) return false;
+  // 締めは抽選を通さず毎ラウンド発生する
+  if (beat === 'closing') return !state.closingDone;
+  return state.bonusBeat === beat && !state.bonusBeatDone;
+};
 
 const drawBeatEvent = (state: GameState, beat: BonusBeat): GameEvent | null => {
   const pool = stagePool(state, BEAT_STAGE[beat]);
@@ -247,6 +256,7 @@ export const createInitialState = (characterId: CharacterId): GameState => ({
   puttResult: null,
   bonusBeat: BONUS_BEATS[Math.floor(Math.random() * BONUS_BEATS.length)],
   bonusBeatDone: false,
+  closingDone: false,
   lastAppliedDelta: { fun: 0, trust: 0, creep: 0, focus: 0 },
   creepBySource: { cheat: 0, close: 0, distant: 0 },
   coldStreak: 0,
@@ -576,6 +586,25 @@ export const focusWindowScale = (focus: number): number =>
   0.6 + (clamp(focus) / 100) * 0.8;
 
 /**
+ * 信頼がどれだけ大きく動くかの、進行による重み。
+ *
+ * 元は全ビート一律だったため、**技能0.6のプレイヤーでも前半5ビート終了時に
+ * 契約ライン（信頼70）へ到達し、後半5ホールが消化試合になっていた**。
+ * 実測で「前半で結果が確定するラウンド」は 76%。
+ *
+ * 序盤は様子見で信頼が動きにくく、終盤ほど大きく動く形にすると、
+ * 9ホール回る意味が終盤に生まれる。実測で 76% → 59% まで下がった。
+ *
+ * 昼（stage 5）は既存の 1.5 倍がかかるので、ここでは等倍のまま触らない。
+ */
+const trustPhaseWeight = (state: GameState, event: GameEvent): number => {
+  if (event.beat === 'closing') return 2.0;
+  if (state.currentHole <= 4) return 0.45;
+  if (state.currentHole >= 6) return 1.4;
+  return 1;
+};
+
+/**
  * 1ビート分の記録を作る。
  *
  * 反応ランクをここで確定させておくことで、結果画面が
@@ -701,10 +730,19 @@ export const applyChoice = (
     };
   }
 
-  // 1. Apply base delta with traitModifiers (lunch-amplified)
+  // 1. Apply base delta with traitModifiers（昼の増幅と進行の重みを乗せた後）
+  //    進行が進むほど信頼が大きく動く。序盤は様子見、終盤に本音が出るという理屈で、
+  //    かつ「前半で契約ラインに届いて後半が消化試合になる」構造を崩すため。
+  const phaseWeighted: Partial<Gauge> = {
+    ...baseDelta,
+    trust:
+      baseDelta.trust != null
+        ? Math.round(baseDelta.trust * trustPhaseWeight(state, event))
+        : undefined,
+  };
   let newGauge = applyDeltaWithModifiers(
     state.gauge,
-    baseDelta,
+    phaseWeighted,
     state.characterId
   );
 
@@ -831,7 +869,8 @@ export const applyChoice = (
       lunchMood: newLunchMood,
       morningShot: newMorningShot,
       morningMomentum: newMorningMomentum,
-      bonusBeatDone: true,
+      bonusBeatDone: event.beat === 'closing' ? state.bonusBeatDone : true,
+      closingDone: event.beat === 'closing' ? true : state.closingDone,
       // 「締め」はラウンド最後のビートなので、ここで終了する
       finished: event.beat === 'closing',
       finishReason: event.beat === 'closing' ? 'complete' : null,
