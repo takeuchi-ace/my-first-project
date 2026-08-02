@@ -136,6 +136,10 @@ export const applyAceChoice = (
         eventId: event.id,
         choiceIndex,
         focusSnapshot: 100,
+        // 相談ラウンドは評価しない場なので、反応は常に良好・信頼は動かさない
+        rank: 'good' as const,
+        trustDelta: 0,
+        choiceText: event.choices[choiceIndex]?.text ?? '',
       },
     ],
     tagHistory: state.tagHistory, // ACEは影響なし

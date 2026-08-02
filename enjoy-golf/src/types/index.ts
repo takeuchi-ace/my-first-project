@@ -241,6 +241,21 @@ export interface HoleResult {
   eventId: string;
   choiceIndex: number;
   focusSnapshot: number;
+  /**
+   * その選択に相手が返した反応。ラウンド後の振り返りに使う。
+   * 判定は applyChoice が既に計算している lastAppliedDelta から作るので、
+   * 画面側で再計算する必要はない（再計算すると trustDrift が混ざって下振れする）。
+   */
+  rank: ReactionRank;
+  /** その選択で動いた信頼の量（自然減を含まない） */
+  trustDelta: number;
+  /**
+   * 実際に選んだ選択肢の文言。
+   * 選択肢は提示時にシャッフルされる（`shuffleChoices`）ため、
+   * eventId と choiceIndex から元データを引き直すと**別の選択肢を指してしまう**。
+   * 振り返りで正しい文言を出すには、選んだ時点の文言を持っておくしかない。
+   */
+  choiceText: string;
 }
 
 export interface CharEventSlot {

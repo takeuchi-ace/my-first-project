@@ -15,6 +15,8 @@ import {
   EntertainGrade,
   ReactionRank,
   BonusBeat,
+  HoleResult,
+  MorningShotResult,
 } from '../types';
 import { events } from '../data/events';
 import { extremeEvents } from '../data/extremeEvents';
@@ -574,6 +576,28 @@ export const focusWindowScale = (focus: number): number =>
   0.6 + (clamp(focus) / 100) * 0.8;
 
 /**
+ * 1ビート分の記録を作る。
+ *
+ * 反応ランクをここで確定させておくことで、結果画面が
+ * 「どの手が刺さって、どの手が外したか」を再計算なしに復元できる。
+ */
+const makeHoleResult = (
+  state: GameState,
+  event: GameEvent,
+  choiceIndex: number,
+  focusSnapshot: number,
+  appliedDelta: Gauge
+): HoleResult => ({
+  hole: state.currentHole,
+  eventId: event.id,
+  choiceIndex,
+  focusSnapshot,
+  rank: evaluateReactionRank(appliedDelta),
+  trustDelta: appliedDelta.trust,
+  choiceText: event.choices[choiceIndex]?.text ?? '',
+});
+
+/**
  * ミニゲーム（朝イチの自分のショット・最終パット）の結果をゲージに反映する。
  *
  * これまで画面側で直接 clamp して足していたため、キャラの traitModifiers が効かず
@@ -751,12 +775,7 @@ export const applyChoice = (
       usedEventIds: [...state.usedEventIds, event.id],
       holeResults: [
         ...state.holeResults,
-        {
-          hole: state.currentHole,
-          eventId: event.id,
-          choiceIndex,
-          focusSnapshot: newGauge.focus,
-        },
+        makeHoleResult(state, event, choiceIndex, newGauge.focus, finalDelta),
       ],
       tagHistory: newTagHistory,
       lunchImpactScore: newLunchImpactScore,
@@ -805,12 +824,7 @@ export const applyChoice = (
       usedEventIds: [...state.usedEventIds, event.id],
       holeResults: [
         ...state.holeResults,
-        {
-          hole: state.currentHole,
-          eventId: event.id,
-          choiceIndex,
-          focusSnapshot: newGauge.focus,
-        },
+        makeHoleResult(state, event, choiceIndex, newGauge.focus, appliedDelta),
       ],
       tagHistory: newTagHistory,
       lunchImpactScore: newLunchImpactScore,
@@ -841,12 +855,7 @@ export const applyChoice = (
     usedEventIds: [...state.usedEventIds, event.id],
     holeResults: [
       ...state.holeResults,
-      {
-        hole: state.currentHole,
-        eventId: event.id,
-        choiceIndex,
-        focusSnapshot: newGauge.focus,
-      },
+      makeHoleResult(state, event, choiceIndex, newGauge.focus, appliedDelta),
     ],
     tagHistory: newTagHistory,
     lunchImpactScore: newLunchImpactScore,
@@ -1080,6 +1089,42 @@ const diagnosePlayType = (
  *   lunchImpactScore >= 8  → trust +5（昼ボーナス）
  *   lunchImpactScore <= -8 → trust -5（昼事故）
  */
+/** 契約に必要な信頼の下限 */
+const CONTRACT_TRUST_MIN = 70;
+/** これを超えて引かれていると契約に至らない */
+const CONTRACT_CREEP_MAX = 85;
+
+/**
+ * 契約に届かなかった理由。
+ *
+ * 判定は3条件の AND なので、落ちた条件を名指しできる。
+ * 閾値そのもの（70 / 85）は伏せ、あとどれだけ足りなかったかだけを返す。
+ * 画面側で閾値を再実装しないよう、判定はここに集約する。
+ */
+export type ContractMiss =
+  | { kind: 'trust'; short: number }
+  | { kind: 'creep' }
+  | { kind: 'score' };
+
+export const diagnoseContractMiss = (state: GameState): ContractMiss | null => {
+  let adjustedTrust = state.gauge.trust;
+  if (state.lunchImpactScore >= 8) adjustedTrust += 5;
+  if (state.lunchImpactScore <= -8) adjustedTrust -= 5;
+
+  if (adjustedTrust < CONTRACT_TRUST_MIN) {
+    return { kind: 'trust', short: CONTRACT_TRUST_MIN - adjustedTrust };
+  }
+  if (state.gauge.creep > CONTRACT_CREEP_MAX) return { kind: 'creep' };
+
+  const actual9 = gaugeToScore9(state.gauge);
+  const baseline9 = gaugeToScore9(simulateNeutralGauge(state));
+  const moodAdjust =
+    state.lunchMood === 'bad' ? 3 : state.lunchMood === 'good' ? -2 : 0;
+  if (baseline9 * 2 - (actual9 * 2 + moodAdjust) <= 0) return { kind: 'score' };
+
+  return null;
+};
+
 export const calcResult = (state: GameState): GameResult => {
   const actual9 = gaugeToScore9(state.gauge);
   const neutralGauge = simulateNeutralGauge(state);
@@ -1098,7 +1143,7 @@ export const calcResult = (state: GameState): GameResult => {
   const entertainScore = calcEntertainScore(state.gauge);
 
   // エースラウンドは calcAceResult を通るのでここには来ない（isAce 分岐は置かない）
-  const creepThreshold = 85;
+  const creepThreshold = CONTRACT_CREEP_MAX;
 
   // 昼係数によるtrust調整
   let adjustedTrust = state.gauge.trust;
@@ -1110,7 +1155,7 @@ export const calcResult = (state: GameState): GameResult => {
   }
 
   const contractSuccess =
-    adjustedTrust >= 70 &&
+    adjustedTrust >= CONTRACT_TRUST_MIN &&
     state.gauge.creep <= creepThreshold &&
     improvement > 0;
 

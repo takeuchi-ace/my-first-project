@@ -5,7 +5,11 @@ import * as Haptics from 'expo-haptics';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { EntertainGrade, GameResult, RootStackParamList } from '../types';
 import { characters } from '../data/characters';
-import { calcResult, diagnoseCreepCause } from '../logic/engine';
+import {
+  calcResult,
+  diagnoseCreepCause,
+  diagnoseContractMiss,
+} from '../logic/engine';
 import { calcAceResult, getAceRoundConsults } from '../logic/aceEngine';
 import { wasSSAchieved as wasTanakaSSAchieved } from '../logic/tanaka';
 import { wasOnizukaSSAchieved } from '../logic/onizuka';
@@ -102,6 +106,33 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
     }
   }, [result.contractSuccess, characterId, isAceRound]);
 
+  /**
+   * 今日の分かれ目。
+   *
+   * 全ビートの反応ランクは `holeResults` に記録済みなので、再計算せずに並べ直せる。
+   * 信頼の動いた量で並べて、上から数件だけ見せる。全部出すと読まれない。
+   */
+  const turningPoints = useMemo(() => {
+    if (isAceRound || !lastGameState) return { hits: [], misses: [] };
+    const withText = lastGameState.holeResults.filter((h) => !!h.choiceText);
+
+    const hits = withText
+      .filter((h) => h.rank === 'good')
+      .sort((a, b) => b.trustDelta - a.trustDelta)
+      .slice(0, 3);
+    const misses = withText
+      .filter((h) => h.rank === 'worst' || h.rank === 'bad')
+      .sort((a, b) => a.trustDelta - b.trustDelta)
+      .slice(0, 3);
+    return { hits, misses };
+  }, [isAceRound, lastGameState, characterId]);
+
+  /** 契約に届かなかった理由（成立時・相談ラウンドは null） */
+  const contractMiss = useMemo(() => {
+    if (isAceRound || !lastGameState || result.contractSuccess) return null;
+    return diagnoseContractMiss(lastGameState);
+  }, [isAceRound, lastGameState, result.contractSuccess]);
+
   // 相談ラウンドで受けた助言（通常ラウンドでは空）
   const aceConsults = useMemo(
     () => (isAceRound && lastGameState ? getAceRoundConsults(lastGameState) : []),
@@ -168,6 +199,51 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
           <Text style={styles.playTypeLabel}>{result.playTypeLabel}</Text>
           <Text style={styles.playTypeComment}>{result.playTypeComment}</Text>
         </View>
+
+        {/* 契約に届かなかった理由。何が足りなかったか分からないと次に活かせない */}
+        {contractMiss && (
+          <View style={styles.missCard}>
+            <Text style={styles.missTitle}>
+              {contractMiss.kind === 'trust' && contractMiss.short <= 10
+                ? 'あと一歩だった'
+                : '届かなかった'}
+            </Text>
+            <Text style={styles.missReason}>
+              {contractMiss.kind === 'trust'
+                ? `信頼が足りなかった（あと ${contractMiss.short}）`
+                : contractMiss.kind === 'creep'
+                  ? '距離を詰めすぎて引かれていた'
+                  : 'スコアを伸ばしてあげられなかった'}
+            </Text>
+          </View>
+        )}
+
+        {/* 今日の分かれ目 — 選んだ手のどれが刺さって、どれが外したか */}
+        {(turningPoints.hits.length > 0 || turningPoints.misses.length > 0) && (
+          <View style={styles.turnCard}>
+            <Text style={styles.turnTitle}>今日の分かれ目</Text>
+            {turningPoints.hits.length > 0 && (
+              <>
+                <Text style={styles.turnHeadHit}>刺さった</Text>
+                {turningPoints.hits.map((h, i) => (
+                  <Text key={`hit${i}`} style={styles.turnLine}>
+                    {h.choiceText}
+                  </Text>
+                ))}
+              </>
+            )}
+            {turningPoints.misses.length > 0 && (
+              <>
+                <Text style={styles.turnHeadMiss}>外した</Text>
+                {turningPoints.misses.map((h, i) => (
+                  <Text key={`miss${i}`} style={styles.turnLine}>
+                    {h.choiceText}
+                  </Text>
+                ))}
+              </>
+            )}
+          </View>
+        )}
 
         {/* 相談ラウンドで受けた助言。holeResults の複合IDと選んだ index から
             復元できるので追加の状態は持たない */}
@@ -305,6 +381,60 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   // ===== Play type =====
+  /** 契約に届かなかった理由 */
+  missCard: {
+    width: '100%',
+    backgroundColor: 'rgba(200,120,60,0.14)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(220,150,80,0.35)',
+    padding: 14,
+    marginBottom: 12,
+  },
+  missTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F0C08A',
+    marginBottom: 4,
+  },
+  missReason: {
+    fontSize: 14,
+    color: '#e8e8e8',
+  },
+  /** 今日の分かれ目 — 刺さった手／外した手 */
+  turnCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  turnTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textCream,
+    marginBottom: 10,
+  },
+  turnHeadHit: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8FD48F',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  turnHeadMiss: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E39A9A',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  turnLine: {
+    fontSize: 13,
+    color: '#dcdcdc',
+    lineHeight: 20,
+    marginBottom: 2,
+  },
   playTypeCard: {
     backgroundColor: COLORS.cardBg,
     borderRadius: 10,
