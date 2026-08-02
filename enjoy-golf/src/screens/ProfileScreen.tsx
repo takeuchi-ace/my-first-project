@@ -13,6 +13,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { characters } from '../data/characters';
 import { aceConsultPool } from '../data/aceConsults';
+import { getTagInsight } from '../data/tagInsights';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite } from '../faces';
 import { COLORS } from '../theme/colors';
@@ -28,6 +29,17 @@ const ACE_QUOTE_TOTAL = aceConsultPool.filter((c) => c.isQuote).length;
 export default function ProfileScreen({ route, navigation }: Props) {
   const { characterId } = route.params;
   const store = useGameStore();
+
+  /** 一緒に回って分かったこと。同じ意味の文が重複しないよう文面で重複を除く */
+  const discoveries = useMemo(() => {
+    const d = store.getDiscovered(characterId);
+    const uniq = (tags: typeof d.liked, kind: 'liked' | 'hated') => [
+      ...new Set(
+        tags.map((t) => getTagInsight(t, kind)).filter((x): x is string => !!x)
+      ),
+    ];
+    return { liked: uniq(d.liked, 'liked'), hated: uniq(d.hated, 'hated') };
+  }, [store, characterId]);
   const character = useMemo(
     () => characters.find((c) => c.id === characterId)!,
     [characterId],
@@ -141,6 +153,21 @@ export default function ProfileScreen({ route, navigation }: Props) {
         {/* Hint */}
         {character.hint && (
           <Text style={styles.hintText}>{character.hint}</Text>
+        )}
+
+        {/* 一緒に回って分かったこと。
+            ヒントが最初から与えられる手がかりなのに対し、こちらは回った回数だけ増える。
+            タグ名は内部の都合なので出さず、日本語の一文に置き換える */}
+        {(discoveries.liked.length > 0 || discoveries.hated.length > 0) && (
+          <View style={styles.discoveryCard}>
+            <Text style={styles.discoveryTitle}>一緒に回って分かったこと</Text>
+            {discoveries.liked.map((t, i) => (
+              <Text key={`dl${i}`} style={styles.discoveryLiked}>・{t}</Text>
+            ))}
+            {discoveries.hated.map((t, i) => (
+              <Text key={`dh${i}`} style={styles.discoveryHated}>・{t}</Text>
+            ))}
+          </View>
         )}
 
         {/* もらった言葉（エースのみ）
@@ -398,6 +425,31 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   // ===== Hint =====
+  /** 一緒に回って分かったこと */
+  discoveryCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  discoveryTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#d8d8c8',
+    marginBottom: 8,
+  },
+  discoveryLiked: {
+    fontSize: 13,
+    color: '#8FD48F',
+    lineHeight: 21,
+  },
+  discoveryHated: {
+    fontSize: 13,
+    color: '#E39A9A',
+    lineHeight: 21,
+  },
   hintText: {
     color: 'rgba(255,255,255,0.3)',
     fontSize: 12,

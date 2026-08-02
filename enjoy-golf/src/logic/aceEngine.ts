@@ -141,6 +141,7 @@ export const applyAceChoice = (
         rank: 'good' as const,
         trustDelta: 0,
         choiceText: event.choices[choiceIndex]?.text ?? '',
+        tags: [],
       },
     ],
     tagHistory: state.tagHistory, // ACEは影響なし

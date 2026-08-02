@@ -624,6 +624,7 @@ const makeHoleResult = (
   rank: evaluateReactionRank(appliedDelta),
   trustDelta: appliedDelta.trust,
   choiceText: event.choices[choiceIndex]?.text ?? '',
+  tags: event.choices[choiceIndex]?.tags ?? [],
 });
 
 /**

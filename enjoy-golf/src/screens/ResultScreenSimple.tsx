@@ -104,6 +104,18 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
       const newlyUnlocked = store.addContractForCharacter(characterId);
       setContractResult({ newlyUnlocked });
     }
+
+    // 一緒に回って分かったこと。刺さった手／怒らせた手のタグを溜める。
+    // 契約の成否に関わらず、回った経験は残る
+    if (!isAceRound && lastGameState) {
+      const liked = lastGameState.holeResults
+        .filter((h) => h.rank === 'good')
+        .flatMap((h) => h.tags);
+      const hated = lastGameState.holeResults
+        .filter((h) => h.rank === 'worst')
+        .flatMap((h) => h.tags);
+      store.recordDiscoveries(characterId, liked, hated);
+    }
   }, [result.contractSuccess, characterId, isAceRound]);
 
   /**

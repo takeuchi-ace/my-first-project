@@ -256,6 +256,8 @@ export interface HoleResult {
    * 振り返りで正しい文言を出すには、選んだ時点の文言を持っておくしかない。
    */
   choiceText: string;
+  /** その選択が持っていたタグ。「一緒に回って分かったこと」の蓄積に使う */
+  tags: Tag[];
 }
 
 export interface CharEventSlot {

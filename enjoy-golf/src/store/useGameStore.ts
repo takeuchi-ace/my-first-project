@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
-import { GameState, CharacterId, Character, CompetitionId } from '../types';
+import { GameState, CharacterId, Character, CompetitionId, Tag } from '../types';
 import { characters } from '../data/characters';
 import { competitionOrder, competitionMap } from '../data/competitionData';
 
@@ -16,6 +16,12 @@ interface GameStoreState {
   aceQuotes: string[];
   cooldowns: Record<number, number>;
   wear: number;
+  /**
+   * 相手ごとに「一緒に回って分かったこと」。
+   * 刺さった手のタグと、怒らせた手のタグを溜めていく。
+   * 周回するほど読む材料が増え、次に会うときプロフィールで読み返せる。
+   */
+  discovered: Record<number, { liked: Tag[]; hated: Tag[] }>;
 }
 
 interface GameStoreActions {
@@ -44,6 +50,8 @@ interface GameStoreActions {
   // Wear
   getWear: () => number;
   addWear: (delta: number) => void;
+  recordDiscoveries: (charId: CharacterId, liked: Tag[], hated: Tag[]) => void;
+  getDiscovered: (charId: CharacterId) => { liked: Tag[]; hated: Tag[] };
   // Reset
   resetAll: () => void;
 }
@@ -66,6 +74,7 @@ const INITIAL_STATE: GameStoreState = {
   aceQuotes: [],
   cooldowns: {},
   wear: 10,
+  discovered: {},
 };
 
 const STORAGE_KEY = 'enjoy-golf-store';
@@ -114,6 +123,7 @@ async function loadState(): Promise<GameStoreState | null> {
       cooldowns: parsed.cooldowns ?? {},
       // 保存データが壊れていても範囲外の摩耗を持ち込ませない
       wear: Math.max(0, Math.min(100, parsed.wear ?? 10)),
+      discovered: parsed.discovered ?? {},
     };
   } catch {
     return null;
@@ -369,6 +379,36 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  /**
+   * そのラウンドで分かったことを足す。
+   * 同じタグを何度も溜めても意味がないので重複は除く。
+   */
+  const recordDiscoveriesFn = useCallback(
+    (charId: CharacterId, liked: Tag[], hated: Tag[]) => {
+      if (!liked.length && !hated.length) return;
+      setState((prev) => {
+        const cur = prev.discovered[charId] ?? { liked: [], hated: [] };
+        return {
+          ...prev,
+          discovered: {
+            ...prev.discovered,
+            [charId]: {
+              liked: [...new Set([...cur.liked, ...liked])],
+              hated: [...new Set([...cur.hated, ...hated])],
+            },
+          },
+        };
+      });
+    },
+    []
+  );
+
+  const getDiscoveredFn = useCallback(
+    (charId: CharacterId) =>
+      stateRef.current.discovered[charId] ?? { liked: [], hated: [] },
+    []
+  );
+
   // ===== Reset =====
   const resetAllFn = useCallback(() => {
     setState({ ...INITIAL_STATE });
@@ -399,9 +439,11 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       getCooldown: getCooldownFn,
       getWear: getWearFn,
       addWear: addWearFn,
+      recordDiscoveries: recordDiscoveriesFn,
+      getDiscovered: getDiscoveredFn,
       resetAll: resetAllFn,
     }),
-    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, resetAllFn],
+    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, resetAllFn],
   );
 
   return React.createElement(GameStoreContext.Provider, { value }, children);
