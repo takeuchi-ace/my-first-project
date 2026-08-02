@@ -107,13 +107,23 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
 
     // 一緒に回って分かったこと。刺さった手／怒らせた手のタグを溜める。
     // 契約の成否に関わらず、回った経験は残る
-    if (!isAceRound && lastGameState) {
+    //
+    // そのキャラの likesTags / hatesTags と重なったタグだけを残す。
+    // 反応ランクは基礎デルタでほぼ決まるので、good になった選択肢のタグを
+    // そのまま溜めると「このキャラの好み」ではない一般論まで混ざり、
+    // 実測で的中率が2割まで落ちた（10周で24行・うち正しいのは4〜5行）。
+    // 交差を取ると的中率100%・10周で5行前後に収まる。
+    if (!isAceRound && lastGameState && character) {
+      const likesTags = character.likesTags ?? [];
+      const hatesTags = character.hatesTags ?? [];
       const liked = lastGameState.holeResults
-        .filter((h) => h.rank === 'good')
-        .flatMap((h) => h.tags);
+        .filter((h) => h.rank === 'good' || h.rank === 'neutral')
+        .flatMap((h) => h.tags)
+        .filter((t) => likesTags.includes(t));
       const hated = lastGameState.holeResults
-        .filter((h) => h.rank === 'worst')
-        .flatMap((h) => h.tags);
+        .filter((h) => h.rank === 'bad' || h.rank === 'worst')
+        .flatMap((h) => h.tags)
+        .filter((t) => hatesTags.includes(t));
       store.recordDiscoveries(characterId, liked, hated);
     }
   }, [result.contractSuccess, characterId, isAceRound]);

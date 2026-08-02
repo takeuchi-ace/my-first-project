@@ -30,12 +30,23 @@ export default function ProfileScreen({ route, navigation }: Props) {
   const { characterId } = route.params;
   const store = useGameStore();
 
-  /** 一緒に回って分かったこと。同じ意味の文が重複しないよう文面で重複を除く */
+  /**
+   * 一緒に回って分かったこと。同じ意味の文が重複しないよう文面で重複を除く。
+   *
+   * 保存側でも likesTags / hatesTags と交差させているが、ここでも取り直す。
+   * 交差を入れる前に保存された分には的中率2割の混ざり物が残っているため、
+   * 表示のたびに絞れば古い保存もそのまま正しくなる。
+   */
   const discoveries = useMemo(() => {
     const d = store.getDiscovered(characterId);
+    const c = characters.find((x) => x.id === characterId);
+    const actual = { liked: c?.likesTags ?? [], hated: c?.hatesTags ?? [] };
     const uniq = (tags: typeof d.liked, kind: 'liked' | 'hated') => [
       ...new Set(
-        tags.map((t) => getTagInsight(t, kind)).filter((x): x is string => !!x)
+        tags
+          .filter((t) => actual[kind].includes(t))
+          .map((t) => getTagInsight(t, kind))
+          .filter((x): x is string => !!x)
       ),
     ];
     return { liked: uniq(d.liked, 'liked'), hated: uniq(d.hated, 'hated') };
