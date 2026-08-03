@@ -306,9 +306,11 @@ export default function ProfileScreen({ route, navigation }: Props) {
             <Text style={styles.discoveryTitle}>これまでの成績</Text>
             <View style={styles.recordRow}>
               <Text style={styles.recordLabel}>自己ベスト</Text>
+              {/* 数字だけだとゴルフの打数と混ざる（この画面には Avg 88 も出ている）。
+                  何の点なのかを値側に入れる */}
               <Text style={styles.recordValue}>
                 {record.best
-                  ? `${record.best.grade}（${record.best.score}）`
+                  ? `${record.best.grade}（接待${record.best.score}）`
                   : '—'}
               </Text>
             </View>

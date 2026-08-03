@@ -40,7 +40,7 @@ import { CharacterId, RoundMoodId, StrategyId, Tag } from '../types';
 export type ItemSlot = 'bag' | 'wear' | 'green' | 'pocket';
 
 export type ItemCondition =
-  /** 接待スコアが min 以上（契約の成否は問わない） */
+  /** 接待スコア（0〜100の内部評価。ゴルフの打数ではない）が min 以上。契約の成否は問わない */
   | { kind: 'score'; min: number }
   /** 相手の地雷を一度も踏まずに契約成立 */
   | { kind: 'noHates' }
@@ -63,7 +63,7 @@ export type ItemCondition =
   /** 集めた名言が min 個以上（銀座だけが見る条件） */
   | { kind: 'quotes'; min: number }
   /**
-   * 接待スコアが max 以下（契約の成否は問わない）。
+   * 接待スコア（0〜100の内部評価。ゴルフの打数ではない）が max 以下。契約の成否は問わない。
    *
    * 「うまくやった褒美」だけだと、下手な日に何も起きない。
    * 振るわなかった日に持たせてくれるものがあると、負けた回にも持ち帰りが出る。
@@ -107,7 +107,7 @@ export const giftItems: GiftItem[] = [
     name: '真鍮のボールマーカー',
     desc: '銀行の記念品。使い込まれて角が丸い。',
     line: '古いものですが、よければ使ってください。',
-    hint: '角の丸くなった小さな金物。よほどうまく回れた日に。',
+    hint: '角の丸くなった小さな金物。よほど気に入られた日に。',
     slot: 'pocket',
     condition: {
       kind: 'all',
@@ -146,7 +146,7 @@ export const giftItems: GiftItem[] = [
     name: '削られたパターグリップ',
     desc: '自分の手に合わせて削ったもの。代わりは無い。',
     line: '…要るなら持っていけ。',
-    hint: '手に馴染みきった握り。数字が出た日に。',
+    hint: '手に馴染みきった握り。気に入られた日に。',
     slot: 'green',
     condition: { kind: 'score', min: 90 },
   },
@@ -170,7 +170,7 @@ export const giftItems: GiftItem[] = [
     name: '手書きの日めくり',
     desc: '毎日ちがう前向きな言葉が書いてある。',
     line: 'この一打にも感謝です！これ、差し上げます！',
-    hint: '毎日ちがう言葉が書いてある紙。数字が出た日に。',
+    hint: '毎日ちがう言葉が書いてある紙。気に入られた日に。',
     slot: 'pocket',
     condition: { kind: 'score', min: 88 },
   },
@@ -266,7 +266,7 @@ export const giftItems: GiftItem[] = [
     name: '藍染めのタオル',
     desc: '料亭の名が小さく染め抜かれている。',
     line: 'よろしければ、お使いくださいまし。',
-    hint: '料亭の名が染め抜かれた布。よほどうまく回れた日に。',
+    hint: '料亭の名が染め抜かれた布。よほど気に入られた日に。',
     slot: 'wear',
     condition: {
       kind: 'all',
@@ -291,7 +291,7 @@ export const giftItems: GiftItem[] = [
     name: '自作のスコア管理アプリの招待コード',
     desc: '紙に手書きされている。',
     line: '面白い打ち方でしたね。これ、使ってみてください。',
-    hint: '紙に手書きされた符号。よほど数字が出た日に。',
+    hint: '紙に手書きされた符号。文句なく気に入られた日に。',
     slot: 'pocket',
     condition: { kind: 'score', min: 96 },
   },
@@ -326,7 +326,7 @@ export const giftItems: GiftItem[] = [
     name: 'A4一枚のチェックリスト',
     desc: 'ラウンド前の確認事項が20項目。',
     line: '前提が揃っている人と回るのは楽です。差し上げます。',
-    hint: 'ラウンド前の確認事項が並んだ一枚。朝イチを完璧に決めて、数字も出すと。',
+    hint: 'ラウンド前の確認事項が並んだ一枚。朝イチを完璧に決めて、気に入られると。',
     slot: 'bag',
     condition: {
       kind: 'all',
@@ -374,7 +374,7 @@ export const giftItems: GiftItem[] = [
     name: '未開封の高級ドライバー',
     desc: '箱も開いていない。値札が付いたまま。',
     line: 'もらったんだけど、僕には振れなくてさ。あげる。',
-    hint: '一度も振られていない道具。振るわなかった日に。',
+    hint: '一度も振られていない道具。もてなしが空回りした日に。',
     slot: 'bag',
     condition: { kind: 'scoreMax', max: 60 },
   },
@@ -450,7 +450,7 @@ export const giftItems: GiftItem[] = [
     name: '「ナイスショット！」のタオル',
     desc: '刺繍が金糸。使うのがためらわれる。',
     line: 'その一打、額に入れたいくらいです！',
-    hint: '金糸の刺繍で使うのがためらわれる布。数字が出た日に。',
+    hint: '金糸の刺繍で使うのがためらわれる布。よほど気に入られた日に。',
     slot: 'wear',
     condition: { kind: 'score', min: 92 },
   },
@@ -505,7 +505,7 @@ export const giftItems: GiftItem[] = [
     name: '貼るホッカイロ',
     desc: '料亭の名が入った紙袋にまとめて入っている。',
     line: 'お寒いでしょう。お背中にお貼りなさい。',
-    hint: '料亭の紙袋にまとめられた温かいもの。振るわなかった日に。',
+    hint: '料亭の紙袋にまとめられた温かいもの。もてなしが空回りした日に。',
     slot: 'wear',
     condition: { kind: 'scoreMax', max: 60 },
   },
@@ -570,7 +570,7 @@ export const giftItems: GiftItem[] = [
     name: '小顔ローラー',
     desc: 'ゴルフとは何の関係もない。',
     line: '顔、疲れてるよ。転がしといて〜。',
-    hint: 'ゴルフとは何の関係もない道具。怒らせた上に、振るわなかった日に。',
+    hint: 'ゴルフとは何の関係もない道具。怒らせた上に、もてなしも空回りした日に。',
     slot: 'pocket',
     condition: {
       kind: 'all',

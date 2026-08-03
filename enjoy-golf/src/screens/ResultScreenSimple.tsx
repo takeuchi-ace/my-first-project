@@ -341,12 +341,14 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         <Text style={[styles.grade, { color: GRADE_COLORS[result.grade] }]}>
           {result.grade}
         </Text>
+        {/* 「スコア」だけだと、同じ画面に出ているゴルフの打数（18H / いつもより○打）と
+            混ざる。接待の点であることを名前に入れる */}
         <Text style={styles.scoreDetail}>
-          スコア: {result.entertainScore}
+          接待スコア: {result.entertainScore}
         </Text>
         {beatenBest !== null && (
           <Text style={styles.bestUpdate}>
-            自己ベスト更新（前回 {beatenBest}）
+            接待スコアの自己ベスト更新（前回 {beatenBest}）
           </Text>
         )}
 
@@ -369,7 +371,7 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
                 ? `信頼が足りなかった（あと ${contractMiss.short}）`
                 : contractMiss.kind === 'creep'
                   ? '距離を詰めすぎて引かれていた'
-                  : 'スコアを伸ばしてあげられなかった'}
+                  : '相手をいつもより良く回らせられなかった'}
             </Text>
           </View>
         )}
