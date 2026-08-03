@@ -4,8 +4,11 @@
  * 相手ごとの道具はプロフィールにも出るが、集めたものは並べて見られないと
  * 集めている感じがしない。ここは一覧だけの画面。
  *
- * 未取得は「？？？」とヒントだけ出す。条件を隠したままだと
+ * 会った相手の未取得は「？？？」とヒントだけ出す。条件を隠したままだと
  * 運で集まるだけになり、狙う対象にならない。
+ *
+ * まだ会っていない相手の枠は、1つずつ並べると「あと何個あるか」「誰が
+ * 2つ持っているか」まで数えられてしまう。まとめて1行にして数だけ見せる。
  */
 
 import React, { useMemo } from 'react';
@@ -42,6 +45,9 @@ export default function ItemsScreen({ navigation }: Props) {
   }, [store.ownedItems, store.unlockedCharacterIds]);
 
   const count = rows.filter((r) => r.owned).length;
+  // まだ会っていない相手の枠は個別に並べず、数だけまとめて出す
+  const shown = rows.filter((r) => r.owned || r.met);
+  const unmetCount = rows.length - shown.length;
 
   const back = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -61,21 +67,27 @@ export default function ItemsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {rows.map(({ item, owned, giver, met }) => (
+        {shown.map(({ item, owned, giver }) => (
           <View
             key={item.id}
             style={[styles.card, owned && styles.cardOwned]}
           >
-            <Text style={styles.giver}>{met ? `${giver}さんから` : '？'}</Text>
+            <Text style={styles.giver}>{giver}さんから</Text>
             <Text style={owned ? styles.name : styles.nameLocked}>
               {owned ? item.name : '？？？'}
             </Text>
-            <Text style={styles.desc}>
-              {owned ? item.desc : met ? item.hint : 'まだ会っていない'}
-            </Text>
+            <Text style={styles.desc}>{owned ? item.desc : item.hint}</Text>
             {owned && <Text style={styles.line}>「{item.line}」</Text>}
           </View>
         ))}
+
+        {unmetCount > 0 && (
+          <View style={styles.unmetCard}>
+            <Text style={styles.unmetText}>
+              まだ会っていない人からの道具が {unmetCount} つ
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -156,5 +168,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 19,
     marginTop: 5,
+  },
+  unmetCard: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  unmetText: {
+    color: 'rgba(255,255,255,0.32)',
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

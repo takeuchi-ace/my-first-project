@@ -26,10 +26,12 @@
  * 効果は持たせていない。ただし `slot` を先に持たせてあるので、
  * 後から「1枠だけ持っていける」を足すときにデータを作り直さずに済む。
  *
- * ## ヒントは必ず出す
+ * ## ヒントは「道具の気配＋ぼんやりした方向」で書く
  *
- * 条件を隠したままだと運で集まるだけになる。
- * `hint` をプロフィールに出して、狙って取れるようにする。
+ * 条件を隠したままだと運で集まるだけになる。かといって達成条件を
+ * そのまま書くと、探す楽しみが消えて条件の一覧表になる。
+ * `hint` は「どんな道具か」を主にして、そこへ向かう方向だけを
+ * ぼんやり添える（数値・回数・イベント名は書かない）。
  */
 
 import { CharacterId, RoundMoodId, StrategyId, Tag } from '../types';
@@ -105,7 +107,7 @@ export const giftItems: GiftItem[] = [
     name: '真鍮のボールマーカー',
     desc: '銀行の記念品。使い込まれて角が丸い。',
     line: '古いものですが、よければ使ってください。',
-    hint: '嫌がることを一度もせず、スコア88以上で契約できたとき',
+    hint: '角の丸くなった小さな金物。よほどうまく回れた日に。',
     slot: 'pocket',
     condition: {
       kind: 'all',
@@ -120,7 +122,7 @@ export const giftItems: GiftItem[] = [
     line: '根性だけは認めてやる。持っていけ。',
     // 気合タグは全選択肢750件中5件しかなく「4回」は不可能だった（実測2%）。
     // 鬼塚らしい場面での一言に変える
-    hint: '雨でも続けようと言い切ったとき',
+    hint: '短いのに重い。天気が崩れた日の一言で。',
     slot: 'bag',
     condition: {
       kind: 'choice',
@@ -134,7 +136,7 @@ export const giftItems: GiftItem[] = [
     name: 'ふざけた柄のヘッドカバー',
     desc: '誰も真顔では被せられない配色。',
     line: 'あはは、これ僕にはもう似合わないからあげるよ。',
-    hint: '笑わせる作戦を宣言して契約できたとき',
+    hint: '真顔では被せられない配色。笑わせに行くと。',
     slot: 'bag',
     condition: { kind: 'strategy', strategyId: 'laugh' },
   },
@@ -144,7 +146,7 @@ export const giftItems: GiftItem[] = [
     name: '削られたパターグリップ',
     desc: '自分の手に合わせて削ったもの。代わりは無い。',
     line: '…要るなら持っていけ。',
-    hint: 'スコア90以上を出したとき（契約の成否は問わない）',
+    hint: '手に馴染みきった握り。数字が出た日に。',
     slot: 'green',
     condition: { kind: 'score', min: 90 },
   },
@@ -154,7 +156,7 @@ export const giftItems: GiftItem[] = [
     name: 'ルールブック（英語版）',
     desc: '付箋が何十枚も貼られている。',
     line: 'Fair play makes a great game. これはあなたに。',
-    hint: 'ロストボールの場面で、ルール通りに促したとき',
+    hint: '付箋だらけの一冊。球を見失った場面の振る舞いで。',
     slot: 'pocket',
     condition: {
       kind: 'choice',
@@ -168,7 +170,7 @@ export const giftItems: GiftItem[] = [
     name: '手書きの日めくり',
     desc: '毎日ちがう前向きな言葉が書いてある。',
     line: 'この一打にも感謝です！これ、差し上げます！',
-    hint: 'スコア88以上を出したとき（契約の成否は問わない）',
+    hint: '毎日ちがう言葉が書いてある紙。数字が出た日に。',
     slot: 'pocket',
     condition: { kind: 'score', min: 88 },
   },
@@ -178,7 +180,7 @@ export const giftItems: GiftItem[] = [
     name: '古いグリーンフォーク',
     desc: '真鍮に家紋が入っている。',
     line: 'コースへの感謝を忘れんことだ。持っておけ。',
-    hint: 'ボールマークを直して、コースへの感謝を口にしたとき',
+    hint: '家紋入りの真鍮。芝を直したあとの一言で。',
     slot: 'green',
     condition: {
       kind: 'choice',
@@ -192,7 +194,7 @@ export const giftItems: GiftItem[] = [
     name: 'レーザー距離計',
     desc: '型は古いが精度は落ちていない。',
     line: '計測は判断の前提です。使ってください。',
-    hint: '理屈で通す手を5回以上使って契約できたとき',
+    hint: '型は古いが狂いのない計器。理屈で押し通すと。',
     slot: 'bag',
     condition: { kind: 'tagCount', tag: 'logic', count: 5 },
   },
@@ -202,7 +204,7 @@ export const giftItems: GiftItem[] = [
     name: '使い込んだスコアカードホルダー',
     desc: '革が手の形に沈んでいる。',
     line: '今の、本音だったな。持っていけよ。',
-    hint: '嫌がることを一度もせずに契約できたとき',
+    hint: '革が手の形に沈んだ入れもの。地雷を踏まずに終えると。',
     slot: 'pocket',
     condition: { kind: 'noHates' },
   },
@@ -213,7 +215,7 @@ export const giftItems: GiftItem[] = [
     desc: '誰にも頼まれていないのに持ち歩いていたもの。',
     line: 'ナァァイス！これはもう、あなたのものです！',
     // 褒め殺し相手を怒らせ切るのは難しくない。呆れて押し付けてくる
-    hint: '呆れられるほど怒らせてしまったとき（3回）',
+    hint: '頼まれてもいないのに持ち歩いていたもの。よほど怒らせると。',
     slot: 'pocket',
     condition: { kind: 'enrage', count: 3 },
   },
@@ -223,7 +225,7 @@ export const giftItems: GiftItem[] = [
     name: '名刺入れ（黒革）',
     desc: '中身は空。渡すために空にしてある。',
     line: '君は分かる側だな。これを持っていけ。',
-    hint: '踏み込む手を4回以上通して契約できたとき',
+    hint: '渡すために空にしてある入れもの。踏み込み続けると。',
     slot: 'pocket',
     condition: { kind: 'tagCount', tag: 'bold', count: 4 },
   },
@@ -233,7 +235,7 @@ export const giftItems: GiftItem[] = [
     name: '派手なサングラス',
     desc: 'ミラーレンズ。屋内では完全に見えない。',
     line: 'それ映えるよ！はい、あげる！',
-    hint: '上機嫌の日に契約できたとき',
+    hint: '屋内では何も見えない代物。相手の機嫌が良い日に。',
     slot: 'wear',
     condition: { kind: 'mood', moodId: 'fine' },
   },
@@ -243,7 +245,7 @@ export const giftItems: GiftItem[] = [
     name: '銀のスキットル',
     desc: '空だが酒の匂いが残っている。',
     line: '攻めたやつにはこれや。持っていけ。',
-    hint: '攻める作戦を宣言して契約できたとき',
+    hint: '酒の匂いだけが残る銀の容器。攻めに出ると。',
     slot: 'pocket',
     condition: { kind: 'strategy', strategyId: 'attack' },
   },
@@ -254,7 +256,7 @@ export const giftItems: GiftItem[] = [
     desc: '中身が几帳面に補充されている。',
     line: '備えは邪魔になりませんから。お持ちください。',
     // 距離（creep）はプレイヤーに数字で見せていないので、ヒントにも数字は出さない
-    hint: '馴れ馴れしい手をほとんど使わずに契約できたとき',
+    hint: '几帳面に補充された箱。距離を詰めも取りもせずに。',
     slot: 'bag',
     condition: { kind: 'lowCreep', max: 12 },
   },
@@ -264,7 +266,7 @@ export const giftItems: GiftItem[] = [
     name: '藍染めのタオル',
     desc: '料亭の名が小さく染め抜かれている。',
     line: 'よろしければ、お使いくださいまし。',
-    hint: '嫌がることを一度もせず、スコア88以上で契約できたとき',
+    hint: '料亭の名が染め抜かれた布。よほどうまく回れた日に。',
     slot: 'wear',
     condition: {
       kind: 'all',
@@ -279,7 +281,7 @@ export const giftItems: GiftItem[] = [
     line: 'これは、あなたが持っているほうがいい。',
     // 相談ラウンドの接待スコアは常に100なので、スコアでは条件にならない（実測100%）。
     // 集めた言葉の数を条件にする
-    hint: 'もらった言葉が12個以上になってから、また相談したとき',
+    hint: '創業から使い続けている一本。言葉を集めてから、また訪ねると。',
     slot: 'green',
     condition: { kind: 'quotes', min: 12 },
   },
@@ -289,7 +291,7 @@ export const giftItems: GiftItem[] = [
     name: '自作のスコア管理アプリの招待コード',
     desc: '紙に手書きされている。',
     line: '面白い打ち方でしたね。これ、使ってみてください。',
-    hint: 'スコア96以上を出したとき（契約の成否は問わない）',
+    hint: '紙に手書きされた符号。よほど数字が出た日に。',
     slot: 'pocket',
     condition: { kind: 'score', min: 96 },
   },
@@ -299,7 +301,7 @@ export const giftItems: GiftItem[] = [
     name: '一枚だけのメモ用紙',
     desc: '「嘘は数字に出る」と書いてある。',
     line: '正直でしたね。持っていってください。',
-    hint: '嫌がることを一度もせず、最終パットを沈めて契約できたとき',
+    hint: '「嘘は数字に出る」と書かれた紙。最後の一打を決めて、地雷も踏まずに。',
     slot: 'pocket',
     condition: { kind: 'all', of: [{ kind: 'puttIn' }, { kind: 'noHates' }] },
   },
@@ -311,7 +313,7 @@ export const giftItems: GiftItem[] = [
     line: '対等に来る人は好きです。持っていってください。',
     // 佐藤と同じ noHates 一本だと条件も文面も丸かぶりになるので、
     // likesTags の honesty を足して「正直に徹して」を実際の要件にする
-    hint: '正直な手を3回以上通して、嫌がることを一度もせずに契約できたとき',
+    hint: '一本ずつ形の違う木の小物。正直に押して、地雷も踏まずに。',
     slot: 'pocket',
     condition: {
       kind: 'all',
@@ -324,7 +326,7 @@ export const giftItems: GiftItem[] = [
     name: 'A4一枚のチェックリスト',
     desc: 'ラウンド前の確認事項が20項目。',
     line: '前提が揃っている人と回るのは楽です。差し上げます。',
-    hint: '朝イチの自分のショットを完璧に決め、スコア92以上で契約できたとき',
+    hint: 'ラウンド前の確認事項が並んだ一枚。朝イチを完璧に決めて、数字も出すと。',
     slot: 'bag',
     condition: {
       kind: 'all',
@@ -338,7 +340,7 @@ export const giftItems: GiftItem[] = [
     desc: '手縫い。中身は聞いても教えてくれない。',
     line: 'これ持ってて〜。効くかは知らないけど！',
     // ミツキは怒らせても後で笑う相手。振り切った失敗を面白がる
-    hint: '呆れられるほど怒らせてしまったとき（3回）',
+    hint: '中身を教えてくれない手縫いのもの。よほど怒らせると。',
     slot: 'pocket',
     condition: { kind: 'enrage', count: 3 },
   },
@@ -352,7 +354,7 @@ export const giftItems: GiftItem[] = [
     name: '折りたたみ傘（銀行のロゴ入り）',
     desc: 'ロゴが大きすぎて、傘の柄に見えない。',
     line: '置き傘です。ロゴは、まあ、我慢してください。',
-    hint: '礼儀を通す手を4回以上使って契約できたとき',
+    hint: 'ロゴが大きすぎる雨具。礼を通し続けると。',
     slot: 'bag',
     condition: { kind: 'tagCount', tag: 'etiquette', count: 4 },
   },
@@ -362,7 +364,7 @@ export const giftItems: GiftItem[] = [
     name: '「必勝」の鉢巻',
     desc: '汗染みが輪になって残っている。',
     line: '巻け。気合が足りん。',
-    hint: '気合の入った手を2回以上通して契約できたとき',
+    hint: '汗染みが輪になって残った布。気合を通すと。',
     slot: 'wear',
     condition: { kind: 'tagCount', tag: 'kiai', count: 2 },
   },
@@ -372,7 +374,7 @@ export const giftItems: GiftItem[] = [
     name: '未開封の高級ドライバー',
     desc: '箱も開いていない。値札が付いたまま。',
     line: 'もらったんだけど、僕には振れなくてさ。あげる。',
-    hint: 'スコアが60以下だったとき（うまくいかなかった日にくれる）',
+    hint: '箱も開いていない値札付き。振るわなかった日に。',
     slot: 'bag',
     condition: { kind: 'scoreMax', max: 60 },
   },
@@ -382,7 +384,7 @@ export const giftItems: GiftItem[] = [
     name: 'サインを頼んだボール',
     desc: '「…」だけが書かれている。',
     line: '…書くことがない。',
-    hint: '嫌がることを一度もせずに契約できたとき',
+    hint: '「…」だけが書かれた球。地雷を踏まずに終えると。',
     slot: 'pocket',
     condition: { kind: 'noHates' },
   },
@@ -392,7 +394,7 @@ export const giftItems: GiftItem[] = [
     name: 'ウェットティッシュ（社名入り）',
     desc: '一箱まるごと。展示会の残りらしい。',
     line: 'Hygiene first. お持ちください。',
-    hint: '正直な手を6回以上通して契約できたとき',
+    hint: '展示会の残りらしい一箱。正直に押し通すと。',
     slot: 'pocket',
     condition: { kind: 'tagCount', tag: 'honesty', count: 6 },
   },
@@ -402,7 +404,7 @@ export const giftItems: GiftItem[] = [
     name: '冷感タオル',
     desc: '「ととのう」と刺繍されている。',
     line: '熱くなったら、これで整えましょう！',
-    hint: '盛り上げる手を4回以上使って契約できたとき',
+    hint: '「ととのう」と刺繍された布。場を盛り上げ続けると。',
     slot: 'wear',
     condition: { kind: 'tagCount', tag: 'hype', count: 4 },
   },
@@ -412,7 +414,7 @@ export const giftItems: GiftItem[] = [
     name: '替えのスパイク鋲',
     desc: '小さな缶に入っている。工具も一緒。',
     line: '足元が決まらんと、スイングも決まらん。',
-    hint: '礼儀を通す手を6回以上使って契約できたとき',
+    hint: '工具まで入った小さな缶。礼を通し続けると。',
     slot: 'bag',
     condition: { kind: 'tagCount', tag: 'etiquette', count: 6 },
   },
@@ -424,7 +426,7 @@ export const giftItems: GiftItem[] = [
     line: '電源は前提条件です。どうぞ。',
     // ①が「理屈5回」なので、回数で刻むと必ず両方同時に落ちる（4は5に含まれる）。
     // 別の軸にする
-    hint: 'スコア記録アプリの場面で、最適解を聞いたとき',
+    hint: '数字が出る箱。仕組みの話で最適な答えを選ぶと。',
     slot: 'bag',
     condition: {
       kind: 'choice',
@@ -438,7 +440,7 @@ export const giftItems: GiftItem[] = [
     name: '虫よけスプレー',
     desc: '半分ほど使ってある。',
     line: '夏場は要りますよ。半分使ってますけど。',
-    hint: '正直な手を6回以上通して契約できたとき',
+    hint: '半分ほど使ってある噴霧器。正直に押し通すと。',
     slot: 'bag',
     condition: { kind: 'tagCount', tag: 'honesty', count: 6 },
   },
@@ -448,7 +450,7 @@ export const giftItems: GiftItem[] = [
     name: '「ナイスショット！」のタオル',
     desc: '刺繍が金糸。使うのがためらわれる。',
     line: 'その一打、額に入れたいくらいです！',
-    hint: 'スコア92以上を出したとき（契約の成否は問わない）',
+    hint: '金糸の刺繍で使うのがためらわれる布。数字が出た日に。',
     slot: 'wear',
     condition: { kind: 'score', min: 92 },
   },
@@ -459,7 +461,7 @@ export const giftItems: GiftItem[] = [
     desc: '封も糊付けされていない。',
     line: '名前は、君が入れればいい。',
     // ①が「踏み込み4回」なので、6回にすると必ず両方同時に落ちる。別の軸にする
-    hint: '派閥を探られて、自分のスタンスだと答えたとき',
+    hint: '封も糊付けされていない書状。立ち位置を問われたときの答えで。',
     slot: 'pocket',
     condition: {
       kind: 'choice',
@@ -473,7 +475,7 @@ export const giftItems: GiftItem[] = [
     name: '色紙',
     desc: 'サインが崩れすぎて誰のか読めない。',
     line: 'すごい人のだから。たぶん。',
-    hint: '笑わせる手を5回以上使って契約できたとき',
+    hint: '誰のか読めない署名。笑わせ続けると。',
     slot: 'pocket',
     condition: { kind: 'tagCount', tag: 'humor', count: 5 },
   },
@@ -483,7 +485,7 @@ export const giftItems: GiftItem[] = [
     name: '胃薬（大瓶）',
     desc: '減り方を見るに、常用されている。',
     line: '攻めた後はこれや。効くで。',
-    hint: '踏み込む手を5回以上通して契約できたとき',
+    hint: '減り方を見るに常用されている薬。踏み込み続けると。',
     slot: 'bag',
     condition: { kind: 'tagCount', tag: 'bold', count: 5 },
   },
@@ -493,7 +495,7 @@ export const giftItems: GiftItem[] = [
     name: '塩キャンディー',
     desc: '熱中症対策用。個包装で20粒ほど。',
     line: '無理は美徳じゃありません。舐めておいてください。',
-    hint: '擦り減った状態で回ったとき（内なる声が出るころ）',
+    hint: '熱中症対策の粒。すり減った体で回り切ると。',
     slot: 'pocket',
     condition: { kind: 'wear', min: 25 },
   },
@@ -503,7 +505,7 @@ export const giftItems: GiftItem[] = [
     name: '貼るホッカイロ',
     desc: '料亭の名が入った紙袋にまとめて入っている。',
     line: 'お寒いでしょう。お背中にお貼りなさい。',
-    hint: 'スコアが60以下だったとき（うまくいかなかった日にくれる）',
+    hint: '料亭の紙袋にまとめられた温かいもの。振るわなかった日に。',
     slot: 'wear',
     condition: { kind: 'scoreMax', max: 60 },
   },
@@ -513,7 +515,7 @@ export const giftItems: GiftItem[] = [
     name: '事務所のロゴ入りボールペン',
     desc: 'インクが出ない。ロゴだけがきれい。',
     line: 'あ、それ書けないんですけど、記念にどうぞ。',
-    hint: 'もらった言葉が6個以上になってから、また相談したとき',
+    hint: 'ロゴだけがきれいな筆記具。言葉が集まってから、また訪ねると。',
     slot: 'pocket',
     condition: { kind: 'quotes', min: 6 },
   },
@@ -523,7 +525,7 @@ export const giftItems: GiftItem[] = [
     name: 'AI解析の結果',
     desc: 'A4一枚に「個性的」とだけ出力されている。',
     line: 'うちのAI、これしか言わなくて。額に入れてください。',
-    hint: '笑わせる手を4回以上使って契約できたとき',
+    hint: '「個性的」とだけ書かれた紙。笑わせ続けると。',
     slot: 'pocket',
     condition: { kind: 'tagCount', tag: 'humor', count: 4 },
   },
@@ -533,7 +535,7 @@ export const giftItems: GiftItem[] = [
     name: 'ラミネートされた投稿',
     desc: '本人が撮ったスクリーンショット。数字に丸が付いている。',
     line: 'これ12万いきました。差し上げます。',
-    hint: '笑わせる手を3回以上使って契約できたとき',
+    hint: '本人が撮った画面の写し。笑わせに行くと。',
     slot: 'pocket',
     condition: { kind: 'tagCount', tag: 'humor', count: 3 },
   },
@@ -543,7 +545,7 @@ export const giftItems: GiftItem[] = [
     name: 'テーピングテープ',
     desc: '工場の備品。品番のシールが貼ってある。',
     line: '巻き方は覚えておくといい。',
-    hint: 'フェアな手を3回以上通して契約できたとき',
+    hint: '品番シールの付いた工場の備品。公正に押し通すと。',
     slot: 'bag',
     condition: { kind: 'tagCount', tag: 'sportsmanship', count: 3 },
   },
@@ -555,7 +557,7 @@ export const giftItems: GiftItem[] = [
     line: '経費で落ちるものだけ入れてください。',
     // 地雷（媚び・煽り）だけだと踏まずに終わる率が高く、狙わなくても41%出た。
     // 好みの理屈を重ねる
-    hint: '理屈で通す手を3回以上使い、嫌がることを一度もせずに契約できたとき',
+    hint: '「交際費」と手書きされた仕切り。理屈で押して、地雷も踏まずに。',
     slot: 'bag',
     condition: {
       kind: 'all',
@@ -568,7 +570,7 @@ export const giftItems: GiftItem[] = [
     name: '小顔ローラー',
     desc: 'ゴルフとは何の関係もない。',
     line: '顔、疲れてるよ。転がしといて〜。',
-    hint: '怒らせてしまい、しかもスコアが70以下だったとき',
+    hint: 'ゴルフとは何の関係もない道具。怒らせた上に、振るわなかった日に。',
     slot: 'pocket',
     condition: {
       kind: 'all',
