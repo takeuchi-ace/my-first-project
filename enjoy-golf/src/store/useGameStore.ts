@@ -527,7 +527,7 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
   /**
    * ラウンド1回分の成績を記録する。
    *
-   * これまで `calcResult` がグレードと接待スコアを毎回計算していたのに、
+   * これまで `calcResult` がグレードと接待ポイントを毎回計算していたのに、
    * 保存も表示もせず捨てていた。狙う数字が無いので、契約済みの相手を
    * 再訪して得られるものが文字通りゼロだった。
    *

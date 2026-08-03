@@ -60,7 +60,7 @@ export default function RunResultScreen({ navigation, route }: Props) {
 
         <View style={styles.card}>
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>接待スコアの合計</Text>
+            <Text style={styles.rowLabel}>接待ポイントの合計</Text>
             <Text style={styles.rowValue}>{totalScore}</Text>
           </View>
           {best && (

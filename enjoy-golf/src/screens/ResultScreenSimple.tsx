@@ -170,7 +170,11 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         store.ownedItems,
         // 摩耗はこの画面に来る前に GameScreenSimple が回復まで済ませているので、
         // ここで読む値は「このラウンドを終えた時点」のもの
-        { quoteCount: store.aceQuotes.length, wear: store.getWear() }
+        {
+          quoteCount: store.aceQuotes.length,
+          wear: store.getWear(),
+          improvement: result.improvement,
+        }
       );
       if (got.length > 0) {
         setGifts(got);
@@ -344,11 +348,11 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         {/* 「スコア」だけだと、同じ画面に出ているゴルフの打数（18H / いつもより○打）と
             混ざる。接待の点であることを名前に入れる */}
         <Text style={styles.scoreDetail}>
-          接待スコア: {result.entertainScore}
+          接待ポイント: {result.entertainScore}
         </Text>
         {beatenBest !== null && (
           <Text style={styles.bestUpdate}>
-            接待スコアの自己ベスト更新（前回 {beatenBest}）
+            接待ポイントの自己ベスト更新（前回 {beatenBest}）
           </Text>
         )}
 

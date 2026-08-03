@@ -299,7 +299,7 @@ export default function ProfileScreen({ route, navigation }: Props) {
         )}
 
         {/* これまでの成績。
-            グレードと接待スコアは毎ラウンド計算していたのに保存も表示もしていなかった。
+            グレードと接待ポイントは毎ラウンド計算していたのに保存も表示もしていなかった。
             狙う数字が無いと、契約済みの相手を再訪する理由がなくなる */}
         {record && (
           <View style={styles.discoveryCard}>
@@ -310,7 +310,7 @@ export default function ProfileScreen({ route, navigation }: Props) {
                   何の点なのかを値側に入れる */}
               <Text style={styles.recordValue}>
                 {record.best
-                  ? `${record.best.grade}（接待${record.best.score}）`
+                  ? `${record.best.grade}（接待ポイント${record.best.score}）`
                   : '—'}
               </Text>
             </View>

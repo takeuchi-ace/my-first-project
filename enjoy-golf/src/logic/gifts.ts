@@ -35,6 +35,8 @@ export interface GiftContext {
   quoteCount: number;
   /** ラウンドを終えた時点の摩耗 */
   wear: number;
+  /** 相手がいつもの平均より何打よく回ったか（ゴルフの打数のほう） */
+  improvement: number;
 }
 
 const meetsCondition = (
@@ -88,6 +90,9 @@ const meetsCondition = (
 
     case 'quotes':
       return ctx.quoteCount >= c.min;
+
+    case 'improvement':
+      return ctx.improvement >= c.min;
 
     case 'scoreMax':
       return entertainScore <= c.max;
