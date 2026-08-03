@@ -168,7 +168,9 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         result.entertainScore,
         result.contractSuccess,
         store.ownedItems,
-        { quoteCount: store.aceQuotes.length }
+        // 摩耗はこの画面に来る前に GameScreenSimple が回復まで済ませているので、
+        // ここで読む値は「このラウンドを終えた時点」のもの
+        { quoteCount: store.aceQuotes.length, wear: store.getWear() }
       );
       if (got.length > 0) {
         setGifts(got);

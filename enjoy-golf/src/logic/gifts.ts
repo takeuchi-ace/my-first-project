@@ -16,16 +16,25 @@ import { GameState } from '../types';
 import { characters } from '../data/characters';
 import { GiftItem, ItemCondition, itemsByCharacter } from '../data/items';
 
-/** その条件が契約成立を要るか。`all` は中身のどれかが要るなら要る */
+/**
+ * その条件が契約成立を要るか。`all` は中身のどれかが要るなら要る。
+ *
+ * `scoreMax` と `wear` は**弱っているときに気づかって渡される**ものなので、
+ * 成立を求めない（振るわなかった日にしか出ない品に成立を求めたら矛盾する）。
+ */
+const NO_CONTRACT_KINDS = ['score', 'choice', 'enrage', 'scoreMax', 'wear'];
+
 const needsContract = (c: ItemCondition): boolean => {
   if (c.kind === 'all') return c.of.some(needsContract);
-  return c.kind !== 'score' && c.kind !== 'choice' && c.kind !== 'enrage';
+  return !NO_CONTRACT_KINDS.includes(c.kind);
 };
 
 /** 判定に必要な、ラウンドの外にある情報 */
 export interface GiftContext {
   /** 集めた名言の数 */
   quoteCount: number;
+  /** ラウンドを終えた時点の摩耗 */
+  wear: number;
 }
 
 const meetsCondition = (
@@ -79,6 +88,12 @@ const meetsCondition = (
 
     case 'quotes':
       return ctx.quoteCount >= c.min;
+
+    case 'scoreMax':
+      return entertainScore <= c.max;
+
+    case 'wear':
+      return ctx.wear >= c.min;
 
     case 'all':
       return c.of.every((x) => meetsCondition(x, state, entertainScore, ctx));

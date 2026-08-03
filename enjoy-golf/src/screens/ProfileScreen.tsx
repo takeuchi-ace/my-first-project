@@ -248,25 +248,36 @@ export default function ProfileScreen({ route, navigation }: Props) {
           <Text style={styles.hintText}>{character.hint}</Text>
         )}
 
-        {/* もらいもの。取ったら中身、まだなら取り方のヒント */}
-        {gifts.map(({ item, owned }) => (
-          <View key={item.id} style={styles.discoveryCard}>
-            <Text style={styles.discoveryTitle}>
-              {owned ? 'もらったもの' : 'もらえそうなもの'}
-            </Text>
-            {owned ? (
-              <>
-                <Text style={styles.giftName}>{item.name}</Text>
-                <Text style={styles.giftDesc}>{item.desc}</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.giftLocked}>？？？</Text>
-                <Text style={styles.giftDesc}>{item.hint}</Text>
-              </>
-            )}
+        {/* もらいもの。取ったら中身、まだなら取り方のヒント。
+            相手ごとに2つあるので、1つずつカードにすると同じ見出しが並ぶ。
+            取得済みと未取得でまとめる */}
+        {gifts.some((g) => g.owned) && (
+          <View style={styles.discoveryCard}>
+            <Text style={styles.discoveryTitle}>もらったもの</Text>
+            {gifts
+              .filter((g) => g.owned)
+              .map(({ item }) => (
+                <View key={item.id} style={styles.giftRow}>
+                  <Text style={styles.giftName}>{item.name}</Text>
+                  <Text style={styles.giftDesc}>{item.desc}</Text>
+                </View>
+              ))}
           </View>
-        ))}
+        )}
+
+        {gifts.some((g) => !g.owned) && (
+          <View style={styles.discoveryCard}>
+            <Text style={styles.discoveryTitle}>もらえそうなもの</Text>
+            {gifts
+              .filter((g) => !g.owned)
+              .map(({ item }) => (
+                <View key={item.id} style={styles.giftRow}>
+                  <Text style={styles.giftLocked}>？？？</Text>
+                  <Text style={styles.giftDesc}>{item.hint}</Text>
+                </View>
+              ))}
+          </View>
+        )}
 
         {/* これまでの成績。
             グレードと接待スコアは毎ラウンド計算していたのに保存も表示もしていなかった。
@@ -601,6 +612,10 @@ const styles = StyleSheet.create({
   },
   // ===== Hint =====
   /** 一緒に回って分かったこと */
+  /** 2つ以上並ぶので、行の間を空ける */
+  giftRow: {
+    marginTop: 8,
+  },
   giftName: {
     color: '#FFD700',
     fontSize: 15,

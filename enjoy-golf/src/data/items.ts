@@ -13,6 +13,13 @@
  *  - **超怒らせて渡される**（呆れて押し付けられる／根性を買われる）
  *  - 特定の場面で特定の答えをしたとき
  *  - その日の機嫌が合ったとき
+ *  - **こちらが弱っているときに気づかって渡される**（摩耗・振るわないスコア）
+ *
+ * ## 相手ごとに2つ
+ *
+ * 1人1つだと、その相手で狙う対象が1回で終わる。
+ * 2つ目は「接待に使えそうな実用品」と「クスっと笑えるもの」に寄せて、
+ * 1つ目（気に入られて渡される品）と質を変えている。
  *
  * ## いまは集めるだけ
  *
@@ -53,6 +60,20 @@ export type ItemCondition =
   | { kind: 'lowCreep'; max: number }
   /** 集めた名言が min 個以上（銀座だけが見る条件） */
   | { kind: 'quotes'; min: number }
+  /**
+   * 接待スコアが max 以下（契約の成否は問わない）。
+   *
+   * 「うまくやった褒美」だけだと、下手な日に何も起きない。
+   * 振るわなかった日に持たせてくれるものがあると、負けた回にも持ち帰りが出る。
+   */
+  | { kind: 'scoreMax'; max: number }
+  /**
+   * ラウンドを終えた時点の摩耗が min 以上（契約の成否は問わない）。
+   *
+   * 摩耗は数字では見せていないので、ヒントは内なる声が出るころ、という言い方にする。
+   * 気づかって渡されるものなので契約成立は要らない。
+   */
+  | { kind: 'wear'; min: number }
   /**
    * 全部満たしたとき。
    *
@@ -320,6 +341,239 @@ export const giftItems: GiftItem[] = [
     hint: '呆れられるほど怒らせてしまったとき（3回）',
     slot: 'pocket',
     condition: { kind: 'enrage', count: 3 },
+  },
+
+  // ===== 2つ目 =====
+  // 実用品（接待に持っていけるもの）と、クスっと笑えるもの。
+  // 1つ目と条件が重ならないようにしてある（同じ条件だと2つ同時に落ちて謎にならない）
+  {
+    id: 'item_tanaka_2',
+    from: 1,
+    name: '折りたたみ傘（銀行のロゴ入り）',
+    desc: 'ロゴが大きすぎて、傘の柄に見えない。',
+    line: '置き傘です。ロゴは、まあ、我慢してください。',
+    hint: '礼儀を通す手を4回以上使って契約できたとき',
+    slot: 'bag',
+    condition: { kind: 'tagCount', tag: 'etiquette', count: 4 },
+  },
+  {
+    id: 'item_onizuka_2',
+    from: 2,
+    name: '「必勝」の鉢巻',
+    desc: '汗染みが輪になって残っている。',
+    line: '巻け。気合が足りん。',
+    hint: '気合の入った手を2回以上通して契約できたとき',
+    slot: 'wear',
+    condition: { kind: 'tagCount', tag: 'kiai', count: 2 },
+  },
+  {
+    id: 'item_bocchan_2',
+    from: 3,
+    name: '未開封の高級ドライバー',
+    desc: '箱も開いていない。値札が付いたまま。',
+    line: 'もらったんだけど、僕には振れなくてさ。あげる。',
+    hint: 'スコアが60以下だったとき（うまくいかなかった日にくれる）',
+    slot: 'bag',
+    condition: { kind: 'scoreMax', max: 60 },
+  },
+  {
+    id: 'item_kuroda_2',
+    from: 4,
+    name: 'サインを頼んだボール',
+    desc: '「…」だけが書かれている。',
+    line: '…書くことがない。',
+    hint: '嫌がることを一度もせずに契約できたとき',
+    slot: 'pocket',
+    condition: { kind: 'noHates' },
+  },
+  {
+    id: 'item_smith_2',
+    from: 5,
+    name: 'ウェットティッシュ（社名入り）',
+    desc: '一箱まるごと。展示会の残りらしい。',
+    line: 'Hygiene first. お持ちください。',
+    hint: '正直な手を6回以上通して契約できたとき',
+    slot: 'pocket',
+    condition: { kind: 'tagCount', tag: 'honesty', count: 6 },
+  },
+  {
+    id: 'item_mitsuyama_2',
+    from: 6,
+    name: '冷感タオル',
+    desc: '「ととのう」と刺繍されている。',
+    line: '熱くなったら、これで整えましょう！',
+    hint: '盛り上げる手を4回以上使って契約できたとき',
+    slot: 'wear',
+    condition: { kind: 'tagCount', tag: 'hype', count: 4 },
+  },
+  {
+    id: 'item_iwao_2',
+    from: 7,
+    name: '替えのスパイク鋲',
+    desc: '小さな缶に入っている。工具も一緒。',
+    line: '足元が決まらんと、スイングも決まらん。',
+    hint: '礼儀を通す手を6回以上使って契約できたとき',
+    slot: 'bag',
+    condition: { kind: 'tagCount', tag: 'etiquette', count: 6 },
+  },
+  {
+    id: 'item_nakamura_2',
+    from: 8,
+    name: 'モバイルバッテリー',
+    desc: '残量が数字で出る。二台まで同時に充電できる。',
+    line: '電源は前提条件です。どうぞ。',
+    // ①が「理屈5回」なので、回数で刻むと必ず両方同時に落ちる（4は5に含まれる）。
+    // 別の軸にする
+    hint: 'スコア記録アプリの場面で、最適解を聞いたとき',
+    slot: 'bag',
+    condition: {
+      kind: 'choice',
+      eventId: 'char_8_3',
+      textIncludes: '最適解',
+    },
+  },
+  {
+    id: 'item_sato_2',
+    from: 9,
+    name: '虫よけスプレー',
+    desc: '半分ほど使ってある。',
+    line: '夏場は要りますよ。半分使ってますけど。',
+    hint: '正直な手を6回以上通して契約できたとき',
+    slot: 'bag',
+    condition: { kind: 'tagCount', tag: 'honesty', count: 6 },
+  },
+  {
+    id: 'item_matsumoto_2',
+    from: 10,
+    name: '「ナイスショット！」のタオル',
+    desc: '刺繍が金糸。使うのがためらわれる。',
+    line: 'その一打、額に入れたいくらいです！',
+    hint: 'スコア92以上を出したとき（契約の成否は問わない）',
+    slot: 'wear',
+    condition: { kind: 'score', min: 92 },
+  },
+  {
+    id: 'item_daimon_2',
+    from: 11,
+    name: '宛名のない紹介状',
+    desc: '封も糊付けされていない。',
+    line: '名前は、君が入れればいい。',
+    // ①が「踏み込み4回」なので、6回にすると必ず両方同時に落ちる。別の軸にする
+    hint: '派閥を探られて、自分のスタンスだと答えたとき',
+    slot: 'pocket',
+    condition: {
+      kind: 'choice',
+      eventId: 'char_11_1',
+      textIncludes: '自分は自分のスタンス',
+    },
+  },
+  {
+    id: 'item_hoshino_2',
+    from: 12,
+    name: '色紙',
+    desc: 'サインが崩れすぎて誰のか読めない。',
+    line: 'すごい人のだから。たぶん。',
+    hint: '笑わせる手を5回以上使って契約できたとき',
+    slot: 'pocket',
+    condition: { kind: 'tagCount', tag: 'humor', count: 5 },
+  },
+  {
+    id: 'item_kinjo_2',
+    from: 13,
+    name: '胃薬（大瓶）',
+    desc: '減り方を見るに、常用されている。',
+    line: '攻めた後はこれや。効くで。',
+    hint: '踏み込む手を5回以上通して契約できたとき',
+    slot: 'bag',
+    condition: { kind: 'tagCount', tag: 'bold', count: 5 },
+  },
+  {
+    id: 'item_shiraishi_2',
+    from: 14,
+    name: '塩キャンディー',
+    desc: '熱中症対策用。個包装で20粒ほど。',
+    line: '無理は美徳じゃありません。舐めておいてください。',
+    hint: '擦り減った状態で回ったとき（内なる声が出るころ）',
+    slot: 'pocket',
+    condition: { kind: 'wear', min: 25 },
+  },
+  {
+    id: 'item_chizuru_2',
+    from: 15,
+    name: '貼るホッカイロ',
+    desc: '料亭の名が入った紙袋にまとめて入っている。',
+    line: 'お寒いでしょう。お背中にお貼りなさい。',
+    hint: 'スコアが60以下だったとき（うまくいかなかった日にくれる）',
+    slot: 'wear',
+    condition: { kind: 'scoreMax', max: 60 },
+  },
+  {
+    id: 'item_ginza_2',
+    from: 16,
+    name: '事務所のロゴ入りボールペン',
+    desc: 'インクが出ない。ロゴだけがきれい。',
+    line: 'あ、それ書けないんですけど、記念にどうぞ。',
+    hint: 'もらった言葉が6個以上になってから、また相談したとき',
+    slot: 'pocket',
+    condition: { kind: 'quotes', min: 6 },
+  },
+  {
+    id: 'item_shinohara_2',
+    from: 17,
+    name: 'AI解析の結果',
+    desc: 'A4一枚に「個性的」とだけ出力されている。',
+    line: 'うちのAI、これしか言わなくて。額に入れてください。',
+    hint: '笑わせる手を4回以上使って契約できたとき',
+    slot: 'pocket',
+    condition: { kind: 'tagCount', tag: 'humor', count: 4 },
+  },
+  {
+    id: 'item_kiryu_2',
+    from: 18,
+    name: 'ラミネートされた投稿',
+    desc: '本人が撮ったスクリーンショット。数字に丸が付いている。',
+    line: 'これ12万いきました。差し上げます。',
+    hint: '笑わせる手を3回以上使って契約できたとき',
+    slot: 'pocket',
+    condition: { kind: 'tagCount', tag: 'humor', count: 3 },
+  },
+  {
+    id: 'item_takamiya_2',
+    from: 19,
+    name: 'テーピングテープ',
+    desc: '工場の備品。品番のシールが貼ってある。',
+    line: '巻き方は覚えておくといい。',
+    hint: 'フェアな手を3回以上通して契約できたとき',
+    slot: 'bag',
+    condition: { kind: 'tagCount', tag: 'sportsmanship', count: 3 },
+  },
+  {
+    id: 'item_hayase_2',
+    from: 20,
+    name: '領収書ホルダー',
+    desc: '仕切りに「交際費」「会議費」と手書きされている。',
+    line: '経費で落ちるものだけ入れてください。',
+    // 地雷（媚び・煽り）だけだと踏まずに終わる率が高く、狙わなくても41%出た。
+    // 好みの理屈を重ねる
+    hint: '理屈で通す手を3回以上使い、嫌がることを一度もせずに契約できたとき',
+    slot: 'bag',
+    condition: {
+      kind: 'all',
+      of: [{ kind: 'noHates' }, { kind: 'tagCount', tag: 'logic', count: 3 }],
+    },
+  },
+  {
+    id: 'item_mitsuki_2',
+    from: 21,
+    name: '小顔ローラー',
+    desc: 'ゴルフとは何の関係もない。',
+    line: '顔、疲れてるよ。転がしといて〜。',
+    hint: '怒らせてしまい、しかもスコアが70以下だったとき',
+    slot: 'pocket',
+    condition: {
+      kind: 'all',
+      of: [{ kind: 'enrage', count: 1 }, { kind: 'scoreMax', max: 70 }],
+    },
   },
 ];
 

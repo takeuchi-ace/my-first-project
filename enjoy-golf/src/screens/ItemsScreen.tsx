@@ -26,15 +26,19 @@ export default function ItemsScreen({ navigation }: Props) {
 
   const rows = useMemo(() => {
     const owned = new Set(store.ownedItems);
-    return giftItems.map((item) => ({
-      item,
-      owned: owned.has(item.id),
-      giver:
-        characters.find((c) => c.id === item.from)?.name.split('・').pop() ??
-        '',
-      // まだ会っていない相手の道具は、誰からもらうものかも隠す
-      met: store.unlockedCharacterIds.includes(item.from),
-    }));
+    // 相手ごとに2つあるので、渡してくる相手で並べて隣に置く
+    // （データの並びは「1つ目を21人ぶん → 2つ目を21人ぶん」なので、そのままだと離れる）
+    return [...giftItems]
+      .sort((a, b) => a.from - b.from)
+      .map((item) => ({
+        item,
+        owned: owned.has(item.id),
+        giver:
+          characters.find((c) => c.id === item.from)?.name.split('・').pop() ??
+          '',
+        // まだ会っていない相手の道具は、誰からもらうものかも隠す
+        met: store.unlockedCharacterIds.includes(item.from),
+      }));
   }, [store.ownedItems, store.unlockedCharacterIds]);
 
   const count = rows.filter((r) => r.owned).length;
