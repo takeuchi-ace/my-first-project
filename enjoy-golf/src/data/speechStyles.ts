@@ -12,6 +12,17 @@ export type SpeechStyle = {
    * 共通セリフは丁寧語ベースで書かれており、これらの口調では成立しないため。
    */
   distinctVoice?: boolean;
+  /**
+   * curatedEvents の共通セリフ（choice.speech）をそのまま喋らせてよいスタイル。
+   *
+   * 共通セリフは「丁寧な挨拶ですね。こちらこそよろしくお願いします。」のような
+   * 丁寧語・一人称「私」で書かれている。この register が合うスタイルにだけ渡す。
+   *
+   * distinctVoice とは別の軸で持つ。distinctVoice は
+   * 「共通タグセリフにも落とさず自前のテンプレートに任せる」という意味なので、
+   * 兼用すると『丁寧語は合わないが共通タグセリフは使いたい』スタイルを表せない。
+   */
+  sharedLinesOk?: boolean;
 };
 
 export const speechStyles: SpeechStyle[] = [
@@ -26,6 +37,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S02',
+    sharedLinesOk: true,
     name: '堅実ビジネス',
     firstPerson: '私',
     tone: ['丁寧', '慎重', '常識人'],
@@ -59,6 +71,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S06',
+    sharedLinesOk: true,
     name: '自己啓発ポジティブ',
     firstPerson: '私',
     tone: ['明るい', '前向き', '感謝'],
@@ -117,6 +130,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S13',
+    sharedLinesOk: true,
     name: '女性マーケ直球',
     firstPerson: '私',
     tone: ['端的', '本音', '分析型'],
@@ -125,6 +139,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S14',
+    sharedLinesOk: true,
     name: '女性ロジック冷静',
     firstPerson: '私',
     tone: ['結論重視', '論点整理', '曖昧拒否'],
@@ -158,6 +173,7 @@ export const speechStyles: SpeechStyle[] = [
   },
   {
     id: 'S18',
+    sharedLinesOk: true,
     name: '医療丁寧慎重',
     firstPerson: '私',
     tone: ['冷静', '丁寧', 'リスク管理'],

@@ -137,8 +137,11 @@ export function resolveChoiceSpeech(
   const distinctVoice = style?.distinctVoice === true;
 
   // 1. 選択肢ごとに書き下ろした専用セリフ。最も具体的なので最優先。
-  //    ただし全キャラ共通の文章なので、口調が正体の相手には使わない
-  if (choice.speech && !distinctVoice) return choice.speech[spokenRank];
+  //    ただし丁寧語・一人称「私」で書かれた全キャラ共通の文章なので、
+  //    その register が合うスタイルにだけ渡す。
+  //    「僕・〜だよ」の坊っちゃんや「俺・短文」の黒田まで
+  //    「こちらこそよろしくお願いします」と喋っていた。
+  if (choice.speech && style?.sharedLinesOk === true) return choice.speech[spokenRank];
 
   // 2. その口調で書いたタグ別セリフ。口調と噛み合わせが両立する
   if (character) {
