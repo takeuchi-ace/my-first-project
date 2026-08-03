@@ -18,7 +18,7 @@ import { Strategy, drawStrategyOptions } from '../data/strategies';
 import { RoundMood, pickRoundMood, getRoundMood } from '../data/roundMoods';
 import { itemsByCharacter } from '../data/items';
 import { useGameStore } from '../store/useGameStore';
-import { FaceSprite } from '../faces';
+import { FaceSprite, MoodLevel } from '../faces';
 import { COLORS } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
@@ -104,6 +104,25 @@ export default function ProfileScreen({ route, navigation }: Props) {
   const [strategyOptions, setStrategyOptions] = useState<Strategy[] | null>(null);
   const [roundMood, setRoundMood] = useState<RoundMood | null>(null);
   const strategyOpacity = useRef(new Animated.Value(0)).current;
+
+  /**
+   * ラウンド前の一言に添える表情。
+   *
+   * 4 で固定していたため、この直後に出る機嫌の報せが
+   * 「朝から何かあったらしい。言葉に棘がある。」でも笑顔で挨拶していた。
+   * 機嫌は `pickRoundMood` が決めるだけ（乱数を引かない）なので、
+   * 作戦を選ぶ前でも同じ値を先に出せる。
+   */
+  const preRoundFaceMood: MoodLevel = useMemo(() => {
+    if (character.isAce) return 4;
+    const id = pickRoundMood(
+      characterId,
+      store.roundsSinceLastCompetition + store.totalContracts
+    );
+    if (id === 'fine' || id === 'riding') return 5;
+    if (id === 'edgy') return 2;
+    return 3;
+  }, [character.isAce, characterId, store.roundsSinceLastCompetition, store.totalContracts]);
 
   const openStrategyPicker = useCallback(() => {
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
@@ -369,7 +388,7 @@ export default function ProfileScreen({ route, navigation }: Props) {
         <Pressable style={styles.preRoundOverlay} onPress={openStrategyPicker}>
           <Animated.View style={[styles.preRoundContent, { opacity: preRoundOpacity }]}>
             <View style={styles.preRoundFaceWrap}>
-              <FaceSprite mood={4} scale={2} characterId={characterId} />
+              <FaceSprite mood={preRoundFaceMood} scale={2} characterId={characterId} />
             </View>
             <View style={styles.preRoundBubble}>
               <Text style={styles.preRoundText}>

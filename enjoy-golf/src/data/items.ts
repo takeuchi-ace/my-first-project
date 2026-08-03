@@ -58,7 +58,7 @@ export type ItemCondition =
   | { kind: 'perfectShot' }
   /** そのタグを count 回以上使って契約成立 */
   | { kind: 'tagCount'; tag: Tag; count: number }
-  /** 一度も creep を稼がずに契約成立（距離を詰めも取りもしない） */
+  /** creep をほとんど稼がずに契約成立（距離を詰めすぎない。取ることは見ていない） */
   | { kind: 'lowCreep'; max: number }
   /** 集めた名言が min 個以上（銀座だけが見る条件） */
   | { kind: 'quotes'; min: number }
@@ -122,7 +122,7 @@ export const giftItems: GiftItem[] = [
     line: '根性だけは認めてやる。持っていけ。',
     // 気合タグは全選択肢750件中5件しかなく「4回」は不可能だった（実測2%）。
     // 鬼塚らしい場面での一言に変える
-    hint: '短いのに重い。天気が崩れた日の一言で。',
+    hint: '短いのに重い。雨が降り出した場面での一言で。',
     slot: 'bag',
     condition: {
       kind: 'choice',
@@ -256,7 +256,7 @@ export const giftItems: GiftItem[] = [
     desc: '中身が几帳面に補充されている。',
     line: '備えは邪魔になりませんから。お持ちください。',
     // 距離（creep）はプレイヤーに数字で見せていないので、ヒントにも数字は出さない
-    hint: '几帳面に補充された箱。距離を詰めも取りもせずに。',
+    hint: '几帳面に補充された箱。距離を詰めずに。',
     slot: 'bag',
     condition: { kind: 'lowCreep', max: 12 },
   },
@@ -281,7 +281,7 @@ export const giftItems: GiftItem[] = [
     line: 'これは、あなたが持っているほうがいい。',
     // 相談ラウンドの接待スコアは常に100なので、スコアでは条件にならない（実測100%）。
     // 集めた言葉の数を条件にする
-    hint: '創業から使い続けている一本。言葉を集めてから、また訪ねると。',
+    hint: '創業から使い続けている一本。言葉がだいぶ集まってから、また訪ねると。',
     slot: 'green',
     condition: { kind: 'quotes', min: 12 },
   },
@@ -374,7 +374,7 @@ export const giftItems: GiftItem[] = [
     name: '未開封の高級ドライバー',
     desc: '箱も開いていない。値札が付いたまま。',
     line: 'もらったんだけど、僕には振れなくてさ。あげる。',
-    hint: '箱も開いていない値札付き。振るわなかった日に。',
+    hint: '一度も振られていない道具。振るわなかった日に。',
     slot: 'bag',
     condition: { kind: 'scoreMax', max: 60 },
   },
@@ -384,7 +384,7 @@ export const giftItems: GiftItem[] = [
     name: 'サインを頼んだボール',
     desc: '「…」だけが書かれている。',
     line: '…書くことがない。',
-    hint: '「…」だけが書かれた球。地雷を踏まずに終えると。',
+    hint: '頼んで書いてもらった球。地雷を踏まずに終えると。',
     slot: 'pocket',
     condition: { kind: 'noHates' },
   },
@@ -404,7 +404,7 @@ export const giftItems: GiftItem[] = [
     name: '冷感タオル',
     desc: '「ととのう」と刺繍されている。',
     line: '熱くなったら、これで整えましょう！',
-    hint: '「ととのう」と刺繍された布。場を盛り上げ続けると。',
+    hint: '刺繍の入った布。場を盛り上げ続けると。',
     slot: 'wear',
     condition: { kind: 'tagCount', tag: 'hype', count: 4 },
   },
@@ -515,7 +515,7 @@ export const giftItems: GiftItem[] = [
     name: '事務所のロゴ入りボールペン',
     desc: 'インクが出ない。ロゴだけがきれい。',
     line: 'あ、それ書けないんですけど、記念にどうぞ。',
-    hint: 'ロゴだけがきれいな筆記具。言葉が集まってから、また訪ねると。',
+    hint: 'ロゴだけがきれいな筆記具。言葉が少し集まったころ、また訪ねると。',
     slot: 'pocket',
     condition: { kind: 'quotes', min: 6 },
   },
@@ -525,7 +525,7 @@ export const giftItems: GiftItem[] = [
     name: 'AI解析の結果',
     desc: 'A4一枚に「個性的」とだけ出力されている。',
     line: 'うちのAI、これしか言わなくて。額に入れてください。',
-    hint: '「個性的」とだけ書かれた紙。笑わせ続けると。',
+    hint: '解析にかけた結果の紙。笑わせ続けると。',
     slot: 'pocket',
     condition: { kind: 'tagCount', tag: 'humor', count: 4 },
   },
@@ -557,7 +557,7 @@ export const giftItems: GiftItem[] = [
     line: '経費で落ちるものだけ入れてください。',
     // 地雷（媚び・煽り）だけだと踏まずに終わる率が高く、狙わなくても41%出た。
     // 好みの理屈を重ねる
-    hint: '「交際費」と手書きされた仕切り。理屈で押して、地雷も踏まずに。',
+    hint: '仕切りに手書きのある入れもの。理屈で押して、地雷も踏まずに。',
     slot: 'bag',
     condition: {
       kind: 'all',

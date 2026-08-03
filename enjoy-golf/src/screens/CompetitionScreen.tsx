@@ -81,6 +81,8 @@ export default function CompetitionScreen({ navigation, route }: Props) {
   const [seatChoice, setSeatChoice] = useState<SeatId | null>(null);
   const [opponentMenu, setOpponentMenu] = useState(0);
   const [lunchResultText, setLunchResultText] = useState('');
+  /** 昼の結果に添える表情。良し悪しがテキストで出るので、顔も合わせる */
+  const [lunchFaceMood, setLunchFaceMood] = useState<MoodLevel>(3);
   const playerMenuRef = useRef(0);
   const [tableLayout, setTableLayout] = useState<TableLayout | null>(null);
   const [opponentFirst, setOpponentFirst] = useState(false);
@@ -405,6 +407,9 @@ export default function CompetitionScreen({ navigation, route }: Props) {
       playerMenuRef.current = menuId;
       const result = calcLunchResult(tableLayout, seatChoice, opponentSeatId, menuId, gameState.targetCharacterId);
       setLunchResultText(result.resultText);
+      // 顔を昼の首尾に合わせる。固定の4だと
+      // 「少し気まずい空気のまま昼食が終わった…」に笑顔が付いていた
+      setLunchFaceMood(result.lunchMood === 'good' ? 4 : result.lunchMood === 'bad' ? 2 : 3);
       setStep('lunch_result');
     },
     [seatChoice, tableLayout, opponentSeatId, gameState.targetCharacterId]
@@ -671,7 +676,7 @@ export default function CompetitionScreen({ navigation, route }: Props) {
           {step === 'lunch_result' && (
             <View style={styles.storyBox}>
               <View style={styles.faceCenter}>
-                <FaceSprite mood={4} scale={2.5} characterId={targetChar.id} />
+                <FaceSprite mood={lunchFaceMood} scale={2.5} characterId={targetChar.id} />
               </View>
               <View style={styles.resultTextBox}>
                 <Text style={styles.resultText}>{lunchResultText}</Text>
@@ -686,8 +691,14 @@ export default function CompetitionScreen({ navigation, route }: Props) {
           {step === 'awards' && (
             <View style={styles.storyBox}>
               <Text style={styles.awardsTitle}>表彰式</Text>
+              {/* 4 で固定していたので、荒らして終えた回も笑顔で見送られていた。
+                  コンペの契約は trust のしきい値（60〜70）で決まるので、そこを基準にする */}
               <View style={styles.faceCenter}>
-                <FaceSprite mood={4} scale={2.5} characterId={targetChar.id} />
+                <FaceSprite
+                  mood={gameState.gauge.trust >= 60 ? 4 : gameState.gauge.trust >= 35 ? 3 : 2}
+                  scale={2.5}
+                  characterId={targetChar.id}
+                />
               </View>
               <Text style={styles.storyText}>
                 コンペが終了した。{'\n'}結果を確認しよう。

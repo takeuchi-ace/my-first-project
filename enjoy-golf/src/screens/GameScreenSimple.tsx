@@ -423,6 +423,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     const resultText = getOwnShotResultText(result, characterId, character.name);
     setOwnShotResultText(resultText);
     playSfx('shot');
+    // 顔を結果に合わせる。ここで動かさないと、直前のビートの表情のまま
+    // 「ナイスショット」や「あー…」のコメントが出て、顔とコメントが噛み合わない。
+    // ミスでも 3（普通）止まりにするのは、ミスへの反応が
+    // 「気にすんな！」「学びですね！」のように前向きな相手がいるため
+    setMood(result === 'perfect' ? 5 : result === 'good' ? 4 : 3);
 
     const base = pendingMorningState;
     if (base) {
@@ -1016,6 +1021,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     setPuttResultLabel(label);
     playSfx(result === 'in' ? 'cupIn' : 'cupMiss');
     setPuttResultText(getPuttReactionText(characterId, result));
+    // 朝イチのショットと同じ理由で、顔を結果に合わせる（外しても 3 止まり）
+    setMood(result === 'in' ? 5 : result === 'lip_out' ? 4 : 3);
 
     const base = pendingPuttState;
     if (base) {
@@ -1471,9 +1478,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             <Text style={styles.phaseTagText}>後半 4/4</Text>
           </View>
 
-          {/* Face */}
+          {/* Face — 4 で固定していたため、直前に怒らせていても、
+              パットを外しても、最終パットの間だけ機嫌のいい顔になっていた。
+              会話で動いた機嫌をそのまま出し、結果が出たら結果の顔にする */}
           <View style={[styles.faceCenter, { marginVertical: roomyGap }]}>
-            <FaceSprite mood={4} scale={faceScale} characterId={characterId} />
+            <FaceSprite mood={mood} scale={faceScale} characterId={characterId} />
           </View>
 
           {/* Green view (visible during both putt phases) */}
