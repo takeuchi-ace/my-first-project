@@ -84,7 +84,8 @@ export default function ItemsScreen({ navigation }: Props) {
         {unmetCount > 0 && (
           <View style={styles.unmetCard}>
             <Text style={styles.unmetText}>
-              まだ会っていない人からの道具が {unmetCount} つ
+              {/* 未取得は2〜40件になるので「つ」だと数えられない（36つ）。「個」で数える */}
+              まだ会っていない人からの道具が {unmetCount} 個
             </Text>
           </View>
         )}
