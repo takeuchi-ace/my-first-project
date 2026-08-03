@@ -15,6 +15,7 @@ import { wasSSAchieved as wasTanakaSSAchieved } from '../logic/tanaka';
 import { wasOnizukaSSAchieved } from '../logic/onizuka';
 import { useGameStore } from '../store/useGameStore';
 import { getStrategy, strategyFit } from '../data/strategies';
+import { RUN_ALLOWED_MISSES, RUN_WEAR_LIMIT } from '../logic/wear';
 import { COLORS } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultSimple'>;
@@ -91,6 +92,8 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
 
   // Contract processing + round counter (run once as side effect)
   const [contractResult, setContractResult] = useState<{ newlyUnlocked: number[] } | null>(null);
+  /** 自己ベストを更新したときの旧ベスト。null なら更新していない */
+  const [beatenBest, setBeatenBest] = useState<number | null>(null);
   const processed = useRef(false);
 
   useEffect(() => {
@@ -104,6 +107,17 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
     if (result.contractSuccess) {
       const newlyUnlocked = store.addContractForCharacter(characterId);
       setContractResult({ newlyUnlocked });
+    }
+
+    // 相談ラウンドを回ったらACEボールを満タンに戻す。
+    //
+    // `addContractForCharacter` の ACE 分岐に任せていたが、あの関数は
+    // `contractedCharacterIds.includes(id)` で始まる早期 return を持つため
+    // **初回の顧問契約時しか走らない**。「本心読破」での獲得を外した結果、
+    // 2個使い切ると二度と戻らない状態になっていた。
+    // 早期 return は契約の二重計上を防ぐ正しい防御なので触らず、ここで明示的に補充する。
+    if (isAceRound) {
+      store.refillAceBalls();
     }
 
     // 一緒に回って分かったこと。刺さった手／怒らせた手のタグを溜める。
@@ -126,6 +140,16 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         .flatMap((h) => h.tags)
         .filter((t) => hatesTags.includes(t));
       store.recordDiscoveries(characterId, liked, hated);
+    }
+
+    // 成績を残す。相談ラウンドは評価しない場なので数えない。
+    // 更新の有無を出したいので、記録より先に旧ベストを読む
+    if (!isAceRound) {
+      const prevBest = store.getPersonalBest(characterId);
+      if (prevBest && result.entertainScore > prevBest.score) {
+        setBeatenBest(prevBest.score);
+      }
+      store.recordRoundResult(characterId, result.entertainScore, result.grade);
     }
   }, [result.contractSuccess, characterId, isAceRound]);
 
@@ -188,8 +212,47 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
     [isAceRound, lastGameState],
   );
 
+  /**
+   * 連戦の状況。
+   *
+   * 連戦中は「契約成立 → 紹介演出（Intro）」へ行かせない。
+   * 全員契約済みなので新規解放は起きないうえ、演出が挟まるとテンポが死ぬ。
+   * 摩耗は連戦中は回復しないので、限界に達したらそこで打ち切る。
+   */
+  const runInfo = useMemo(() => {
+    const run = store.getRun();
+    if (!run || isAceRound) return null;
+    const exhausted = store.getWear() >= RUN_WEAR_LIMIT;
+    // 落とした回数が上限を超えたら終わり。1件までは続けられる
+    const misses = run.misses + (result.contractSuccess ? 0 : 1);
+    const survived = misses <= RUN_ALLOWED_MISSES && !exhausted;
+    const lastChance = survived && misses === RUN_ALLOWED_MISSES;
+    return { run, exhausted, survived, lastChance };
+  }, [store, isAceRound, result.contractSuccess]);
+
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (runInfo) {
+      // 進めるのと終えるのは1本のアクションにまとめてある。
+      // 分けると setState が非同期なせいで、摩耗で打ち切ったラウンドの
+      // 契約が最終集計から漏れる
+      const outcome = store.finishRunRound(
+        result.entertainScore,
+        result.contractSuccess,
+        runInfo.exhausted
+      );
+      if ('next' in outcome) {
+        navigation.replace('Profile', {
+          characterId: outcome.next,
+          autoStart: true,
+        });
+      } else {
+        navigation.replace('RunResult', outcome.ended);
+      }
+      return;
+    }
+
     if (contractResult) {
       // Navigate to Intro screen for contract reveal
       navigation.replace('Intro', {
@@ -212,6 +275,18 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
           <View style={styles.explosionBanner}>
             <Text style={styles.explosionText}>{creepExplosionText}</Text>
           </View>
+        )}
+
+        {/* 連戦中は何人目かを出す。通し番号が無いと「どこまで来たか」が分からない */}
+        {runInfo && (
+          <Text style={styles.runCounter}>
+            連戦 {runInfo.run.index + 1}人目・契約 {runInfo.run.reached}
+            {runInfo.exhausted
+              ? '　もう笑えない'
+              : runInfo.lastChance
+                ? '　あと1件も落とせない'
+                : ''}
+          </Text>
         )}
 
         {/* Opponent score */}
@@ -243,6 +318,11 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         <Text style={styles.scoreDetail}>
           スコア: {result.entertainScore}
         </Text>
+        {beatenBest !== null && (
+          <Text style={styles.bestUpdate}>
+            自己ベスト更新（前回 {beatenBest}）
+          </Text>
+        )}
 
         {/* Play type */}
         <View style={styles.playTypeCard}>
@@ -376,7 +456,13 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
           onPress={handleNext}
         >
           <Text style={result.contractSuccess ? styles.actionButtonSuccessText : styles.actionButtonText}>
-            {result.contractSuccess ? '次へ' : 'もう一度プレーする'}
+            {runInfo
+              ? runInfo.survived
+                ? '次の相手へ'
+                : '連戦を終える'
+              : result.contractSuccess
+                ? '次へ'
+                : 'もう一度プレーする'}
           </Text>
         </Pressable>
       </ScrollView>
@@ -446,6 +532,18 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: '900',
     marginBottom: 4,
+  },
+  runCounter: {
+    color: COLORS.gradeS,
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  bestUpdate: {
+    color: COLORS.gradeS,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 4,
   },
   scoreDetail: {
     color: 'rgba(255,255,255,0.5)',

@@ -29,7 +29,7 @@ const PRE_ROUND_FADE_MS = 300;
 const ACE_QUOTE_TOTAL = aceConsultPool.filter((c) => c.isQuote).length;
 
 export default function ProfileScreen({ route, navigation }: Props) {
-  const { characterId } = route.params;
+  const { characterId, autoStart } = route.params;
   const store = useGameStore();
 
   /**
@@ -57,6 +57,16 @@ export default function ProfileScreen({ route, navigation }: Props) {
     () => characters.find((c) => c.id === characterId)!,
     [characterId],
   );
+
+  /**
+   * これまでの成績。
+   * 相談ラウンドは評価しない場なので記録していない（エースには出ない）。
+   */
+  const record = useMemo(() => {
+    const rounds = store.getRoundsPlayed(characterId);
+    if (rounds === 0) return null;
+    return { rounds, best: store.getPersonalBest(characterId) };
+  }, [store, characterId]);
 
   const isContracted = store.contractedCharacterIds.includes(characterId);
   const totalCharCount = characters.length;
@@ -117,6 +127,20 @@ export default function ProfileScreen({ route, navigation }: Props) {
     [characterId, navigation, roundMood]
   );
 
+  /**
+   * 連戦の次の相手として開かれたときは、作戦の宣言をすぐ出す。
+   *
+   * 連戦でも作戦と機嫌は要る（賭けの層が抜けると、ただ長いだけになる）。
+   * 宣言の UI はこの画面にしか無いので、連戦もここを通す。
+   * プロフィールが一瞬見えることで「誰が来たか」も分かる。
+   */
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoOpened.current) return;
+    autoOpened.current = true;
+    openStrategyPicker();
+  }, [autoStart, openStrategyPicker]);
+
   const handleRoundPress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -143,8 +167,12 @@ export default function ProfileScreen({ route, navigation }: Props) {
 
   const handleBack = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // 連戦の途中で抜けるなら、そこで放棄する。
+    // 放置すると摩耗が連戦用の値のまま残り、次に始めた連戦が
+    // 前回の続きから始まってしまう。記録は残さない（打ち切りは成績ではない）
+    if (store.getRun()) store.abandonRun();
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, store]);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -204,6 +232,27 @@ export default function ProfileScreen({ route, navigation }: Props) {
         {/* Hint */}
         {character.hint && (
           <Text style={styles.hintText}>{character.hint}</Text>
+        )}
+
+        {/* これまでの成績。
+            グレードと接待スコアは毎ラウンド計算していたのに保存も表示もしていなかった。
+            狙う数字が無いと、契約済みの相手を再訪する理由がなくなる */}
+        {record && (
+          <View style={styles.discoveryCard}>
+            <Text style={styles.discoveryTitle}>これまでの成績</Text>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>自己ベスト</Text>
+              <Text style={styles.recordValue}>
+                {record.best
+                  ? `${record.best.grade}（${record.best.score}）`
+                  : '—'}
+              </Text>
+            </View>
+            <View style={styles.recordRow}>
+              <Text style={styles.recordLabel}>回った回数</Text>
+              <Text style={styles.recordValue}>{record.rounds}回</Text>
+            </View>
+          </View>
         )}
 
         {/* 一緒に回って分かったこと。
@@ -518,6 +567,21 @@ const styles = StyleSheet.create({
   },
   // ===== Hint =====
   /** 一緒に回って分かったこと */
+  recordRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  recordLabel: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+  },
+  recordValue: {
+    color: '#f0e6c8',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   discoveryCard: {
     width: '100%',
     backgroundColor: 'rgba(255,255,255,0.06)',

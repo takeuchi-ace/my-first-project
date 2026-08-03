@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { setSfxEnabled as applySfxEnabled } from '../lib/sound';
-import { GameState, CharacterId, Character, CompetitionId, Tag } from '../types';
+import { GameState, CharacterId, Character, CompetitionId, EntertainGrade, Tag } from '../types';
 import { characters } from '../data/characters';
 import { competitionOrder, competitionMap } from '../data/competitionData';
+import { RUN_ALLOWED_MISSES } from '../logic/wear';
 
 // ===== Types =====
+/** 連戦の最終集計 */
+export interface RunTally {
+  reached: number;
+  totalScore: number;
+  isBest: boolean;
+}
+
 interface GameStoreState {
   unlockedCharacterIds: number[];
   contractedCharacterIds: number[];
@@ -25,6 +33,34 @@ interface GameStoreState {
    * 周回するほど読む材料が増え、次に会うときプロフィールで読み返せる。
    */
   discovered: Record<number, { liked: Tag[]; hated: Tag[] }>;
+  /**
+   * 相手ごとの自己ベスト。
+   * グレードは SS（田中・鬼塚の特別条件）を含み score から導けないので別に持つ。
+   */
+  personalBest: Record<number, { score: number; grade: EntertainGrade }>;
+  /** 相手ごとに回った回数。契約の成否は問わない */
+  roundsPlayed: Record<number, number>;
+  /**
+   * 連戦の自己ベスト。到達人数が同じなら合計スコアで比べる。
+   * 進行中の `run` は保存しない（途中で閉じた状態を復元しても整合が取れない）。
+   */
+  bestRun: { reached: number; totalScore: number } | null;
+  /**
+   * 進行中の連戦。保存しない。
+   * 途中で閉じた状態を復元しても「どのラウンドの途中だったか」が分からず整合が取れない。
+   */
+  run: {
+    order: CharacterId[];
+    /** 何ラウンド目か（並びの位置） */
+    index: number;
+    /** 契約できた人数。これが連戦のスコア */
+    reached: number;
+    /** 落とした回数。RUN_ALLOWED_MISSES を超えたら終了 */
+    misses: number;
+    totalScore: number;
+    /** 連戦前の摩耗。終わったらここへ戻す */
+    wearBefore: number;
+  } | null;
 }
 
 interface GameStoreActions {
@@ -59,6 +95,31 @@ interface GameStoreActions {
   /** 効果音のオン・オフ。保存され、次に開いたときも引き継がれる */
   setSfxEnabled: (v: boolean) => void;
   getDiscovered: (charId: CharacterId) => { liked: Tag[]; hated: Tag[] };
+  // ===== 成績 =====
+  /** ラウンド1回分の成績を記録する。自己ベストの更新判定は呼び出し前に getPersonalBest で行う */
+  recordRoundResult: (charId: CharacterId, score: number, grade: EntertainGrade) => void;
+  getPersonalBest: (charId: CharacterId) => { score: number; grade: EntertainGrade } | null;
+  getRoundsPlayed: (charId: CharacterId) => number;
+  // ===== 連戦 =====
+  /** 連戦をはじめる。契約済みから並びを引き、摩耗を初期値に置く */
+  startRun: () => CharacterId[];
+  /**
+   * 連戦の1ラウンドを締める。続くなら次の相手、終わりなら最終集計を返す。
+   *
+   * 「進める」と「終える」を1本にしているのは、分けると
+   * setState が非同期なせいで終了時に最後の1件を取りこぼすため
+   * （`advanceRun` の直後に `endRun` を呼ぶと、後者が更新前の集計を読む）。
+   *
+   * @param exhausted 摩耗が限界に達したか。契約できていても打ち切る
+   */
+  finishRunRound: (
+    score: number,
+    contracted: boolean,
+    exhausted: boolean
+  ) => { next: CharacterId } | { ended: RunTally };
+  /** 連戦を途中で放棄する。摩耗だけ元に戻し、記録は残さない */
+  abandonRun: () => void;
+  getRun: () => GameStoreState['run'];
   // Reset
   resetAll: () => void;
 }
@@ -83,6 +144,10 @@ const INITIAL_STATE: GameStoreState = {
   cooldowns: {},
   wear: 10,
   discovered: {},
+  personalBest: {},
+  roundsPlayed: {},
+  bestRun: null,
+  run: null,
 };
 
 const STORAGE_KEY = 'enjoy-golf-store';
@@ -133,6 +198,10 @@ async function loadState(): Promise<GameStoreState | null> {
       // 保存データが壊れていても範囲外の摩耗を持ち込ませない
       wear: Math.max(0, Math.min(100, parsed.wear ?? 10)),
       discovered: parsed.discovered ?? {},
+      personalBest: parsed.personalBest ?? {},
+      roundsPlayed: parsed.roundsPlayed ?? {},
+      bestRun: parsed.bestRun ?? null,
+      run: null,
     };
   } catch {
     return null;
@@ -141,7 +210,9 @@ async function loadState(): Promise<GameStoreState | null> {
 
 async function saveState(state: GameStoreState): Promise<void> {
   try {
-    const raw = JSON.stringify(state);
+    // 進行中の連戦は保存しない（復元しても整合が取れないので、読む側でも捨てている）
+    const { run: _run, ...persisted } = state;
+    const raw = JSON.stringify(persisted);
     if (Platform.OS === 'web') {
       localStorage.setItem(STORAGE_KEY, raw);
     } else {
@@ -437,6 +508,140 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  /**
+   * ラウンド1回分の成績を記録する。
+   *
+   * これまで `calcResult` がグレードと接待スコアを毎回計算していたのに、
+   * 保存も表示もせず捨てていた。狙う数字が無いので、契約済みの相手を
+   * 再訪して得られるものが文字通りゼロだった。
+   *
+   * 自己ベストを更新したかは呼び出し側で表示したいので、
+   * 記録の**前**に `getPersonalBest` を読ませる（ここでは返さない）。
+   */
+  const recordRoundResultFn = useCallback(
+    (charId: CharacterId, score: number, grade: EntertainGrade) => {
+      setState((prev) => {
+        const prevBest = prev.personalBest[charId];
+        const nextBest =
+          !prevBest || score > prevBest.score ? { score, grade } : prevBest;
+        return {
+          ...prev,
+          personalBest: { ...prev.personalBest, [charId]: nextBest },
+          roundsPlayed: {
+            ...prev.roundsPlayed,
+            [charId]: (prev.roundsPlayed[charId] ?? 0) + 1,
+          },
+        };
+      });
+    },
+    []
+  );
+
+  const getPersonalBestFn = useCallback(
+    (charId: CharacterId) => stateRef.current.personalBest[charId] ?? null,
+    []
+  );
+
+  const getRoundsPlayedFn = useCallback(
+    (charId: CharacterId) => stateRef.current.roundsPlayed[charId] ?? 0,
+    []
+  );
+
+  // ===== 連戦 =====
+  //
+  // 21人と契約したあとに何も残らないのを埋めるモード。
+  // ラウンドそのものは通常と同一なので、進行は結果画面の分岐で繋ぐ。
+
+  /**
+   * 契約済みから重複なしの並びを引く。
+   *
+   * 銀座（`isAce`）は除く。相談ラウンドは5ホールで必ず成立扱いなので、
+   * 連戦に混ざると「落とせない相手」が並びに入って判定が成立しない
+   * （実機で銀座が1人目に来て相談ラウンドが始まり、連戦が宙に浮いた）。
+   */
+  const drawRunOrder = (contracted: CharacterId[]): CharacterId[] => {
+    const aceIds = new Set(characters.filter((c) => c.isAce).map((c) => c.id));
+    const pool = contracted.filter((id) => !aceIds.has(id));
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool;
+  };
+
+  const startRunFn = useCallback((): CharacterId[] => {
+    const cur = stateRef.current;
+    const order = drawRunOrder(cur.contractedCharacterIds);
+    setState((prev) => ({
+      ...prev,
+      // 通常プレイの摩耗を持ち込むと「疲れているから連戦できない」になって窮屈。
+      // 初期値から始め、終わったら元に戻す
+      wear: 10,
+      run: { order, index: 0, reached: 0, misses: 0, totalScore: 0, wearBefore: prev.wear },
+    }));
+    return order;
+  }, []);
+
+  const finishRunRoundFn = useCallback(
+    (
+      score: number,
+      contracted: boolean,
+      exhausted: boolean
+    ): { next: CharacterId } | { ended: RunTally } => {
+      const cur = stateRef.current;
+      const run = cur.run;
+      if (!run) return { ended: { reached: 0, totalScore: 0, isBest: false } };
+
+      const misses = run.misses + (contracted ? 0 : 1);
+      const reached = run.reached + (contracted ? 1 : 0);
+      const totalScore = run.totalScore + score;
+      const over = misses > RUN_ALLOWED_MISSES || exhausted;
+
+      if (over) {
+        const prevBest = cur.bestRun;
+        const isBest =
+          !prevBest ||
+          reached > prevBest.reached ||
+          (reached === prevBest.reached && totalScore > prevBest.totalScore);
+        setState((prev) => ({
+          ...prev,
+          wear: prev.run ? prev.run.wearBefore : prev.wear,
+          bestRun: isBest ? { reached, totalScore } : prev.bestRun,
+          run: null,
+        }));
+        return { ended: { reached, totalScore, isBest } };
+      }
+
+      // 並びを使い切ったら引き直す。連戦は人数ではなく「どこまで続くか」を競う
+      const nextIndex = run.index + 1;
+      const wrapped = nextIndex >= run.order.length;
+      const order = wrapped
+        ? drawRunOrder(cur.contractedCharacterIds)
+        : run.order;
+      const index = wrapped ? 0 : nextIndex;
+
+      setState((prev) =>
+        prev.run
+          ? {
+              ...prev,
+              run: { ...prev.run, order, index, reached, misses, totalScore },
+            }
+          : prev
+      );
+      return { next: order[index] };
+    },
+    []
+  );
+
+  /** 途中で抜けたとき。摩耗だけ戻し、記録は残さない */
+  const abandonRunFn = useCallback(() => {
+    setState((prev) =>
+      prev.run ? { ...prev, wear: prev.run.wearBefore, run: null } : prev
+    );
+  }, []);
+
+  const getRunFn = useCallback(() => stateRef.current.run, []);
+
   // ===== Reset =====
   const resetAllFn = useCallback(() => {
     setState({ ...INITIAL_STATE });
@@ -471,9 +676,16 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       recordDiscoveries: recordDiscoveriesFn,
       setSfxEnabled: setSfxEnabledFn,
       getDiscovered: getDiscoveredFn,
+      recordRoundResult: recordRoundResultFn,
+      getPersonalBest: getPersonalBestFn,
+      getRoundsPlayed: getRoundsPlayedFn,
+      startRun: startRunFn,
+      finishRunRound: finishRunRoundFn,
+      abandonRun: abandonRunFn,
+      getRun: getRunFn,
       resetAll: resetAllFn,
     }),
-    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, setSfxEnabledFn, markAceBallExplainedFn, resetAllFn],
+    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, recordRoundResultFn, getPersonalBestFn, getRoundsPlayedFn, startRunFn, finishRunRoundFn, abandonRunFn, getRunFn, setSfxEnabledFn, markAceBallExplainedFn, resetAllFn],
   );
 
   return React.createElement(GameStoreContext.Provider, { value }, children);

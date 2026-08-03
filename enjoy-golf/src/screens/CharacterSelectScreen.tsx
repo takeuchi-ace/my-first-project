@@ -239,6 +239,19 @@ export default function CharacterSelectScreen({ navigation }: Props) {
     [navigation, remaining],
   );
 
+  /**
+   * 連戦。全員と契約したあとに何も残らなかったので足した。
+   * ここ以外に置く場所（タイトル画面）だと、契約状況が見えない場所から
+   * 「全員契約済みのときだけ出る」ものが現れて脈絡がなくなる。
+   */
+  const allContracted = contractedCharacterIds.length >= totalCharCount;
+  const handleStartRun = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const order = store.startRun();
+    if (order.length === 0) return;
+    navigation.navigate('Profile', { characterId: order[0], autoStart: true });
+  }, [store, navigation]);
+
   const handleReset = useCallback(() => {
     const doReset = () => {
       store.resetAll();
@@ -268,6 +281,27 @@ export default function CharacterSelectScreen({ navigation }: Props) {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <>
+            {/* 連戦。全員と契約したときだけ出る */}
+            {allContracted && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.runCard,
+                  pressed && { opacity: 0.75 },
+                ]}
+                onPress={handleStartRun}
+              >
+                <Text style={styles.runTitle}>連戦</Text>
+                <Text style={styles.runDesc}>
+                  続けて何人と契約できるか。摩耗は回復しません
+                </Text>
+                <Text style={styles.runBest}>
+                  {store.bestRun
+                    ? `自己ベスト ${store.bestRun.reached}人（${store.bestRun.totalScore}）`
+                    : 'まだ記録がありません'}
+                </Text>
+              </Pressable>
+            )}
+
             {/* 進捗サブバー */}
             <View style={styles.progressSubBar}>
               <Text style={styles.progressText}>
@@ -357,6 +391,30 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   // ===== Progress sub-bar =====
+  runCard: {
+    backgroundColor: 'rgba(255,215,0,0.10)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.4)',
+    padding: 14,
+    marginBottom: 12,
+  },
+  runTitle: {
+    color: '#FFD700',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  runDesc: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  runBest: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 12,
+  },
   progressSubBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

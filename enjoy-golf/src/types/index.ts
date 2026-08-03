@@ -410,7 +410,11 @@ export interface CompetitionResult {
 export type RootStackParamList = {
   Title: undefined;
   CharacterSelect: undefined;
-  Profile: { characterId: CharacterId };
+  Profile: {
+    characterId: CharacterId;
+    /** 連戦の次の相手として開いたか。true なら作戦の宣言を自動で開く */
+    autoStart?: boolean;
+  };
   GameSimple: {
     characterId: CharacterId;
     strategy?: StrategyId | null;
@@ -428,6 +432,7 @@ export type RootStackParamList = {
     isRepeatAce?: boolean;
     lunchMood: LunchMood;
   };
+  RunResult: { reached: number; totalScore: number; isBest: boolean };
   Competition: { competitionId: CompetitionId };
   CompetitionResult: {
     result: CompetitionResult;

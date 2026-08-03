@@ -498,9 +498,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       // 通常ラウンドは「そのラウンドで自分を殺した量」で回復量が変わり、
       // 迎合せずに終えたラウンドが摩耗を戻す手になる。
       // 契約成功では回復させない（迎合で勝った代償を勝利が打ち消してしまう）
-      store.addWear(
-        isAceRound ? WEAR_ACE_ROUND : calcRoundEndRecovery(roundWearRef.current)
-      );
+      //
+      // 連戦中は回復させない。摩耗が連戦の上限そのものなので、
+      // ラウンドを跨いで戻ってしまうと「腕だけで無限に伸びる」構造に戻る。
+      if (!store.getRun()) {
+        store.addWear(
+          isAceRound ? WEAR_ACE_ROUND : calcRoundEndRecovery(roundWearRef.current)
+        );
+      }
 
       // Character closing check (Tanaka / Onizuka) before navigating to result
       if (!isAceRound && newState.finishReason === 'complete') {
