@@ -116,7 +116,7 @@ const PUTT_WINDOW = { perfect: 0.05, good: 0.10 };
  * 1回タップで終わると、上手く押せたかどうかだけの単調な操作になり、
  * 相手との関係が何も動かない。段を分けたうえで、構えの直後に
  * 相手が話しかけてくる（`own_shot_talk`）。応じれば信頼が動くが、
- * 次の段の判定窓が狭くなる——自分のスコアと接待がひとつの操作でぶつかる。
+ * その一打では PERFECT が出なくなる——自分のスコアと接待がひとつの操作でぶつかる。
  *
  * 窓は段ごとに狭くなり、バーも速くなる。インパクトが一番きつい。
  */
@@ -141,9 +141,6 @@ const SWING_STEPS = [
   },
 ] as const;
 
-/** 話しかけに応じたとき、次の段の判定窓にかかる倍率 */
-const TALK_WINDOW_PENALTY = 0.8;
-
 /**
  * 3段の点（各段 PERFECT=2 / GOOD=1 / MISS=0）からショットの出来を決める。
  *
@@ -161,11 +158,20 @@ const TALK_WINDOW_PENALTY = 0.8;
  * | 上手 σ=0.04 | P99 G1 M0 | P92 G8 M0 |
  *
  * PERFECT はどの腕でも取りにくくなり、ミスの出方は据え置き。
+ *
+ * `talkAnswered`（声かけに応じた）ときは **PERFECT を出さない**。
+ * 最初は「次の段の判定窓を0.8倍」にしていたが、実測すると
+ * **腕のある人（σ=0.04）には打数の期待値が 0.00 打しか動かず**、
+ * 信頼だけもらえる無料の選択になっていた。窓の狭さは腕で吸収できる。
+ * 上限を切る形なら腕に関係なく効く（PERFECT と GOOD の差は3打）。
  */
-const swingScoresToResult = (scores: number[]): OwnShotResult => {
+const swingScoresToResult = (
+  scores: number[],
+  talkAnswered: boolean
+): OwnShotResult => {
   const total = scores.reduce((a, b) => a + b, 0);
   const impact = scores[scores.length - 1];
-  if (total >= 5 && impact === 2) return 'perfect';
+  if (!talkAnswered && total >= 5 && impact === 2) return 'perfect';
   return total >= 3 ? 'good' : 'miss';
 };
 
@@ -349,6 +355,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const [talkAnswered, setTalkAnswered] = useState(false);
   /** 話しかけへの返事のあとに出す地の文 */
   const [talkResultLine, setTalkResultLine] = useState<string | null>(null);
+  /** 返事の二度押しを閉じる。state だとボタンが消える前にもう一度通る */
+  const talkLockedRef = useRef(false);
 
   // ===== Final Putt mini-game state =====
   const [puttPhase, setPuttPhase] = useState<PuttPhase>(null);
@@ -371,13 +379,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const ownShotZone = useMemo(() => {
     const base = scaledWindow(OWN_SHOT_WINDOW, ownShotFocus);
     const step = SWING_STEPS[Math.min(swingStep, SWING_STEPS.length - 1)];
-    // 応じたのは1段目の直後なので、狭まるのは2段目（振り上げ）だけ
-    const penalty = talkAnswered && swingStep === 1 ? TALK_WINDOW_PENALTY : 1;
     return {
-      perfect: base.perfect * step.windowScale * penalty,
-      good: base.good * step.windowScale * penalty,
+      perfect: base.perfect * step.windowScale,
+      good: base.good * step.windowScale,
     };
-  }, [ownShotFocus, swingStep, talkAnswered]);
+  }, [ownShotFocus, swingStep]);
   const puttZone = useMemo(() => scaledWindow(PUTT_WINDOW, puttFocus), [puttFocus]);
   /** 引いている量（0〜1）。指を離した時点の値で強さが決まる */
   const [puttPull, setPuttPull] = useState(0);
@@ -477,6 +483,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     swingLockedRef.current = false;
     puttPullRef.current = 0;
     setPuttPull(0);
+    // 前のパットが目標帯の中で終わっていると true のまま残り、
+    // 次のパットで帯に入ったときの触覚が鳴らない
+    puttInPerfectRef.current = false;
   }, [puttPhase]);
 
   // ===== Swing animation for morning mini-game =====
@@ -510,7 +519,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
    * 段の途中では呼ばない（最後の段のタップと、途中で画面を離れたときだけ）。
    */
   const finishSwing = useCallback((scores: number[]) => {
-    const result = swingScoresToResult(scores);
+    const result = swingScoresToResult(scores, talkAnswered);
 
     const resultText = getOwnShotResultText(result, characterId, character.name);
     setOwnShotResultText(resultText);
@@ -533,7 +542,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     }
 
     setMorningPhase('own_shot_result');
-  }, [pendingMorningState, characterId, character.name]);
+  }, [pendingMorningState, characterId, character.name, talkAnswered]);
 
   // ===== Handle swing tap（3段） =====
   const handleSwingTap = useCallback(() => {
@@ -552,6 +561,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     // 1段目（構え）のあとは相手が話しかけてくる
     if (swingStep === 0) {
       setTalkResultLine(null);
+      talkLockedRef.current = false;
       setMorningPhase('own_shot_talk');
       return;
     }
@@ -567,12 +577,16 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   /**
    * 話しかけへの返事。
    *
-   * 応じれば信頼が動くが、次の段（振り上げ）の窓が狭くなる。
-   * 流せば窓はそのままだが、話を流したぶん信頼が下がる。
+   * 応じれば信頼が動くが、その一打では PERFECT が出なくなる。
+   * 流せばショットはそのままだが、話を流したぶん信頼が下がる。
    * どちらも engine 経由で入れる（キャラの traitModifiers を効かせるため）。
    */
   const answerMorningTalk = useCallback(
     (answered: boolean) => {
+      // 二度押しの守り。素早く2回叩くと信頼が二重に入る（+4 が +8 になる）。
+      // ボタンが消えるのは state が反映されてからなので、ref で即座に閉じる
+      if (talkLockedRef.current) return;
+      talkLockedRef.current = true;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setTalkAnswered(answered);
       const base = pendingMorningState;
@@ -1535,7 +1549,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                   {'「'}{morningTalkLines[characterId]}{'」'}
                 </Text>
                 <Text style={styles.eventBoxDesc}>
-                  応じれば喜ばれるが、振り上げの狙いが乱れる。
+                  応じれば喜ばれるが、この一打で PERFECT は狙えなくなる。
                 </Text>
               </View>
 
@@ -1544,7 +1558,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 onPress={() => answerMorningTalk(true)}
               >
                 <Text style={styles.talkChoiceLabel}>手を止めて応じる</Text>
-                <Text style={styles.talkChoiceNote}>次の判定窓が狭くなる</Text>
+                <Text style={styles.talkChoiceNote}>PERFECT は出なくなる</Text>
               </Pressable>
 
               <Pressable
@@ -1552,7 +1566,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 onPress={() => answerMorningTalk(false)}
               >
                 <Text style={styles.talkChoiceLabel}>聞こえなかったふりをする</Text>
-                <Text style={styles.talkChoiceNote}>狙いは乱れないが、話を流すことになる</Text>
+                <Text style={styles.talkChoiceNote}>ショットは狙えるが、話を流すことになる</Text>
               </Pressable>
             </View>
           )}
@@ -1642,7 +1656,26 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                   ? 'GOOD'
                   : 'MISS...'}
               </Text>
-              <Text style={styles.eventBoxDesc}>{ownShotResultText}</Text>
+              {/* 3段の内訳。結果だけ出しても、どの段で崩れたのか分からない */}
+              <View style={styles.swingStepRow}>
+                {SWING_STEPS.map((s, i) => (
+                  <Text
+                    key={s.label}
+                    style={[
+                      styles.swingStepChip,
+                      swingScores[i] === 2 && styles.swingStepChipPerfect,
+                      swingScores[i] === 1 && styles.swingStepChipGood,
+                      swingScores[i] === 0 && styles.swingStepChipMiss,
+                    ]}
+                  >
+                    {s.label}
+                    {swingScores[i] === 2 ? ' ◎' : swingScores[i] === 1 ? ' ○' : ' ×'}
+                  </Text>
+                ))}
+              </View>
+              <Text style={[styles.eventBoxDesc, { marginTop: 10 }]}>
+                {ownShotResultText}
+              </Text>
             </View>
           )}
         </ScrollView>
