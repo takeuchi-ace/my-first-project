@@ -142,6 +142,8 @@ const zoneStyle = (half: number) => ({
   width: `${half * 200}%` as `${number}%`,
 });
 import { playSfx } from '../lib/sound';
+import AceBallIntro from '../components/AceBallIntro';
+import { ACE_BALL_MAX } from '../store/useGameStore';
 
 const RANK_TO_MOOD: Record<ReactionRank, MoodLevel> = {
   good: 4,
@@ -238,6 +240,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   // ===== Insight state =====
   const [insightStreak, setInsightStreak] = useState(0);
   const [showInsight, setShowInsight] = useState(false);
+  const [showAceBallIntro, setShowAceBallIntro] = useState(false);
   /** 内なる声。迎合が通って摩耗が溜まったビートだけ出る（null = 出さない） */
   const [innerVoice, setInnerVoice] = useState<string | null>(null);
   /** 創業者の気づかいを1ラウンドに1回だけ出すための記録 */
@@ -738,6 +741,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     setPrevWasMismatch(plan.isMismatch);
     if (insightFired && store.gainAceBall()) {
       setShowInsight(true);
+      // 初めて手にしたときだけ説明する。
+      // 「本心読破！」のトーストが消えてから出す（重ねると両方読めない）
+      if (!store.aceBallExplained) {
+        setTimeout(() => setShowAceBallIntro(true), 1600);
+      }
     }
 
     // Set speech & gesture
@@ -964,6 +972,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     setChoosing(true);
     resetUI();
   }, [previousState, store, resetUI]);
+
+  // 銀座と顧問契約すると持ち物が満タンになるが、その画面はここではない。
+  // 説明を出す場所を2つに分けたくないので、次のラウンドの入口で拾う。
+  useEffect(() => {
+    if (!store.hydrated || isAceRound) return;
+    if (store.aceBalls > 0 && !store.aceBallExplained) {
+      setShowAceBallIntro(true);
+    }
+  }, [store.hydrated, store.aceBalls, store.aceBallExplained, isAceRound]);
 
   const handleAceBallContinue = useCallback(() => {
     setShowAceBallPopup(false);
@@ -1808,6 +1825,16 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
       {/* Insight overlay */}
       <InsightOverlay isActive={showInsight} onDone={() => setShowInsight(false)} />
+
+      {/* ACEボールの説明。初めて手にしたときだけ */}
+      <AceBallIntro
+        visible={showAceBallIntro}
+        max={ACE_BALL_MAX}
+        onClose={() => {
+          setShowAceBallIntro(false);
+          store.markAceBallExplained();
+        }}
+      />
 
       {/* Hole map modal */}
       <HoleMapModal

@@ -12,6 +12,8 @@ interface GameStoreState {
   settings: { bgmEnabled: boolean; sfxEnabled: boolean };
   totalContracts: number;
   aceBalls: number;
+  /** ACEボールの説明を一度でも出したか。初回だけ出すために持つ */
+  aceBallExplained: boolean;
   competitionCleared: Record<string, boolean>;
   roundsSinceLastCompetition: number;
   aceQuotes: string[];
@@ -30,6 +32,8 @@ interface GameStoreActions {
   addContract: () => void;
   addContractForCharacter: (id: CharacterId) => CharacterId[];
   useAceBall: () => void;
+  /** ACEボールの説明を出し終えたことを記録する */
+  markAceBallExplained: () => void;
   /** 本音を見抜いたご褒美に1個増やす（上限は ACE_BALL_MAX） */
   gainAceBall: () => boolean;
   refillAceBalls: () => void;
@@ -63,7 +67,7 @@ interface GameStoreContextValue extends GameStoreState, GameStoreActions {
   hydrated: boolean;
 }
 
-const ACE_BALL_MAX = 2;
+export const ACE_BALL_MAX = 2;
 const COMPETITION_COOLDOWN = 5;
 
 const INITIAL_STATE: GameStoreState = {
@@ -72,6 +76,7 @@ const INITIAL_STATE: GameStoreState = {
   settings: { bgmEnabled: true, sfxEnabled: true },
   totalContracts: 0,
   aceBalls: 0,
+  aceBallExplained: false,
   competitionCleared: {},
   roundsSinceLastCompetition: 0,
   aceQuotes: [],
@@ -120,6 +125,7 @@ async function loadState(): Promise<GameStoreState | null> {
       ...parsed,
       contractedCharacterIds: parsed.contractedCharacterIds ?? [],
       aceBalls: parsed.aceBalls ?? 0,
+      aceBallExplained: parsed.aceBallExplained ?? false,
       competitionCleared: parsed.competitionCleared ?? {},
       roundsSinceLastCompetition: parsed.roundsSinceLastCompetition ?? 0,
       aceQuotes: parsed.aceQuotes ?? [],
@@ -268,6 +274,12 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
         : { ...prev, aceBalls: prev.aceBalls + 1 }
     );
     return true;
+  }, []);
+
+  const markAceBallExplainedFn = useCallback(() => {
+    setState((prev) =>
+      prev.aceBallExplained ? prev : { ...prev, aceBallExplained: true }
+    );
   }, []);
 
   const refillAceBallsFn = useCallback(() => {
@@ -440,6 +452,7 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       addContractForCharacter,
       useAceBall: useAceBallFn,
       gainAceBall: gainAceBallFn,
+      markAceBallExplained: markAceBallExplainedFn,
       refillAceBalls: refillAceBallsFn,
       setLastGameState,
       getLastGameState,
@@ -460,7 +473,7 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       getDiscovered: getDiscoveredFn,
       resetAll: resetAllFn,
     }),
-    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, setSfxEnabledFn, resetAllFn],
+    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, setSfxEnabledFn, markAceBallExplainedFn, resetAllFn],
   );
 
   return React.createElement(GameStoreContext.Provider, { value }, children);
