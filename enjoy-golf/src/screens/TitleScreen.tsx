@@ -14,6 +14,8 @@ import * as Haptics from 'expo-haptics';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { COLORS } from '../theme/colors';
+import { useGameStore } from '../store/useGameStore';
+import { playSfx } from '../lib/sound';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Title'>;
 
@@ -41,6 +43,7 @@ const PARS = [4, 3, 4, 5, 4, 4, 3, 5, 4];
 const PAR_TOTAL = PARS.reduce((a, b) => a + b, 0);
 
 export default function TitleScreen({ navigation }: Props) {
+  const store = useGameStore();
   const [stage, setStage] = useState<'splash' | 'title'>('splash');
 
   // スプラッシュ
@@ -254,6 +257,23 @@ export default function TitleScreen({ navigation }: Props) {
           </Pressable>
         </Animated.View>
 
+        {/* 音のオン・オフ。設定画面が無いのでここに置く。
+            効果音だけで BGM は無い（音源を持たず波形から作っているため） */}
+        <Animated.View style={{ opacity: credit }}>
+          <Pressable
+            onPress={() => {
+              const next = !store.settings.sfxEnabled;
+              store.setSfxEnabled(next);
+              if (next) playSfx('tap');
+            }}
+            style={({ pressed }) => [styles.soundBtn, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.soundBtnText}>
+              {store.settings.sfxEnabled ? '音 ON' : '音 OFF'}
+            </Text>
+          </Pressable>
+        </Animated.View>
+
         <Animated.View style={{ opacity: credit }}>
           <Text style={styles.credit}>Produced by HINANO Inc.</Text>
         </Animated.View>
@@ -451,6 +471,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 6,
     marginLeft: 6, // letterSpacing の右余白ぶんを補正して中央に見せる
+  },
+  soundBtn: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    marginTop: 14,
+  },
+  soundBtnText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    letterSpacing: 1,
   },
   credit: {
     fontSize: 10,

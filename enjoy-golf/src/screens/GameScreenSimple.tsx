@@ -141,6 +141,7 @@ const zoneStyle = (half: number) => ({
   left: `${(0.5 - half) * 100}%` as `${number}%`,
   width: `${half * 200}%` as `${number}%`,
 });
+import { playSfx } from '../lib/sound';
 
 const RANK_TO_MOOD: Record<ReactionRank, MoodLevel> = {
   good: 4,
@@ -426,6 +427,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
     const resultText = getOwnShotResultText(result, characterId, character.name);
     setOwnShotResultText(resultText);
+    playSfx('shot');
 
     const base = pendingMorningState;
     if (base) {
@@ -688,6 +690,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
     // Evaluate rank
     const rank: ReactionRank = evaluateReactionRank(appliedDelta);
+    // 相手の反応。中間（neutral / bad）では鳴らさない。
+    // 毎回鳴ると「今の一手が効いたか」の合図として機能しなくなる
+    if (rank === 'good') playSfx('good');
+    else if (rank === 'worst') playSfx('bad');
 
     // ===== 摩耗: 相手に合わせて、それが通ったときだけ溜まる =====
     // 内なる声はここでしか出さない。溜まった瞬間に出すことで、
@@ -1007,6 +1013,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     const result = calcPuttResult(puttAimIndex, info.correctAim, power);
     const label = result === 'in' ? 'カップイン！' : result === 'lip_out' ? 'LIP-OUT...' : 'MISS...';
     setPuttResultLabel(label);
+    playSfx(result === 'in' ? 'cupIn' : 'cupMiss');
     setPuttResultText(getPuttReactionText(characterId, result));
 
     const base = pendingPuttState;

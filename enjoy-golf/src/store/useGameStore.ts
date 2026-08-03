@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
+import { setSfxEnabled as applySfxEnabled } from '../lib/sound';
 import { GameState, CharacterId, Character, CompetitionId, Tag } from '../types';
 import { characters } from '../data/characters';
 import { competitionOrder, competitionMap } from '../data/competitionData';
@@ -51,6 +52,8 @@ interface GameStoreActions {
   getWear: () => number;
   addWear: (delta: number) => void;
   recordDiscoveries: (charId: CharacterId, liked: Tag[], hated: Tag[]) => void;
+  /** 効果音のオン・オフ。保存され、次に開いたときも引き継がれる */
+  setSfxEnabled: (v: boolean) => void;
   getDiscovered: (charId: CharacterId) => { liked: Tag[]; hated: Tag[] };
   // Reset
   resetAll: () => void;
@@ -158,6 +161,9 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadState().then((saved) => {
       if (saved) setState(saved);
+      // 保存されている設定を鳴らす側にも伝える。ここを忘れると
+      // 「オフにして閉じたのに次に開くと鳴る」ことになる
+      applySfxEnabled(saved?.settings?.sfxEnabled ?? true);
       setHydrated(true);
     });
   }, []);
@@ -380,6 +386,16 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
+   * 効果音のオン・オフ。
+   * 保存するだけでなく、鳴らす側（`lib/sound`）にも即座に伝える。
+   * 保存フィールドはもともとあったが、読む経路も書く経路も無かった。
+   */
+  const setSfxEnabledFn = useCallback((v: boolean) => {
+    applySfxEnabled(v);
+    setState((prev) => ({ ...prev, settings: { ...prev.settings, sfxEnabled: v } }));
+  }, []);
+
+  /**
    * そのラウンドで分かったことを足す。
    * 同じタグを何度も溜めても意味がないので重複は除く。
    */
@@ -440,10 +456,11 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       getWear: getWearFn,
       addWear: addWearFn,
       recordDiscoveries: recordDiscoveriesFn,
+      setSfxEnabled: setSfxEnabledFn,
       getDiscovered: getDiscoveredFn,
       resetAll: resetAllFn,
     }),
-    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, resetAllFn],
+    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, setSfxEnabledFn, resetAllFn],
   );
 
   return React.createElement(GameStoreContext.Provider, { value }, children);
