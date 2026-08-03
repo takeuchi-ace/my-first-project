@@ -19,6 +19,9 @@ import {
   MorningShotResult,
   StrategyId,
   RoundMoodId,
+  OwnPlayStance,
+  OwnShotResult,
+  PuttResult,
 } from '../types';
 import { events } from '../data/events';
 import { extremeEvents } from '../data/extremeEvents';
@@ -1045,20 +1048,57 @@ export const evaluateReactionRank = (appliedDelta: Gauge): ReactionRank => {
  * | 5/2/5・8/2/7 | 38.6% | 16.4% | 4.2% |
  *
  * 5/1/4 以上にすると、パットを外す人の契約率が 25pt 落ちて罰が重すぎる。
+ *
+ * ## 半分に落とした（4/1/3・6/1/5 → 2/1/2・3/1/3）
+ *
+ * 自分が打っただけで相手の18Hが最大10打縮むのは動きすぎだった。
+ * 主な結果は接待ポイント側（`logic/ownPlay.ts` の相手ごとの反応）に移し、
+ * ここは「場のリズム」ぶんの薄い効きだけ残す。
+ * ただし 0 にはしない。契約条件の `improvement > 0` が
+ * ゲージだけで決まる形に戻ると、スコア条件が実質死ぬ（実測 0.1%）。
+ *
+ * 半分にした後の実測（信頼と距離を満たしたラウンドのうちスコアだけで落ちる割合。
+ * 選択の腕0.8固定）: ミニゲームの腕 0.2 で 8.8% / 0.5 で 3.4% / 0.8 で 1.0%。
+ * 以前は 22.2 / 7.0 / 1.6 だった。薄くなったが死んではいない。
  */
+/**
+ * 場のリズムの効き方。**相手の構え方で向きが変わる。**
+ *
+ * 同じ値を全員に当てていたため、「外したほうが機嫌が良くなる相手」でも
+ * ミスのスコア罰（+5）が `improvement > 0` を割り、**契約率が0%**になっていた。
+ * 接待ポイントは上がるのに契約は絶対に取れない、という噛み合わない状態だった。
+ *
+ * 相手が気分よく回れば相手のスコアも伸びる、と考えれば向きは接待ポイントと揃う。
+ *  - `respects`    … 決めれば伸び、外せば崩れる
+ *  - `indifferent` … 薄く効くだけ
+ *  - `prefersLead` … **逆向き**。こちらが外すほど相手は気分よく回る
+ */
+const MINIGAME_SCORE: Record<
+  OwnPlayStance,
+  { shot: Record<OwnShotResult, number>; putt: Record<PuttResult, number> }
+> = {
+  respects: {
+    shot: { perfect: -2, good: -1, miss: +2 },
+    putt: { in: -3, lip_out: -1, miss: +3 },
+  },
+  indifferent: {
+    shot: { perfect: -1, good: -1, miss: +1 },
+    putt: { in: -2, lip_out: -1, miss: +2 },
+  },
+  prefersLead: {
+    shot: { perfect: +1, good: 0, miss: -2 },
+    putt: { in: +2, lip_out: 0, miss: -3 },
+  },
+};
+
 export const minigameScoreEffect = (state: GameState): number => {
+  const stance =
+    characters.find((c) => c.id === state.characterId)?.ownPlayStance ??
+    'respects';
+  const table = MINIGAME_SCORE[stance];
   let e = 0;
-
-  // 自分のショット。同伴者が気持ちよく打つと場のリズムが良くなる
-  if (state.ownShot === 'perfect') e -= 4;
-  else if (state.ownShot === 'good') e -= 1;
-  else if (state.ownShot === 'miss') e += 3;
-
-  // 最終パット。締めの一打で終わり方の印象が決まる
-  if (state.puttResult === 'in') e -= 6;
-  else if (state.puttResult === 'lip_out') e -= 1;
-  else if (state.puttResult === 'miss') e += 5;
-
+  if (state.ownShot) e += table.shot[state.ownShot];
+  if (state.puttResult) e += table.putt[state.puttResult];
   return e;
 };
 

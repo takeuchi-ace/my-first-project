@@ -319,8 +319,11 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
           </Text>
         )}
 
-        {/* Opponent score */}
-        <Text style={styles.label}>{character.fullName} さん</Text>
+        {/* Opponent score
+            この画面には接待ポイント（0〜100）も出る。名前だけを見出しにしていたため、
+            18H の数字が誰のものか読み取りにくかった。持ち主を書く。
+            プレイヤー自身のゴルフのスコアは持っていない（接待は相手を伸ばす競技） */}
+        <Text style={styles.label}>{character.fullName} さんのスコア</Text>
         <Text style={styles.grossScore}>18H: {result.opponentGross18}</Text>
 
         {/* 基準は相手の平均スコア。プロフィールに出ている数字と同じものなので、

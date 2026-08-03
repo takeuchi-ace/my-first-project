@@ -17,6 +17,7 @@ import {
   GameState,
   Gauge,
   OwnShotResult,
+  OwnPlayStance,
   PuttAim,
   PuttPower,
   PuttResult,
@@ -208,6 +209,12 @@ const zoneStyle = (half: number) => ({
   left: `${(0.5 - half) * 100}%` as `${number}%`,
   width: `${half * 200}%` as `${number}%`,
 });
+import {
+  ownShotReaction,
+  puttOwnReaction,
+  reactionMood,
+  ownShotLine,
+} from '../logic/ownPlay';
 import { playSfx } from '../lib/sound';
 import AceBallIntro from '../components/AceBallIntro';
 import { ACE_BALL_MAX } from '../store/useGameStore';
@@ -240,20 +247,30 @@ const PUTT_AIM_BY_INDEX: import('../types').PuttAim[] = ['left', 'center', 'righ
 const puttAimToValue = (idx: number): import('../types').PuttAim =>
   PUTT_AIM_BY_INDEX[idx] ?? 'center';
 
-const getOwnShotResultText = (result: OwnShotResult, charId: number, charName: string): string => {
+/**
+ * 自分のショットへの相手の一言。
+ *
+ * 田中・鬼塚は専用の文が書かれているのでそちらを使う。
+ * それ以外は**構え方ごと**の文を引く。全員同じ文にすると、
+ * 外して喜ぶ相手（大門・ナイス松本・ミツキ）が「いい球ですね」と頷き出す。
+ */
+const getOwnShotResultText = (
+  result: OwnShotResult,
+  charId: number,
+  charName: string,
+  stance: OwnPlayStance
+): string => {
   if (result === 'perfect') {
     if (charId === 1) return `「...いい球でしたね」と${charName}が小さく頷いた。`;
     if (charId === 2) return `「おお！やるじゃねえか！」${charName}が声を上げた。`;
-    return `${charName}が頷いた。「いい球ですね」`;
-  }
-  if (result === 'good') {
+  } else if (result === 'good') {
     if (charId === 1) return `${charName}が静かに見守っている。まずまずの一打だ。`;
     if (charId === 2) return `「フェアウェイキープ！悪くないぞ！」`;
-    return `${charName}が頷いた。悪くない出だしだ。`;
+  } else {
+    if (charId === 1) return `${charName}が一瞬目を逸らした。`;
+    if (charId === 2) return `「まあ、朝イチはあるよ！気にすんな！」`;
   }
-  if (charId === 1) return `${charName}が一瞬目を逸らした。`;
-  if (charId === 2) return `「まあ、朝イチはあるよ！気にすんな！」`;
-  return `${charName}は何も言わなかった。`;
+  return ownShotLine(stance, result, charName);
 };
 
 export default function GameScreenSimple({ route, navigation }: Props) {
@@ -521,22 +538,18 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const finishSwing = useCallback((scores: number[]) => {
     const result = swingScoresToResult(scores, talkAnswered);
 
-    const resultText = getOwnShotResultText(result, characterId, character.name);
+    // 相手の構え方（腕を認める／気にしない／上に立ちたい）で反応が変わる。
+    // 上手いことが常に得ではないのが接待ゴルフ
+    const delta = ownShotReaction(character.ownPlayStance, result);
+    const resultText = getOwnShotResultText(result, characterId, character.name, character.ownPlayStance);
     setOwnShotResultText(resultText);
     playSfx('shot');
-    // 顔を結果に合わせる。ここで動かさないと、直前のビートの表情のまま
-    // 「ナイスショット」や「あー…」のコメントが出て、顔とコメントが噛み合わない。
-    // ミスでも 3（普通）止まりにするのは、ミスへの反応が
-    // 「気にすんな！」「学びですね！」のように前向きな相手がいるため
-    setMood(result === 'perfect' ? 5 : result === 'good' ? 4 : 3);
+    // 表情は結果からではなく信頼の動きから決める。
+    // 結果から決めると、外して喜ぶ相手のときに顔とセリフが食い違う
+    setMood(reactionMood(delta));
 
     const base = pendingMorningState;
     if (base) {
-      let delta: Partial<Gauge>;
-      if (result === 'perfect') delta = { trust: 3, fun: 2 };
-      else if (result === 'good') delta = { trust: 1 };
-      else delta = { fun: 2, creep: characterId === 1 ? 2 : 0 };
-
       // engine 経由で反映する（キャラの traitModifiers を効かせるため）
       setPendingMorningState({ ...applyMinigameResult(base, delta), ownShot: result });
     }
@@ -1190,16 +1203,12 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     setPuttResultLabel(label);
     playSfx(result === 'in' ? 'cupIn' : 'cupMiss');
     setPuttResultText(getPuttReactionText(characterId, result));
-    // 朝イチのショットと同じ理由で、顔を結果に合わせる（外しても 3 止まり）
-    setMood(result === 'in' ? 5 : result === 'lip_out' ? 4 : 3);
+    // 締めの一打も相手の構え方で効き方が変わる。表情は信頼の動きから
+    const delta = puttOwnReaction(character.ownPlayStance, result);
+    setMood(reactionMood(delta));
 
     const base = pendingPuttState;
     if (base) {
-      let delta: Partial<Gauge>;
-      if (result === 'in') delta = { trust: 5, fun: 4 };
-      else if (result === 'lip_out') delta = { trust: 2, fun: 3 };
-      else delta = { fun: 1, creep: characterId === 1 ? 2 : 1 };
-
       // engine 経由で反映する（キャラの traitModifiers を効かせるため）
       setPendingPuttState({ ...applyMinigameResult(base, delta), puttResult: result });
     }

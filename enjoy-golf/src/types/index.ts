@@ -181,6 +181,19 @@ export interface TagReaction {
   delta: Partial<Gauge>;
 }
 
+/**
+ * こちらの腕（朝イチのショット・最終パット）への構え方。
+ *
+ * 接待ゴルフでは「上手いこと」が必ず得になるとは限らない。
+ * 相手より目立つのを嫌う人、腕を認める人、気にしない人がいる。
+ * どれに当たるかを覚えることが、そのまま相手を知ることになる。
+ *
+ *  - `respects`   … 良いショットを認める。外すと冷める
+ *  - `indifferent`… 腕は見ていない。外しても崩れない
+ *  - `prefersLead`… 自分が上に立ちたい／世話をしたい。外すほど機嫌が良くなる
+ */
+export type OwnPlayStance = 'respects' | 'indifferent' | 'prefersLead';
+
 export interface Character {
   id: CharacterId;
   name: string;
@@ -216,6 +229,8 @@ export interface Character {
   mismatchSpeechLines?: { [rank in ReactionRank]?: string[] };
   hint?: string;
   preRoundLine?: string;
+  /** こちらの腕への構え方。ミニゲームの結果が接待ポイントをどう動かすかを決める */
+  ownPlayStance: OwnPlayStance;
 }
 
 // ===== Morning Shot =====

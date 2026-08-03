@@ -39,6 +39,13 @@ export const getPuttSlopeVariant = (slope: SlopeType): PuttSlopeVariant => {
  * 誤アドバイス時に相手が指す狙い所。
  * correctAim と必ず食い違うよう傾斜ごとに定義する
  * （ここを一律にすると、傾斜によっては嘘がそのまま正解になってしまう）。
+
+ * ## 構え方と噛み合わせる（`ownPlayStance`）
+ *
+ * 外したほうが機嫌が良くなる相手（ナイス松本・大門・ミツキ）は、
+ * ゲージ側で信頼が上がるのに文が冷たいままだった（大門「何も言わず、こちらを一度だけ見た」）。
+ * 決めたときも褒める文が付いていて、顔・数値・言葉が三者バラバラだった。
+ * この3人の in / miss を書き換えて向きを揃えている。
  */
 const WRONG_AIM: Record<SlopeType, PuttAim> = {
   left: 'left',    // 正解は right
@@ -248,7 +255,7 @@ const SATO_PROFILE: PuttingCharacterProfile = {
 const MATSUMOTO_PROFILE: PuttingCharacterProfile = {
   characterId: 10,
   adviceAccuracy: 0.3,
-  reactionIn: '「ナァァイスパット！！今日のMVPです！」と松本が叫んだ。',
+  reactionIn: '「…ナイス、です」と松本が言った。声がいつもより小さい。',
   reactionLipOut: '「ナイスライン！入ったも同じですよ！」と松本が言った。',
   reactionMiss: '「ナイストライ！次があります！」と松本が拍手した。',
   getAdviceText: buildAdvice({
@@ -261,9 +268,9 @@ const MATSUMOTO_PROFILE: PuttingCharacterProfile = {
 const DAIMON_PROFILE: PuttingCharacterProfile = {
   characterId: 11,
   adviceAccuracy: 0.55,
-  reactionIn: '「…決めるところで決めるか」と大門が目を細めた。',
+  reactionIn: '「ほう」と大門が言った。それだけだった。',
   reactionLipOut: '「惜しかったな。だが読みは悪くない」と大門が言った。',
-  reactionMiss: '大門は何も言わず、こちらを一度だけ見た。',
+  reactionMiss: '「…まあ、そんなものだ」と大門が初めて口の端を上げた。',
   getAdviceText: buildAdvice({
     left: '「左だな。私にはそう見える」と大門が言った。',
     center: '「まっすぐでいい。余計な細工は要らん」と大門が言った。',
@@ -391,7 +398,7 @@ const HAYASE_PROFILE: PuttingCharacterProfile = {
 const MITSUKI_PROFILE: PuttingCharacterProfile = {
   characterId: 21,
   adviceAccuracy: 0.4,
-  reactionIn: '「入った！すごいすごい！」とミツキが飛び跳ねた。',
+  reactionIn: '「入っちゃった…。すごいけど、ちょっと悔しい〜」とミツキが笑った。',
   reactionLipOut: '「あー惜しい！今の入ってほしかった！」とミツキが言った。',
   reactionMiss: '「大丈夫大丈夫、楽しいのが一番！」とミツキが笑った。',
   getAdviceText: buildAdvice({

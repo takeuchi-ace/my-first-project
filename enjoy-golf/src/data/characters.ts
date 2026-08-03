@@ -43,6 +43,8 @@ export const characters: Character[] = [
       bad: ['田中の眉が少し寄った。', '田中は何か言いたげに口を開きかけた。'],
       worst: ['田中が一瞬、目を伏せた。', '田中の視線が冷たくなった。'],
     },
+    /** 数字に厳しく対等を重んじる。腕は素直に認める */
+    ownPlayStance: 'respects',
   },
   {
     id: 2,
@@ -86,6 +88,8 @@ export const characters: Character[] = [
       bad: ['鬼塚の笑顔が薄れた。', '「…ふーん」と鬼塚が素っ気なく返した。'],
       worst: ['鬼塚が黙り込んだ。珍しい。', '鬼塚の目から光が消えた。'],
     },
+    /** ミスも「気にすんな！」で流す。腕より気合を見ている */
+    ownPlayStance: 'indifferent',
   },
   {
     id: 3,
@@ -123,6 +127,8 @@ export const characters: Character[] = [
       bad: ['坊っちゃんが少し困った顔をした。', '「えっと…」坊っちゃんが戸惑っている。'],
       worst: ['坊っちゃんの目が一瞬鋭くなった。', '意外と見ている目だった。'],
     },
+    /** 楽しければいい。腕は見ていない */
+    ownPlayStance: 'indifferent',
   },
 
   // ===== Tier 1: Unlocked by Tier 0 (ID 4–9) =====
@@ -160,6 +166,8 @@ export const characters: Character[] = [
       bad: ['黒田の視線が厳しくなった。', '黒田が無言で首を振った。'],
       worst: ['黒田がこちらから目を逸らした。', '沈黙が重い。'],
     },
+    /** プロ。スコアが全てを語る */
+    ownPlayStance: 'respects',
   },
   {
     id: 5,
@@ -195,6 +203,8 @@ export const characters: Character[] = [
       bad: ['スミスの眉が微かに上がった。', '「Hmm...」スミスが怪訝そうだ。'],
       worst: ['スミスの表情から笑顔が消えた。', 'スミスが静かにため息をついた。'],
     },
+    /** フェアプレー。良い球には手を差し出す */
+    ownPlayStance: 'respects',
   },
   {
     id: 6,
@@ -232,6 +242,8 @@ export const characters: Character[] = [
       bad: ['光山の笑顔が少し固まった。', '「…ポジティブに」光山が呟いた。'],
       worst: ['光山が珍しく黙り込んだ。', '光山の目が泳いでいる。'],
     },
+    /** どんな結果も「学びです！」に変換する */
+    ownPlayStance: 'indifferent',
   },
   {
     id: 7,
@@ -267,6 +279,8 @@ export const characters: Character[] = [
       bad: ['巌の眉間にシワが寄った。', '巌が不満げに鼻を鳴らした。'],
       worst: ['巌が冷たく目を細めた。', '巌の重圧が増した。'],
     },
+    /** 所作と腕を分けない。良い球は良いと言う */
+    ownPlayStance: 'respects',
   },
   {
     id: 8,
@@ -303,6 +317,8 @@ export const characters: Character[] = [
       bad: ['中村が首を傾げた。「データ的に…」', '中村の表情が少し曇った。'],
       worst: ['中村がスマホをしまった。興味を失った。', '中村が無言でこちらを見ている。'],
     },
+    /** データで見る。良い数字は評価対象 */
+    ownPlayStance: 'respects',
   },
   {
     id: 9,
@@ -338,6 +354,8 @@ export const characters: Character[] = [
       bad: ['佐藤の目が鋭くなった。', '佐藤が値踏みするように見ている。'],
       worst: ['佐藤が静かに距離を取った。', '佐藤の目が全てを見透かしている。'],
     },
+    /** 腕より本性を見ている */
+    ownPlayStance: 'indifferent',
   },
 
   // ===== Tier 2: Unlocked by Tier 1 (ID 10–15) =====
@@ -359,7 +377,7 @@ export const characters: Character[] = [
     introLine: 'ナイスショット！…あ、紹介したい人がいるんですよ。',
     targetHint: '褒め殺しの達人。ノリと勢いが命の男です。',
     isAce: false,
-    hint: '褒め合いとノリ。真面目すぎる話も沈黙も正直な指摘も苦手',
+    hint: '褒め合いとノリ。真面目すぎる話も沈黙も正直な指摘も苦手。こちらが上手いと褒める側でいられなくなる',
     preRoundLine: 'ナイスショット！…まだ打ってないか！',
     traitModifiers: { trustSensitivity: 0.7, funSensitivity: 1.4, focusSensitivity: 0.7, creepSensitivity: 0.7 },
     likesTags: ['humor', 'over_praise'],
@@ -377,6 +395,8 @@ export const characters: Character[] = [
       bad: ['松本の「ナイス」が小さくなった。', '松本の笑顔がぎこちない。'],
       worst: ['松本が言葉を探している。出てこない。', '…松本が珍しく黙っている。'],
     },
+    /** 褒める材料が多いほど嬉しい。外すと張り切る */
+    ownPlayStance: 'prefersLead',
   },
   {
     id: 11,
@@ -395,7 +415,7 @@ export const characters: Character[] = [
     introLine: 'あなたに会わせたい人がいましてね。',
     targetHint: '政財界の裏に通じるフィクサー。笑顔の裏を読む男です。',
     isAce: false,
-    hint: '大胆さと論理を好む。過剰な世話と告げ口を嫌う',
+    hint: '大胆さと論理を好む。過剰な世話と告げ口を嫌う。自分より目立たれるのは好まない',
     preRoundLine: '今日は楽しませてもらうよ。',
     traitModifiers: { trustSensitivity: 1.0, funSensitivity: 0.9, focusSensitivity: 1.1, creepSensitivity: 1.2 },
     likesTags: ['bold', 'logic'],
@@ -413,6 +433,8 @@ export const characters: Character[] = [
       bad: ['大門の笑顔の奥が冷たい。', '大門が僅かに眉をひそめた。'],
       worst: ['大門の目が冷たくなった。「…そうか」', '大門が何かを見定めている。'],
     },
+    /** 自分より目立たれるのを好まない */
+    ownPlayStance: 'prefersLead',
   },
   {
     id: 12,
@@ -450,6 +472,8 @@ export const characters: Character[] = [
       bad: ['星野のテンポが落ちた。', '「うーん…」星野が首を傾げた。'],
       worst: ['星野の目から光が消えた。', '星野が黙ってしまった。'],
     },
+    /** 派手に決まると「映える」 */
+    ownPlayStance: 'respects',
   },
   {
     id: 13,
@@ -485,6 +509,8 @@ export const characters: Character[] = [
       bad: ['「しょうもな…」金城が呟いた。', '金城の笑顔が消えかけている。'],
       worst: ['金城が黙り込んだ。豪快さが消えた。', '金城の目が据わっている。'],
     },
+    /** 攻めて決めたやつを買う */
+    ownPlayStance: 'respects',
   },
   {
     id: 14,
@@ -520,6 +546,8 @@ export const characters: Character[] = [
       bad: ['白石の目が診察するように動いた。', '白石が静かに首を傾げた。'],
       worst: ['白石の表情が無機質になった。', '白石の視線が冷たい。'],
     },
+    /** 怪我なく回れば十分という立場 */
+    ownPlayStance: 'indifferent',
   },
   {
     id: 15,
@@ -555,6 +583,8 @@ export const characters: Character[] = [
       bad: ['千鶴が少し目を伏せた。', '千鶴の微笑みが僅かに硬くなった。'],
       worst: ['千鶴が静かに扇子を閉じた。', '千鶴の空気が張り詰めた。'],
     },
+    /** もてなす側なので、客の腕は問わない */
+    ownPlayStance: 'indifferent',
   },
 
   // ===== ACE (ID 16) =====
@@ -602,6 +632,8 @@ export const characters: Character[] = [
         'ハジメは相変わらず楽しそうだ。',
       ],
     },
+    /** 相談ラウンドにミニゲームは出ない（型を満たすため） */
+    ownPlayStance: 'indifferent',
   },
 
   // ===== Competition Characters (ID 17–19) =====
@@ -639,6 +671,8 @@ export const characters: Character[] = [
       bad: ['篠原の表情が少し曇った。', '篠原が小さくため息をついた。'],
       worst: ['篠原がスマホをしまった。興味を失ったようだ。', '篠原の目が冷めている。'],
     },
+    /** 面白い打ち方に反応する */
+    ownPlayStance: 'respects',
   },
   {
     id: 18,
@@ -674,6 +708,8 @@ export const characters: Character[] = [
       bad: ['桐生の目が少し鋭くなった。', '桐生が微かに眉をひそめた。'],
       worst: ['桐生が静かに距離を取った。', '桐生の表情から温度が消えた。'],
     },
+    /** 結果の数字で見る */
+    ownPlayStance: 'respects',
   },
   {
     id: 19,
@@ -709,6 +745,8 @@ export const characters: Character[] = [
       bad: ['鷹宮の目が厳しくなった。', '鷹宮が不快そうに口を結んだ。'],
       worst: ['鷹宮の威圧感が増した。', '鷹宮が冷たく一瞥した。'],
     },
+    /** 対等に来る相手を好む。腕もその一部 */
+    ownPlayStance: 'respects',
   },
 
   // ===== Female Characters (ID 20–21) =====
@@ -746,6 +784,8 @@ export const characters: Character[] = [
       bad: ['早瀬の眉が微かに寄った。', '早瀬が少し距離を置いた。'],
       worst: ['早瀬の目が冷たくなった。「…曖昧ですね」', '早瀬が静かにため息をついた。'],
     },
+    /** 前提が揃っていれば腕は問わない */
+    ownPlayStance: 'indifferent',
   },
   {
     id: 21,
@@ -765,7 +805,7 @@ export const characters: Character[] = [
     introLine: '素敵な方がいるんです。今度一緒にラウンドしません？',
     targetHint: '美容クリニック経営。空気を大切にする共感型の女性です。',
     isAce: false,
-    hint: '笑いと共感を大事にする。筋は通す。露骨な媚びと大げさな絶賛はNG',
+    hint: '笑いと共感を大事にする。筋は通す。露骨な媚びと大げさな絶賛はNG。下手なほうが可愛がりたくなる性分',
     preRoundLine: '楽しくなきゃ意味がない！レッツゴー！',
     traitModifiers: { trustSensitivity: 1.0, funSensitivity: 1.3, focusSensitivity: 0.9, creepSensitivity: 1.2 },
     likesTags: ['humor', 'ethics'],
@@ -782,5 +822,7 @@ export const characters: Character[] = [
       bad: ['ミツキの笑顔が少し硬くなった。', 'ミツキが微かに目を逸らした。'],
       worst: ['ミツキが静かに黙り込んだ。', 'ミツキの目から温度が消えた。'],
     },
+    /** 下手なほうが可愛がりたくなる */
+    ownPlayStance: 'prefersLead',
   },
 ];
