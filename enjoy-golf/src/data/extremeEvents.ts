@@ -113,7 +113,7 @@ export const extremeEvents: GameEvent[] = [
     choices: [
       { text: '「一緒に最高のフィニッシュにしましょう！」', delta: { fun: 8, trust: 5, focus: 5 }, tags: ['hype', 'sportsmanship'] },
       { text: '黙ってうなずき、集中を共有する', delta: { trust: 6, focus: 8 }, tags: ['silence', 'serious'] },
-      { text: 'わざとミスして相手を気持ちよく勝たせる', delta: { fun: 2, trust: -3, creep: 10 }, tags: ['over_support', 'flattery', 'extreme'] },
+      { text: 'わざとミスして相手を気持ちよく勝たせる', delta: { trust: 9, fun: 2, creep: 10 }, tags: ['over_support', 'flattery', 'extreme'] },
     ],
   },
   {
@@ -125,7 +125,7 @@ export const extremeEvents: GameEvent[] = [
       { text: '「ぜひ！お供させてください」と快諾', delta: { fun: 5, trust: 14 }, tags: ['etiquette', 'bold'] },
       { text: '「お時間いただけるなら喜んで」と丁寧に', delta: { trust: 11, fun: 3 }, tags: ['etiquette', 'safe'] },
       { text: '「仕事の話なら今ここで」とビジネスモードに', delta: { trust: -4, fun: -3, focus: 8 }, tags: ['boss', 'logic', 'extreme'] },
-      { text: '「食事は奢りますよ！」と先手を打つ', delta: { fun: 4, trust: 4, creep: 5 }, tags: ['over_support', 'extreme', 'over_praise'] },
+      { text: '「食事は奢りますよ！」と先手を打つ', delta: { trust: 9, fun: 4, creep: 7 }, tags: ['over_support', 'extreme', 'over_praise'] },
     ],
   },
 ];

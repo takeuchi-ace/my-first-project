@@ -70,7 +70,7 @@ export const goodBackEvents: GameEvent[] = [
     choices: [
       { text: '「ありがとうございます。○○さんこそ」', delta: { trust: 5, fun: 3 }, tags: ['etiquette'] },
       { text: '「いやいや、まだまだです」', delta: { trust: 4, fun: 2 }, tags: ['honesty'] },
-      { text: '「教えますよ！」', delta: { trust: 1, fun: 4, creep: 3 }, tags: ['over_support', 'hype'] },
+      { text: '「教えますよ！」', delta: { trust: 8, fun: 4, creep: 6 }, tags: ['over_support', 'hype'] },
     ],
   },
   {

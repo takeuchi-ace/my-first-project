@@ -870,13 +870,18 @@ export const applyChoice = (
   }
 
   // 8. Creep penalty tiers
-  if (newGauge.creep >= 90) {
+  //
+  // 段階のしきい値は 70/90 から 40/55 に下げてある。
+  // 誘惑（信頼は大きく伸びるが距離も詰まる選択肢）を足す前は、
+  // creep を完全に無視して打っても中央値19・上位10%でも45にしか届かず、
+  // 70 の段まで上がる経路が実質なかった。
+  if (newGauge.creep >= 55) {
     newGauge = clampGauge({
       ...newGauge,
       trust: newGauge.trust - 2,
       focus: newGauge.focus - 2,
     });
-  } else if (newGauge.creep >= 70) {
+  } else if (newGauge.creep >= 40) {
     newGauge = clampGauge({
       ...newGauge,
       trust: newGauge.trust - 1,
@@ -1207,8 +1212,27 @@ const diagnosePlayType = (
  * 見えない条件で落とすより、実力どおりの層で落とすほうを採る。
  */
 const CONTRACT_TRUST_MIN = 84;
-/** これを超えて引かれていると契約に至らない */
-const CONTRACT_CREEP_MAX = 85;
+/**
+ * これを超えて引かれていると契約に至らない。
+ *
+ * 85 は誰にも当たらない数字だった（実測 0.0〜0.1%）。
+ * 距離を一切気にせず打っても creep は中央値19・上位10%で45にしか届かず、
+ * 「踏み込めば信頼は伸びるが引かれる」という誘惑が
+ * 選択肢の 1.6% しか無かったのが原因。
+ *
+ * 誘惑を 82件（11%）に増やしたうえで 50 に下げてある。実測:
+ *
+ * | 契約の距離上限 | 距離を測る人 | 信頼だけ追う人 |
+ * |---|---|---|
+ * | 85 | 0.0% | 0.1% |
+ * | 60 | 0.8% | 3.7% |
+ * | **50** | **2.9%** | **8.1%** |
+ * | 40 | 6.9% | 16.4% |
+ *
+ * 慎重に打つ人と無頓着な人で 2.8 倍の差がつく。
+ * 40 まで下げると慎重な人まで巻き込むので 50 で止める。
+ */
+const CONTRACT_CREEP_MAX = 50;
 
 /**
  * 契約に届かなかった理由。

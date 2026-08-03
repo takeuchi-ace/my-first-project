@@ -360,10 +360,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   }, []);
 
   // ===== Creep vignette effect =====
+  // しきい値は段階罰（40/55）より一段手前に置く。
+  // 罰と同時に暗くなると「気づいたときには手遅れ」になるため、
+  // 詰めすぎが罰になる前に画面が翳るようにする
   useEffect(() => {
-    if (gameState.gauge.creep >= 90) {
+    if (gameState.gauge.creep >= 50) {
       setCreepVignetteOpacity(0.35);
-    } else if (gameState.gauge.creep >= 70) {
+    } else if (gameState.gauge.creep >= 35) {
       setCreepVignetteOpacity(0.15);
     } else {
       setCreepVignetteOpacity(0);

@@ -141,8 +141,8 @@ export const events: GameEvent[] = [
     stage: 2,
     choices: [
       { text: '「ナイスオン！」とシンプルに', delta: { fun: 3, trust: 3 }, tags: ['safe'] },
-      { text: '「教科書に載せたいショットですね！」', delta: { fun: 6, trust: 2, creep: 3 }, tags: ['flattery'] },
-      { text: '「もうプロ転向した方がいいですよ！」', delta: { fun: 8, trust: -1, creep: 6 }, tags: ['flattery', 'over_support'] },
+      { text: '「教科書に載せたいショットですね！」', delta: { trust: 8, fun: 6, creep: 6 }, tags: ['flattery'] },
+      { text: '「もうプロ転向した方がいいですよ！」', delta: { trust: 8, fun: 8, creep: 6 }, tags: ['flattery', 'over_support'] },
       { text: '黙って拍手だけする', delta: { trust: 4, fun: 1 }, tags: ['serious'] },
     ],
   },
@@ -188,7 +188,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「ありがとうございます」と丁寧にお礼を言う', delta: { trust: 5, fun: 1 }, tags: ['etiquette'] },
       { text: '当然という態度で受け取る', delta: { trust: -3, creep: 2 }, tags: ['neutral'] },
-      { text: '「いつも助かります！」とチップを渡す', delta: { fun: 3, trust: 2, creep: 3 }, tags: ['over_support'] },
+      { text: '「いつも助かります！」とチップを渡す', delta: { trust: 8, fun: 3, creep: 6 }, tags: ['over_support'] },
     ],
   },
   {
@@ -325,7 +325,7 @@ export const events: GameEvent[] = [
     description: '相手がショット後、泥だらけのクラブを持っている。あなたのタオルは綺麗だ。',
     stage: 3,
     choices: [
-      { text: '「拭きますよ！」とクラブを受け取って拭く', delta: { fun: 4, trust: 2, creep: 5 }, tags: ['over_support'] },
+      { text: '「拭きますよ！」とクラブを受け取って拭く', delta: { trust: 7, fun: 4, creep: 6 }, tags: ['over_support'] },
       { text: '自分のタオルをさりげなく差し出す', delta: { trust: 4, fun: 2 }, tags: ['etiquette'] },
       { text: '何もしない（キャディの仕事だ）', delta: { trust: 1 }, tags: ['neutral'] },
     ],
@@ -434,7 +434,7 @@ export const events: GameEvent[] = [
     description: '相手のパットが入った。どんどん褒めが過激になってきた自分。止まるか？',
     stage: 4,
     choices: [
-      { text: '「もはや芸術です！これ、教科書に載せたい！」', delta: { fun: 8, trust: -1, creep: 8 }, tags: ['flattery', 'over_support'] },
+      { text: '「もはや芸術です！これ、教科書に載せたい！」', delta: { trust: 7, fun: 8, creep: 8 }, tags: ['flattery', 'over_support'] },
       { text: '「ナイスパット」と落ち着いて', delta: { fun: 3, trust: 4 }, tags: ['safe'] },
       { text: '「読みが完璧ですね。ラインの見方教えてください」', delta: { fun: 5, trust: 3 }, tags: ['flattery'] },
     ],
@@ -459,7 +459,7 @@ export const events: GameEvent[] = [
       { text: '「大変ですね…」と真剣に聞く', delta: { trust: 5, fun: -1 }, tags: ['serious'] },
       { text: '「ゴルフで発散しましょう！」と切り替える', delta: { fun: 5, trust: 2 }, tags: ['humor'] },
       { text: '「わかります！自分もですよ！」と共感する', delta: { fun: 4, trust: 3 }, tags: ['safe'] },
-      { text: '「でも○○さんの下で働けるのは幸せですよ」', delta: { fun: 3, trust: 1, creep: 4 }, tags: ['flattery'] },
+      { text: '「でも○○さんの下で働けるのは幸せですよ」', delta: { trust: 8, fun: 3, creep: 6 }, tags: ['flattery'] },
     ],
   },
   {
@@ -500,7 +500,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '真剣にビジネスの話に応じる', delta: { trust: 5, fun: -3, focus: 5 }, tags: ['serious'] },
       { text: '「まずはゴルフを楽しみましょう！仕事は後で！」', delta: { fun: 5, trust: -1 }, tags: ['humor'] },
-      { text: '「もちろん！お任せください！」と全肯定', delta: { fun: 3, trust: 2, creep: 3 }, tags: ['flattery'] },
+      { text: '「もちろん！お任せください！」と全肯定', delta: { trust: 8, fun: 3, creep: 6 }, tags: ['flattery'] },
     ],
   },
   {
@@ -533,7 +533,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「最高ですね！いきましょう！」', delta: { fun: 10, trust: 5, focus: -10, creep: 2 }, tags: ['alcohol', 'bold'] },
       { text: '「さすがにちょっと…午後がヤバくなります」', delta: { trust: 3, fun: -2, focus: 3 }, tags: ['honesty'] },
-      { text: '「○○さんが飲むなら付き合います！」', delta: { fun: 6, trust: 2, focus: -6, creep: 3 }, tags: ['alcohol', 'flattery'] },
+      { text: '「○○さんが飲むなら付き合います！」', delta: { trust: 8, fun: 6, focus: -6, creep: 6 }, tags: ['alcohol', 'flattery'] },
     ],
   },
   {
@@ -542,8 +542,8 @@ export const events: GameEvent[] = [
     description: 'すでに3杯目。相手はかなり上機嫌で声も大きくなっている。場も少し緩んできた。あなたはどう振る舞う？',
     stage: 5,
     choices: [
-      { text: '「○○さんと回れて本当に光栄です！」', delta: { fun: 6, trust: 3, creep: 3 }, tags: ['alcohol', 'flattery'] },
-      { text: '「○○さんの経営理念、本にしてほしいです！」', delta: { fun: 8, trust: -1, creep: 8 }, tags: ['alcohol', 'flattery', 'over_support'] },
+      { text: '「○○さんと回れて本当に光栄です！」', delta: { trust: 8, fun: 6, creep: 6 }, tags: ['alcohol', 'flattery'] },
+      { text: '「○○さんの経営理念、本にしてほしいです！」', delta: { trust: 8, fun: 8, creep: 8 }, tags: ['alcohol', 'flattery', 'over_support'] },
       { text: '「いい酒ですね。午後も頑張りましょう」と締める', delta: { fun: 4, trust: 4 }, tags: ['alcohol', 'safe'] },
     ],
   },
@@ -553,7 +553,7 @@ export const events: GameEvent[] = [
     description: '昼食の伝票が来た。相手が財布を出そうとしている。',
     stage: 5,
     choices: [
-      { text: '「ここは自分が！」と先にレジへ走る', delta: { fun: 4, trust: 3, creep: 3 }, tags: ['over_support'] },
+      { text: '「ここは自分が！」と先にレジへ走る', delta: { trust: 8, fun: 4, creep: 6 }, tags: ['over_support'] },
       { text: '「ありがとうございます」とご馳走になる', delta: { fun: 3, trust: 3 }, tags: ['safe'] },
       { text: '「割り勘にしましょう」と提案', delta: { trust: 4, fun: -1 }, tags: ['honesty'] },
       { text: '「ここは持ちますので、帰りのお茶はお願いします」', delta: { trust: 5, fun: 3 }, tags: ['etiquette'] },
@@ -638,7 +638,7 @@ export const events: GameEvent[] = [
     stage: 6,
     choices: [
       { text: '「気にせず自分たちのゴルフを楽しみましょう」', delta: { fun: 3, trust: 5 }, tags: ['serious'] },
-      { text: '「あの人よりスコア良いですよ、絶対！」とおだてる', delta: { fun: 5, trust: 1, creep: 3 }, tags: ['flattery'] },
+      { text: '「あの人よりスコア良いですよ、絶対！」とおだてる', delta: { trust: 8, fun: 5, creep: 6 }, tags: ['flattery'] },
       { text: '「今度あの方ともご一緒しましょうか？」', delta: { trust: -3, creep: 5, fun: -2 }, tags: ['bold'] },
     ],
   },
@@ -659,7 +659,7 @@ export const events: GameEvent[] = [
     description: '相手のパーセーブ。あなたの褒めがもう手に負えないレベルに。',
     stage: 6,
     choices: [
-      { text: '「その精神、自社の経営理念にしたいです！」', delta: { fun: 10, trust: -5, creep: 12 }, tags: ['flattery', 'over_support'] },
+      { text: '「その精神、自社の経営理念にしたいです！」', delta: { trust: 8, fun: 10, creep: 12 }, tags: ['flattery', 'over_support'] },
       { text: '「ナイスパー！安定してますね」と控えめに', delta: { fun: 3, trust: 5 }, tags: ['safe'] },
       { text: '「やっぱりすごいなぁ」と素直に感嘆', delta: { fun: 5, trust: 3 }, tags: ['flattery'] },
     ],
@@ -732,7 +732,7 @@ export const events: GameEvent[] = [
     description: '相手のお気に入りボールが池に落ちた。「あのボール好きだったんだよな…」',
     stage: 7,
     choices: [
-      { text: '靴を脱いで池に飛び込みボールを拾う', delta: { fun: 10, trust: 3, creep: 12, focus: -10 }, tags: ['over_support', 'bold'] },
+      { text: '靴を脱いで池に飛び込みボールを拾う', delta: { trust: 8, fun: 10, focus: -10, creep: 12 }, tags: ['over_support', 'bold'] },
       { text: '「新しいボールありますよ！どうぞ使ってください」', delta: { fun: 5, trust: 5 }, tags: ['safe'] },
       { text: 'キャディに網で取ってもらうよう頼む', delta: { fun: 2, trust: 2 }, tags: ['neutral'] },
       { text: '「あのボール、自分が念力で引き寄せます！」とボケる', delta: { fun: 8, creep: 3 }, tags: ['humor'] },
@@ -746,7 +746,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: 'タイミングよく旗を抜き、静かに保持する', delta: { trust: 5, fun: 2 }, tags: ['etiquette'] },
       { text: '旗を抜くのを忘れて慌てる', delta: { trust: -2, fun: 3 }, tags: ['humor'] },
-      { text: '旗を抜いた後、「右かな？」とラインを読んであげる', delta: { fun: 3, trust: 1, creep: 4 }, tags: ['over_support'] },
+      { text: '旗を抜いた後、「右かな？」とラインを読んであげる', delta: { trust: 8, fun: 3, creep: 6 }, tags: ['over_support'] },
     ],
   },
   {
@@ -755,7 +755,7 @@ export const events: GameEvent[] = [
     description: '小雨が再び降り始めた。あなたは傘を2本持っている。',
     stage: 7,
     choices: [
-      { text: '相手のショット中、傘をさしてあげる', delta: { fun: 5, trust: 3, creep: 6 }, tags: ['over_support'] },
+      { text: '相手のショット中、傘をさしてあげる', delta: { trust: 8, fun: 5, creep: 6 }, tags: ['over_support'] },
       { text: '「傘どうぞ」と1本渡す', delta: { trust: 5, fun: 2 }, tags: ['etiquette'] },
       { text: '自分だけ傘をさす（相手は帽子がある）', delta: { fun: -2, trust: -1 }, tags: ['neutral'] },
     ],
@@ -768,7 +768,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '黙って見守る。落ち着くまで待つ', delta: { trust: 5, fun: -2 }, tags: ['serious'] },
       { text: '「そういう時もありますよ。切り替えましょう」', delta: { fun: 3, trust: 4 }, tags: ['safe'] },
-      { text: '「ナイスファイト！その悔しさが大事です！」', delta: { fun: 5, trust: 1, creep: 3 }, tags: ['bold', 'flattery'] },
+      { text: '「ナイスファイト！その悔しさが大事です！」', delta: { trust: 8, fun: 5, creep: 6 }, tags: ['bold', 'flattery'] },
       { text: '「深呼吸しましょう。吸って〜吐いて〜」', delta: { fun: 6, trust: 2, creep: 2 }, tags: ['humor'] },
     ],
   },
@@ -801,7 +801,7 @@ export const events: GameEvent[] = [
     stage: 7,
     choices: [
       { text: '普通に「ナイスショット！」と声をかける', delta: { fun: 3, trust: 4 }, tags: ['safe'] },
-      { text: '「素晴らしい！本当に素晴らしい！」と何度も頭を下げる', delta: { fun: 5, trust: -3, creep: 10 }, tags: ['over_support', 'flattery'] },
+      { text: '「素晴らしい！本当に素晴らしい！」と何度も頭を下げる', delta: { trust: 7, fun: 5, creep: 10 }, tags: ['over_support', 'flattery'] },
       { text: '拍手だけ。言葉は不要', delta: { trust: 3, fun: 2 }, tags: ['serious'] },
     ],
   },
@@ -957,7 +957,7 @@ export const events: GameEvent[] = [
       { text: '「いやー気持ちいいですね！最高の一日でした」', delta: { fun: 5, trust: 7 }, tags: ['safe'] },
       { text: '「次はいつ行けますかね？」と次回を打診', delta: { fun: 4, trust: 9 }, tags: ['bold'] },
       { text: '「今日の反省点を活かして次こそは…！」', delta: { fun: 3, trust: 5, focus: 3 }, tags: ['serious'] },
-      { text: '相手の背中を流しましょうかと申し出る', delta: { fun: 5, trust: -4, creep: 10 }, tags: ['over_support'] },
+      { text: '相手の背中を流しましょうかと申し出る', delta: { trust: 9, fun: 5, creep: 10 }, tags: ['over_support'] },
     ],
   },
   {
@@ -979,7 +979,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: 'さりげなくボールを1ダース買って渡す', delta: { fun: 5, trust: 9, creep: 2 }, tags: ['etiquette'] },
       { text: '「何かいいですか？」と一緒に見て回る', delta: { fun: 4, trust: 5 }, tags: ['safe'] },
-      { text: '高級グローブをプレゼントする', delta: { fun: 6, trust: 4, creep: 6 }, tags: ['over_support'] },
+      { text: '高級グローブをプレゼントする', delta: { trust: 9, fun: 6, creep: 6 }, tags: ['over_support'] },
       { text: '特に何も買わない', delta: { trust: 2 }, tags: ['neutral'] },
     ],
   },
@@ -990,7 +990,7 @@ export const events: GameEvent[] = [
     stage: 9,
     choices: [
       { text: '「今日は本当にありがとうございました」と深々お辞儀', delta: { trust: 9, fun: 3 }, tags: ['etiquette', 'honesty'] },
-      { text: '「車出るまで見送りますね！」', delta: { fun: 3, trust: 5, creep: 3 }, tags: ['over_support'] },
+      { text: '「車出るまで見送りますね！」', delta: { trust: 9, fun: 3, creep: 6 }, tags: ['over_support'] },
       { text: '「またやりましょう！連絡します！」', delta: { fun: 5, trust: 7 }, tags: ['bold'] },
       { text: '「お気をつけて！」と手を振る', delta: { fun: 3, trust: 5 }, tags: ['safe'] },
     ],
@@ -1012,7 +1012,7 @@ export const events: GameEvent[] = [
     description: '相手の車が駐車場から出ようとしている。あなたはまだ残っている。',
     stage: 9,
     choices: [
-      { text: '車が見えなくなるまでお辞儀を続ける', delta: { trust: 2, fun: 1, creep: 6 }, tags: ['over_support', 'etiquette'] },
+      { text: '車が見えなくなるまでお辞儀を続ける', delta: { trust: 9, fun: 1, creep: 6 }, tags: ['over_support', 'etiquette'] },
       { text: '手を振って見送る', delta: { fun: 5, trust: 5 }, tags: ['humor'] },
       { text: '「お気をつけて！」と一礼してさっと自分も帰る', delta: { trust: 7, fun: 1, focus: 2 }, tags: ['etiquette'] },
     ],
@@ -1029,9 +1029,9 @@ export const events: GameEvent[] = [
     stage: 1,
     choices: [
       { text: '「一緒にストレッチしましょう！」と声をかける', delta: { fun: 4, trust: 3 }, tags: ['safe'] },
-      { text: 'さりげなく相手のストレッチを手伝おうとする', delta: { fun: 3, trust: 2, creep: 3 }, tags: ['over_support'] },
+      { text: 'さりげなく相手のストレッチを手伝おうとする', delta: { trust: 9, fun: 3, creep: 6 }, tags: ['over_support'] },
       { text: '「肩周りほぐすといいらしいですよ」と情報提供', delta: { fun: 3, trust: 3 }, tags: ['serious'] },
-      { text: '「その柔軟性に全財産賭けます」と感激しすぎる', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「その柔軟性に全財産賭けます」と感激しすぎる', delta: { trust: 8, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1064,7 +1064,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「それはすごい！さすがですね！」と素直に感嘆', delta: { fun: 5, trust: 3 }, tags: ['flattery'] },
       { text: '「20年！自分の人生そのものですね…」としんみり感動する', delta: { fun: 4, trust: 2 }, tags: ['humor'] },
-      { text: '「20年、ですか。……20年。それは、20年ということですよね」と数字を噛みしめ続ける', delta: { fun: 6, trust: 5, creep: 4 }, tags: ['flattery', 'extreme'] },
+      { text: '「20年、ですか。……20年。それは、20年ということですよね」と数字を噛みしめ続ける', delta: { trust: 7, fun: 6, creep: 7 }, tags: ['flattery', 'extreme'] },
       { text: '「自分もいつか20年続けたいです」と真剣に', delta: { fun: 3, trust: 4 }, tags: ['serious'] },
     ],
   },
@@ -1076,7 +1076,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「コーヒーどうですか？」とカップを差し出す', delta: { fun: 4, trust: 4 }, tags: ['etiquette'] },
       { text: '自分だけ飲む（相手はもう持っている）', delta: { fun: 1, trust: 1 }, tags: ['neutral'] },
-      { text: '「ブラックですか？ミルクですか？砂糖は？甘さは何段階で？豆の種類は？」と細かく聞きすぎる', delta: { fun: 6, trust: -2, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: '「ブラックですか？ミルクですか？砂糖は？甘さは何段階で？豆の種類は？」と細かく聞きすぎる', delta: { trust: 7, fun: 6, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1087,7 +1087,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「いいスイングですね！」とシンプルに褒める', delta: { fun: 4, trust: 3 }, tags: ['flattery'] },
       { text: '黙って見守る（集中の邪魔をしない）', delta: { trust: 3, focus: 2 }, tags: ['serious'] },
-      { text: '「今の素振りだけで、今日は勝てないと分かりました。……いえ、本気で言っています」と真顔で言う', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「今の素振りだけで、今日は勝てないと分かりました。……いえ、本気で言っています」と真顔で言う', delta: { trust: 6, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1098,7 +1098,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '正直にハンデを答える', delta: { trust: 5, fun: 2 }, tags: ['honesty'] },
       { text: '「○○さんより少し多いくらいかな…笑」と謙遜する', delta: { fun: 5, trust: 3 }, tags: ['humor', 'safe'] },
-      { text: '「ハンデをいただくのは、こちらが失礼にあたる気がします。……いえ、本当に、結構です」と何度も辞退する', delta: { fun: 6, trust: 5, creep: 4 }, tags: ['flattery', 'extreme'] },
+      { text: '「ハンデをいただくのは、こちらが失礼にあたる気がします。……いえ、本当に、結構です」と何度も辞退する', delta: { trust: 8, fun: 6, creep: 7 }, tags: ['flattery', 'extreme'] },
     ],
   },
   {
@@ -1109,7 +1109,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「きれいなグローブですね」とさりげなく触れる', delta: { fun: 3, trust: 2 }, tags: ['safe'] },
       { text: '「そのグローブ、どこのブランドですか？」と興味を示す', delta: { fun: 4, trust: 3 }, tags: ['flattery'] },
-      { text: '「そのグローブ、どちらのものですか。同じものを買います。色も、サイズも、同じもので」と静かにメモを取る', delta: { fun: 6, trust: 5, creep: 4 }, tags: ['flattery', 'extreme'] },
+      { text: '「そのグローブ、どちらのものですか。同じものを買います。色も、サイズも、同じもので」と静かにメモを取る', delta: { trust: 6, fun: 6, creep: 7 }, tags: ['flattery', 'extreme'] },
     ],
   },
 
@@ -1125,7 +1125,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「飲み物ありますよ！」と気づかせてあげる', delta: { fun: 4, trust: 3 }, tags: ['etiquette'] },
       { text: '自分で取って相手にも差し出す', delta: { fun: 4, trust: 4, creep: 1 }, tags: ['over_support'] },
-      { text: '打つたびに飲み物を差し出し、専属ドリンク係と化す', delta: { fun: 6, trust: -2, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: '打つたびに飲み物を差し出し、専属ドリンク係と化す', delta: { trust: 7, fun: 6, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1148,7 +1148,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「すごい飛距離！！」と素直に驚く', delta: { fun: 5, trust: 3 }, tags: ['flattery'] },
       { text: '「風も味方してくれましたね！」と褒めつつ分析する', delta: { fun: 4, trust: 4 }, tags: ['serious'] },
-      { text: '「…すみません、少し黙らせてください。今の一打、言葉にすると軽くなるので」と帽子を取って立ち尽くす', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「…すみません、少し黙らせてください。今の一打、言葉にすると軽くなるので」と帽子を取って立ち尽くす', delta: { trust: 7, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1219,7 +1219,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「ナイスアウト！すごい！」と拍手', delta: { fun: 5, trust: 3 }, tags: ['flattery'] },
       { text: '「砂の取り方が薄かったですね。あの厚さは狙って出せるものじゃないです」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
-      { text: '「これは本物のゴルフです」と泣きそうになる', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「これは本物のゴルフです」と泣きそうになる', delta: { trust: 6, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1230,7 +1230,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「すごいキャディさんですね！」と相手に同意する', delta: { fun: 4, trust: 3 }, tags: ['safe'] },
       { text: 'キャディさんにも「ありがとうございます！」とお礼を言う', delta: { trust: 5, fun: 3 }, tags: ['etiquette'] },
-      { text: '「キャディさんまで変わるんですね」と熱弁する', delta: { fun: 6, trust: 5, creep: 4 }, tags: ['flattery', 'extreme'] },
+      { text: '「キャディさんまで変わるんですね」と熱弁する', delta: { trust: 8, fun: 6, creep: 7 }, tags: ['flattery', 'extreme'] },
     ],
   },
   {
@@ -1241,7 +1241,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「奥の方に見えますよ」と教えてあげる', delta: { fun: 3, trust: 3, focus: 2 }, tags: ['safe'] },
       { text: 'キャディに確認してもらう', delta: { trust: 3, fun: 2, focus: 3 }, tags: ['serious'] },
-      { text: '相手より先に走ってグリーンまで確認しに行く', delta: { fun: 4, trust: 2, creep: 4 }, tags: ['over_support'] },
+      { text: '相手より先に走ってグリーンまで確認しに行く', delta: { trust: 6, fun: 4, creep: 6 }, tags: ['over_support'] },
     ],
   },
   {
@@ -1252,7 +1252,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「グリップを少しストロングにするといいかもですよ」とアドバイス', delta: { trust: 3, fun: 2, focus: 3 }, tags: ['serious'] },
       { text: '「スライスも個性ですよ！独特の弾道でカッコいい！」', delta: { fun: 5, trust: 2 }, tags: ['flattery', 'humor'] },
-      { text: '「それはスライスではなくアートです！！」と訂正する', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「それはスライスではなくアートです！！」と訂正する', delta: { trust: 6, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1285,7 +1285,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「重心を低くして打つといいですよ」とアドバイス', delta: { trust: 3, fun: 2, focus: 3 }, tags: ['serious'] },
       { text: '「上り傾斜はボールが上がりやすいので1番手下げるといいですよ」', delta: { fun: 3, trust: 4, focus: 2 }, tags: ['serious'] },
-      { text: 'さりげなく相手の背中を支えるように立つ', delta: { fun: 3, trust: 2, creep: 4 }, tags: ['over_support'] },
+      { text: 'さりげなく相手の背中を支えるように立つ', delta: { trust: 7, fun: 3, creep: 6 }, tags: ['over_support'] },
       { text: '「気合いで！」と一言だけ言う', delta: { fun: 4, trust: 1 }, tags: ['humor'] },
     ],
   },
@@ -1333,7 +1333,7 @@ export const events: GameEvent[] = [
     description: 'グリーン周りのアプローチ。相手がピンまで10ヤードのところから打とうとしている。',
     stage: 4,
     choices: [
-      { text: '「ピンまでどれくらいか測りますよ」と距離を計算してあげる', delta: { fun: 1, trust: 1, creep: 4 }, tags: ['over_support', 'logic'] },
+      { text: '「ピンまでどれくらいか測りますよ」と距離を計算してあげる', delta: { trust: 6, fun: 1, creep: 6 }, tags: ['over_support', 'logic'] },
       { text: '「どんなイメージで打つか決まりましたか？」と確認する', delta: { trust: 3, fun: 2, focus: 1 }, tags: ['etiquette'] },
       { text: '静かに見守る', delta: { trust: 3, focus: 4 }, tags: ['serious'] },
     ],
@@ -1345,7 +1345,7 @@ export const events: GameEvent[] = [
     stage: 4,
     choices: [
       { text: '「楽しそうですね…こちらも負けずに！」と気にしない', delta: { fun: 4, trust: 2 }, tags: ['humor'] },
-      { text: '隣ホールが見えない位置に回り込み、騒ぎを相手の視界から外す', delta: { trust: 3, fun: 2, creep: 4 }, tags: ['over_support'] },
+      { text: '隣ホールが見えない位置に回り込み、騒ぎを相手の視界から外す', delta: { trust: 5, fun: 2, creep: 6 }, tags: ['over_support'] },
       { text: '隣のグループに「静かにして！」と言いに行く', delta: { fun: 2, trust: -2, creep: 5 }, tags: ['bold'] },
     ],
   },
@@ -1368,7 +1368,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「無理しないでください！カートで移動しましょう」', delta: { trust: 5, fun: 3 }, tags: ['etiquette'] },
       { text: '「湿布持ってますよ！貼りますか？」と用意良く', delta: { fun: 4, trust: 4, creep: 2 }, tags: ['over_support'] },
-      { text: '「いつから。階段は。正座は。何科でした」と問診が止まらない', delta: { fun: 6, trust: -2, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: '「いつから。階段は。正座は。何科でした」と問診が止まらない', delta: { trust: 8, fun: 6, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1400,8 +1400,8 @@ export const events: GameEvent[] = [
     stage: 4,
     choices: [
       { text: '「確かに…でもそれが腕の見せどころですね」と前向きにかわす', delta: { fun: 4, trust: 3 }, tags: ['humor'] },
-      { text: '「そうですよ！最悪です！次は別のコースにしましょう！」と強く同調する', delta: { fun: 3, trust: 1, creep: 3 }, tags: ['flattery'] },
-      { text: '「コースの方が恐縮してますよ」とコースをかばう', delta: { fun: 6, trust: 5, creep: 4 }, tags: ['flattery', 'extreme'] },
+      { text: '「そうですよ！最悪です！次は別のコースにしましょう！」と強く同調する', delta: { trust: 9, fun: 3, creep: 6 }, tags: ['flattery'] },
+      { text: '「コースの方が恐縮してますよ」とコースをかばう', delta: { trust: 8, fun: 6, creep: 7 }, tags: ['flattery', 'extreme'] },
     ],
   },
   {
@@ -1427,7 +1427,7 @@ export const events: GameEvent[] = [
     stage: 5,
     choices: [
       { text: '「ここの名物、ゴルフ飯ランキング1位らしいですよ！」と情報提供', delta: { fun: 4, trust: 3 }, tags: ['safe'] },
-      { text: '「同じものを。選んだ方が正解なので」と合わせる', delta: { fun: 4, trust: 2, creep: 3 }, tags: ['flattery', 'extreme'] },
+      { text: '「同じものを。選んだ方が正解なので」と合わせる', delta: { trust: 7, fun: 4, creep: 7 }, tags: ['flattery', 'extreme'] },
       { text: '相手が選びやすいようにメニューの特徴を簡単に説明する', delta: { fun: 3, trust: 4 }, tags: ['etiquette'] },
     ],
   },
@@ -1517,7 +1517,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「一緒にパット練習しましょうか？」と声をかける', delta: { fun: 3, trust: 4, focus: 3 }, tags: ['safe'] },
       { text: '「集中したいですよね、邪魔しないようにします」と空気を読む', delta: { trust: 5, fun: 1 }, tags: ['serious', 'etiquette'] },
-      { text: 'キャディに頼んで相手のパット練習用ボールを余分に用意してもらう', delta: { trust: 3, fun: 2, creep: 3 }, tags: ['over_support'] },
+      { text: 'キャディに頼んで相手のパット練習用ボールを余分に用意してもらう', delta: { trust: 8, fun: 2, creep: 6 }, tags: ['over_support'] },
     ],
   },
 
@@ -1533,7 +1533,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「惜しい！ホールインワン一歩手前！」と興奮する', delta: { fun: 6, trust: 3 }, tags: ['flattery'] },
       { text: '「番手をひとつ落として入られてましたよね。あれが効いてます」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
-      { text: '「惜しい、じゃないです！！事件です！！」と言い切る', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「惜しい、じゃないです！！事件です！！」と言い切る', delta: { trust: 6, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1555,7 +1555,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「ありがとうございます！打ってみます」と素直に借りる', delta: { fun: 5, trust: 3 }, tags: ['safe'] },
       { text: '「遠慮します。自分のクラブで勝負します」と断る', delta: { trust: 3, fun: 1 }, tags: ['honesty'] },
-      { text: '借りたクラブで打ち、相手の前で大げさに感動する', delta: { fun: 6, trust: 2, creep: 3 }, tags: ['flattery', 'humor'] },
+      { text: '借りたクラブで打ち、相手の前で大げさに感動する', delta: { trust: 6, fun: 6, creep: 6 }, tags: ['flattery', 'humor'] },
     ],
   },
   {
@@ -1566,7 +1566,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「きれいですね」と静かに感動を共有する', delta: { fun: 3, trust: 4 }, tags: ['safe'] },
       { text: '「写真に収めたいですね！」とカメラを向ける', delta: { fun: 5, trust: 3 }, tags: ['bold'] },
-      { text: '「この時間にここに立てているのは、○○さんのペース配分のおかげです。……本当に、そう思っています」と目を合わせずに言う', delta: { fun: 6, trust: 5, creep: 4 }, tags: ['flattery', 'extreme'] },
+      { text: '「この時間にここに立てているのは、○○さんのペース配分のおかげです。……本当に、そう思っています」と目を合わせずに言う', delta: { trust: 7, fun: 6, creep: 7 }, tags: ['flattery', 'extreme'] },
     ],
   },
   {
@@ -1599,7 +1599,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「大丈夫ですか？残念ですね…代わりに何か使えますか？」', delta: { trust: 5, fun: 2 }, tags: ['etiquette'] },
       { text: '「後でリシャフトすれば直せますよ！良い機会です！」と前向きに', delta: { fun: 4, trust: 3 }, tags: ['humor'] },
-      { text: 'クラブを全部差し出し「素手でやります」と言う', delta: { fun: 6, trust: -2, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: 'クラブを全部差し出し「素手でやります」と言う', delta: { trust: 8, fun: 6, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1692,7 +1692,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「すごい！ラフから直接グリーン！！」と大喜びする', delta: { fun: 6, trust: 3 }, tags: ['flattery'] },
       { text: '「刻む選択もあった場面で、ラフの抵抗を計算に入れて振り切りましたね」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
-      { text: 'あの深いラフからのオンは物理法則を超えた奇跡だとキャディに語り聞かせる', delta: { fun: 8, trust: 1, creep: 5 }, tags: ['flattery', 'over_support'] },
+      { text: 'あの深いラフからのオンは物理法則を超えた奇跡だとキャディに語り聞かせる', delta: { trust: 6, fun: 8, creep: 6 }, tags: ['flattery', 'over_support'] },
     ],
   },
   {
@@ -1714,7 +1714,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「もちろん！一番いいアングルで撮りますよ！」と喜んで撮る', delta: { fun: 5, trust: 4 }, tags: ['safe'] },
       { text: '「いい写真になりますよ！」と複数カット撮影する', delta: { fun: 6, trust: 3, creep: 2 }, tags: ['over_support'] },
-      { text: '「もう少し右です。あと三枚だけ」と撮り続ける', delta: { fun: 6, trust: -2, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: '「もう少し右です。あと三枚だけ」と撮り続ける', delta: { trust: 7, fun: 6, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1752,7 +1752,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「最高！！バーディおめでとうございます！」と大喜びする', delta: { fun: 7, trust: 4 }, tags: ['flattery'] },
       { text: '「あのラインを最後まで信じて打ち切りましたね」', delta: { fun: 3, trust: 3, focus: 3 }, tags: ['analysis_praise', 'honesty'] },
-      { text: '「今のでもう元は取れました」と拝む', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「今のでもう元は取れました」と拝む', delta: { trust: 7, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1763,7 +1763,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「フェアウェイ左サイドを狙うと安全ですよ」と真剣に伝える', delta: { trust: 4, fun: 2, focus: 3 }, tags: ['serious'] },
       { text: '「○○さんの判断を信じます！」と委ねる', delta: { fun: 3, trust: 3 }, tags: ['flattery'] },
-      { text: '「ど真ん中で。不可能はないです」と背中を押す', delta: { fun: 6, trust: 1, creep: 7 }, tags: ['flattery', 'bold'] },
+      { text: '「ど真ん中で。不可能はないです」と背中を押す', delta: { trust: 7, fun: 6, creep: 7 }, tags: ['flattery', 'bold'] },
     ],
   },
   {
@@ -1785,7 +1785,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「本当にお疲れ様でした！最後までさすがです！」と労う', delta: { fun: 4, trust: 5 }, tags: ['etiquette', 'flattery'] },
       { text: '「カートで移動しましょう！あとは乗って楽しみましょう」', delta: { fun: 4, trust: 4 }, tags: ['safe'] },
-      { text: '「塩分も冷却スプレーもあります」と荷物を広げる', delta: { fun: 6, trust: -2, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: '「塩分も冷却スプレーもあります」と荷物を広げる', delta: { trust: 8, fun: 6, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1818,7 +1818,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「今日は本当に楽しかったです。ありがとうございました」と心から伝える', delta: { fun: 5, trust: 6 }, tags: ['honesty', 'etiquette'] },
       { text: '「お疲れ様でした！次回もよろしくお願いします」と笑顔で', delta: { fun: 4, trust: 4 }, tags: ['safe'] },
-      { text: '「実は各ホールでメモを取っていました。全部で九枚あります。清書してお渡しします」とノートを差し出す', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「実は各ホールでメモを取っていました。全部で九枚あります。清書してお渡しします」とノートを差し出す', delta: { trust: 9, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1856,7 +1856,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「いいスコアでしたよ！楽しいラウンドでした」と称える', delta: { fun: 5, trust: 7 }, tags: ['flattery', 'safe'] },
       { text: '「次回はさらに良いスコアで！リベンジしましょう！」と前向きに', delta: { fun: 5, trust: 5 }, tags: ['bold', 'humor'] },
-      { text: '「全ホール記録してあります。パーオン率、フェアウェイキープ率、平均パット数。製本してお送りします」と資料を出す', delta: { fun: 7, trust: 7, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「全ホール記録してあります。パーオン率、フェアウェイキープ率、平均パット数。製本してお送りします」と資料を出す', delta: { trust: 9, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1867,7 +1867,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「似合いそうですね！」と後押しする', delta: { fun: 4, trust: 5 }, tags: ['flattery'] },
       { text: '何も言わず一緒に見て回る', delta: { fun: 3, trust: 5 }, tags: ['safe'] },
-      { text: 'さりげなく先に購入して「プレゼントです！」と渡す', delta: { fun: 6, trust: 4, creep: 6 }, tags: ['over_support'] },
+      { text: 'さりげなく先に購入して「プレゼントです！」と渡す', delta: { trust: 8, fun: 6, creep: 6 }, tags: ['over_support'] },
     ],
   },
   {
@@ -1878,7 +1878,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「ぜひ！また一緒に回りたいです！」と素直に喜ぶ', delta: { fun: 5, trust: 9 }, tags: ['honesty', 'bold'] },
       { text: '「予定を調整してご連絡します！」と真剣に返す', delta: { trust: 9, fun: 3 }, tags: ['serious'] },
-      { text: '「半年分、先に押さえてあります」と手帳を開く', delta: { fun: 6, trust: -4, creep: 7 }, tags: ['over_support', 'extreme'] },
+      { text: '「半年分、先に押さえてあります」と手帳を開く', delta: { trust: 9, fun: 6, creep: 7 }, tags: ['over_support', 'extreme'] },
     ],
   },
   {
@@ -1899,7 +1899,7 @@ export const events: GameEvent[] = [
     stage: 9,
     choices: [
       { text: '「アプリで呼びますよ！」とすぐに手配する', delta: { fun: 4, trust: 7 }, tags: ['etiquette'] },
-      { text: '「一緒に乗って途中まで送りますよ」と申し出る', delta: { fun: 3, trust: 4, creep: 4 }, tags: ['over_support'] },
+      { text: '「一緒に乗って途中まで送りますよ」と申し出る', delta: { trust: 9, fun: 3, creep: 6 }, tags: ['over_support'] },
       { text: '「アプリ教えますね！次から使えますよ」と自立を支援する', delta: { fun: 1, trust: 5, focus: 3 }, tags: ['logic', 'honesty'] },
     ],
   },
@@ -1911,7 +1911,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「楽しかったです！またご一緒できれば嬉しいです」と正直に', delta: { fun: 5, trust: 11 }, tags: ['honesty'] },
       { text: '「○○さんのプレーから勉強になりました！」と謙虚に', delta: { fun: 4, trust: 7 }, tags: ['flattery', 'safe'] },
-      { text: '「人生変わりました。本当に」と握手を離さない', delta: { fun: 7, trust: 7, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「人生変わりました。本当に」と握手を離さない', delta: { trust: 9, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1966,7 +1966,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「今の、フィニッシュが綺麗でした」と一言添える', delta: { fun: 2, trust: 3 }, tags: ['safe'] },
       { text: '「あの体重移動は真似できないですね」と技術に触れる', delta: { fun: 2, trust: 4, focus: 2 }, tags: ['logic', 'analysis_praise'] },
-      { text: '「今のフィニッシュ、もう一度だけ見せてもらえませんか。……もう一度、お願いします」と静かに頼み続ける', delta: { fun: 7, trust: 4, creep: 3 }, tags: ['humor', 'over_praise', 'extreme'] },
+      { text: '「今のフィニッシュ、もう一度だけ見せてもらえませんか。……もう一度、お願いします」と静かに頼み続ける', delta: { trust: 7, fun: 7, creep: 7 }, tags: ['humor', 'over_praise', 'extreme'] },
     ],
   },
   {
@@ -1977,7 +1977,7 @@ export const events: GameEvent[] = [
     choices: [
       { text: '「手際がいいですね」と素直に言う', delta: { fun: 1, trust: 3 }, tags: ['safe'] },
       { text: '「そのライの見方、どう判断してるんですか」と聞く', delta: { fun: 1, trust: 3, focus: 2 }, tags: ['logic'] },
-      { text: '「その手つきだけで負けました」と持ち上げる', delta: { fun: 6, trust: 5, creep: 4 }, tags: ['flattery', 'extreme'] },
+      { text: '「その手つきだけで負けました」と持ち上げる', delta: { trust: 6, fun: 6, creep: 7 }, tags: ['flattery', 'extreme'] },
     ],
   },
   {

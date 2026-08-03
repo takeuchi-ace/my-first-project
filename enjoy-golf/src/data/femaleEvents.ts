@@ -44,7 +44,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「差し支えのない範囲で、伺うだけならできます」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['etiquette'] },
       { text: '「代わりになれるとは言えませんが、話は聞けます」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「では今日一日、相談役として雇われておきます」', delta: { trust: 3, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「○○さんほどの方に釣り合う相談相手なんていませんよ！」', delta: { trust: -2, fun: 3, creep: 7, focus: 0 }, tags: ['over_praise'] },
+      { text: '「○○さんほどの方に釣り合う相談相手なんていませんよ！」', delta: { trust: 6, fun: 3, focus: 0, creep: 7 }, tags: ['over_praise'] },
     ],
   },
 
@@ -58,7 +58,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「言った方の物差しの話ですね。私は伺った通りに受け取ります」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['etiquette'] },
       { text: '「可愛げの有無で仕事の成果は変わらないと思いますが」', delta: { trust: 2, fun: 1, creep: 0, focus: 3 }, tags: ['logic'] },
       { text: '「では今日は私が可愛げ担当をやります」', delta: { trust: 3, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「そんなことないですよ、十分お可愛らしいです」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「そんなことないですよ、十分お可愛らしいです」', delta: { trust: 6, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -72,7 +72,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「…正直、半分は仕事です」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「分かった上で付き合っていただいてる、ということですよね」', delta: { trust: 4, fun: 1, creep: 0, focus: 5 }, tags: ['logic'] },
       { text: '「見透かされる側は、なかなか居心地が悪いものです」', delta: { trust: 2, fun: 2, creep: 0, focus: 2 }, tags: ['ethics'] },
-      { text: '「いやいや、今日は純粋に楽しんでいるだけです」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「いやいや、今日は純粋に楽しんでいるだけです」', delta: { trust: 7, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -86,7 +86,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「背負う量が違いますから、軽々には言えません」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「その一言だけ伺っておきます。踏み込みはしません」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['etiquette'] },
       { text: '「今日のパットは全部おひとりで決めていただきますが」', delta: { trust: 2, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「○○さんの判断は絶対に正しいですよ！」', delta: { trust: -2, fun: 3, creep: 7, focus: 0 }, tags: ['over_praise'] },
+      { text: '「○○さんの判断は絶対に正しいですよ！」', delta: { trust: 6, fun: 3, focus: 0, creep: 7 }, tags: ['over_praise'] },
     ],
   },
 
@@ -100,7 +100,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「承知しました。今の距離のままいきます」', delta: { trust: 3, fun: 1, creep: 0, focus: 3 }, tags: ['etiquette'] },
       { text: '「近いと思ったら、その場で言ってください」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「では1ホールぶん空けて歩きます」', delta: { trust: 2, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「自分は絶対に大丈夫ですから、安心してください！」', delta: { trust: -2, fun: 2, creep: 7, focus: 0 }, tags: ['over_praise'] },
+      { text: '「自分は絶対に大丈夫ですから、安心してください！」', delta: { trust: 6, fun: 2, focus: 0, creep: 7 }, tags: ['over_praise'] },
     ],
   },
 
@@ -114,7 +114,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「判断は数字で、責任の取り方は感情の側だと思います」', delta: { trust: 2, fun: 1, creep: 0, focus: 4 }, tags: ['logic'] },
       { text: '「先に○○さんのお考えを伺ってもいいですか」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['etiquette'] },
       { text: '「今日のスコアは感情で書いていいですか」', delta: { trust: 2, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「もちろん○○さんの感情の方です」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「もちろん○○さんの感情の方です」', delta: { trust: 6, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -156,7 +156,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「では少しだけ、ここで止まりましょうか」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['etiquette'] },
       { text: '「この時間の逆光だと、あと20分は綺麗に見えますね」', delta: { trust: 2, fun: 1, creep: 0, focus: 3 }, tags: ['logic'] },
       { text: '「落ち着きすぎて次の一打が入らなくなりますよ」', delta: { trust: 3, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「今度、海辺のコースをこちらで押さえておきますね」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「今度、海辺のコースをこちらで押さえておきますね」', delta: { trust: 6, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -170,7 +170,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「約束が先です。守れないときは早めに言います」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「約束を守れる範囲でしか請けない、が正確なところです」', delta: { trust: 4, fun: 1, creep: 0, focus: 5 }, tags: ['logic'] },
       { text: '「両方求められる立場は、しんどいですよね」', delta: { trust: 2, fun: 2, creep: 0, focus: 2 }, tags: ['ethics'] },
-      { text: '「○○さんが大事にされる方で構いません」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「○○さんが大事にされる方で構いません」', delta: { trust: 7, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -184,7 +184,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「言ったことと、やったことが揃っているかどうかです」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「裏切られる余地を残したまま任せられるか、でしょうか」', delta: { trust: 4, fun: 1, creep: 0, focus: 5 }, tags: ['logic'] },
       { text: '「時間をかけないと分からないもの、という気はします」', delta: { trust: 2, fun: 2, creep: 0, focus: 2 }, tags: ['ethics'] },
-      { text: '「○○さんのような方を信じることだと思います」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「○○さんのような方を信じることだと思います」', delta: { trust: 7, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -212,7 +212,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「急かさないので、間を取ってから打ってください」', delta: { trust: 3, fun: 1, creep: 0, focus: 3 }, tags: ['etiquette'] },
       { text: '「私も同じです。お互い期待値は下げていきましょう」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「集中できていない同士、いい勝負になりますね」', delta: { trust: 3, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「○○さんの集中力が切れるところなんて見たことないです！」', delta: { trust: -2, fun: 3, creep: 7, focus: 0 }, tags: ['over_praise'] },
+      { text: '「○○さんの集中力が切れるところなんて見たことないです！」', delta: { trust: 6, fun: 3, focus: 0, creep: 7 }, tags: ['over_praise'] },
     ],
   },
 
@@ -226,7 +226,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「伺い方によっては失礼になる話なので、慎重に答えます」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['etiquette'] },
       { text: '「年齢そのものではなく、積んだ回数が武器になります」', delta: { trust: 2, fun: 1, creep: 0, focus: 4 }, tags: ['logic'] },
       { text: '「私は年齢だけが武器なので、他が何もありません」', delta: { trust: 3, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「そもそも全然お若く見えますよ」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「そもそも全然お若く見えますよ」', delta: { trust: 6, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -240,7 +240,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「了解です。以降は対等でいきます」', delta: { trust: 3, fun: 2, creep: 0, focus: 2 }, tags: ['honesty', 'sportsmanship'] },
       { text: '「では今の一言も気遣いに入るので、取り消しますね」', delta: { trust: 4, fun: 1, creep: 0, focus: 5 }, tags: ['logic'] },
       { text: '「気遣われる側も疲れますよね」', delta: { trust: 2, fun: 2, creep: 0, focus: 2 }, tags: ['ethics'] },
-      { text: '「自分は気遣いなんてしてないですよ、素のままです」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「自分は気遣いなんてしてないですよ、素のままです」', delta: { trust: 7, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -268,7 +268,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「…焦りました。よく見ていらっしゃいますね」', delta: { trust: 4, fun: 2, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「見えていた前提で、改めて構え直します」', delta: { trust: 3, fun: 1, creep: 0, focus: 3 }, tags: ['etiquette'] },
       { text: '「顔に出ないよう10年練習してきたんですが」', delta: { trust: 3, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「○○さんの観察眼は本当に人間離れしてますね！」', delta: { trust: -2, fun: 3, creep: 7, focus: 0 }, tags: ['over_praise'] },
+      { text: '「○○さんの観察眼は本当に人間離れしてますね！」', delta: { trust: 7, fun: 3, focus: 0, creep: 7 }, tags: ['over_praise'] },
     ],
   },
 
@@ -282,7 +282,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「無理をしない間合いで進めましょう」', delta: { trust: 3, fun: 1, creep: 0, focus: 2 }, tags: ['etiquette'] },
       { text: '「自然体を意識した時点で自然体ではない、が難しいところで」', delta: { trust: 2, fun: 1, creep: 0, focus: 4 }, tags: ['logic'] },
       { text: '「では自然体で3打ほど叩かせていただきます」', delta: { trust: 3, fun: 5, creep: 0, focus: 0 }, tags: ['humor'] },
-      { text: '「○○さんはいつも自然体で素敵です」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「○○さんはいつも自然体で素敵です」', delta: { trust: 6, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 
@@ -296,7 +296,7 @@ export const femaleEvents: GameEvent[] = [
       { text: '「こちらこそ、取り繕わずに済みました」', delta: { trust: 3, fun: 2, creep: 0, focus: 2 }, tags: ['honesty'] },
       { text: '「素で話せた日は、だいたい話した中身も残りますね」', delta: { trust: 4, fun: 1, creep: 0, focus: 5 }, tags: ['logic'] },
       { text: '「素で話せる相手って、そう多くはないですよね」', delta: { trust: 2, fun: 2, creep: 0, focus: 2 }, tags: ['ethics'] },
-      { text: '「○○さんとご一緒できたおかげです」', delta: { trust: -1, fun: 2, creep: 5, focus: 0 }, tags: ['flattery'] },
+      { text: '「○○さんとご一緒できたおかげです」', delta: { trust: 7, fun: 2, focus: 0, creep: 6 }, tags: ['flattery'] },
     ],
   },
 

@@ -160,8 +160,7 @@ export const frontEvents: GameEvent[] = [
         },
       },
       {
-        text: '「砂質が柔らかいから56度で開いて打てば…」と技術アドバイス',
-        delta: { trust: 1, fun: -1, creep: 3 },
+        text: '「砂質が柔らかいから56度で開いて打てば…」と技術アドバイス', delta: { trust: 6, fun: -1, creep: 6 },
         tags: ['over_support'],
         speech: {
           good: 'おっ、詳しいですね。参考にします！',

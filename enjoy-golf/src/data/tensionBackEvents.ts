@@ -21,7 +21,7 @@ export const tensionBackEvents: GameEvent[] = [
     category: 'tensionBack',
     choices: [
       { text: '静かに待つ', delta: { trust: 3, fun: -2, focus: 3 }, tags: ['silence'] },
-      { text: '「どうしました？」と聞く', delta: { trust: 1, creep: 4 }, tags: ['over_support'] },
+      { text: '「どうしました？」と聞く', delta: { trust: 6, creep: 6 }, tags: ['over_support'] },
       { text: '無理に話題を振る', delta: { trust: -4, fun: 1, creep: 8 }, tags: ['hype'] },
     ],
   },
@@ -69,7 +69,7 @@ export const tensionBackEvents: GameEvent[] = [
     category: 'tensionBack',
     choices: [
       { text: '正直に答える', delta: { trust: 5, focus: 3 }, tags: ['honesty'] },
-      { text: '「○○さんが特別ですよ」', delta: { fun: 2, creep: 7 }, tags: ['flattery', 'over_praise'] },
+      { text: '「○○さんが特別ですよ」', delta: { trust: 8, fun: 2, creep: 7 }, tags: ['flattery', 'over_praise'] },
       { text: '話題をそらす', delta: { trust: -3, fun: -1, creep: 6 }, tags: ['distance'] },
     ],
   },
@@ -94,7 +94,7 @@ export const tensionBackEvents: GameEvent[] = [
     choices: [
       { text: '「大丈夫ですか？」と気遣う', delta: { trust: 4, creep: 1 }, tags: ['etiquette'] },
       { text: '何も聞かず待つ', delta: { trust: 3, fun: -1, focus: 3 }, tags: ['silence', 'distance'] },
-      { text: '「何かあったんですか？」と食い下がる', delta: { trust: -4, fun: -2, creep: 8 }, tags: ['over_support', 'pressure'] },
+      { text: '「何かあったんですか？」と食い下がる', delta: { trust: 7, fun: -2, creep: 8 }, tags: ['over_support', 'pressure'] },
     ],
   },
 ];
