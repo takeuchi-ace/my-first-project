@@ -16,6 +16,8 @@ import { wasOnizukaSSAchieved } from '../logic/onizuka';
 import { useGameStore } from '../store/useGameStore';
 import { getStrategy, strategyFit } from '../data/strategies';
 import { RUN_ALLOWED_MISSES, RUN_WEAR_LIMIT } from '../logic/wear';
+import { evaluateGifts } from '../logic/gifts';
+import { GiftItem } from '../data/items';
 import { COLORS } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ResultSimple'>;
@@ -94,6 +96,8 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
   const [contractResult, setContractResult] = useState<{ newlyUnlocked: number[] } | null>(null);
   /** 自己ベストを更新したときの旧ベスト。null なら更新していない */
   const [beatenBest, setBeatenBest] = useState<number | null>(null);
+  /** このラウンドでもらった道具 */
+  const [gifts, setGifts] = useState<GiftItem[]>([]);
   const processed = useRef(false);
 
   useEffect(() => {
@@ -154,6 +158,22 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         setBeatenBest(prevBest.score);
       }
       store.recordRoundResult(characterId, result.entertainScore, result.grade);
+    }
+
+    // もらいもの。相手ごとの条件を満たしたら渡される。
+    // 相談ラウンドも対象（銀座のパターは相談でしか取れない）
+    if (lastGameState) {
+      const got = evaluateGifts(
+        lastGameState,
+        result.entertainScore,
+        result.contractSuccess,
+        store.ownedItems,
+        { quoteCount: store.aceQuotes.length }
+      );
+      if (got.length > 0) {
+        setGifts(got);
+        store.grantItems(got.map((g) => g.id));
+      }
     }
   }, [result.contractSuccess, characterId, isAceRound]);
 
@@ -352,6 +372,16 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
           </View>
         )}
 
+        {/* もらいもの。相手ごとの条件を満たしたときだけ */}
+        {gifts.map((g) => (
+          <View key={g.id} style={styles.giftCard}>
+            <Text style={styles.giftTitle}>もらった</Text>
+            <Text style={styles.giftName}>{g.name}</Text>
+            <Text style={styles.giftLine}>「{g.line}」</Text>
+            <Text style={styles.giftDesc}>{g.desc}</Text>
+          </View>
+        ))}
+
         {/* 今日の作戦 — 賭けの答え合わせ。分かれ目より先に出す */}
         {strategyReview && (
           <View style={styles.stratCard}>
@@ -536,6 +566,38 @@ const styles = StyleSheet.create({
     fontSize: 72,
     fontWeight: '900',
     marginBottom: 4,
+  },
+  giftCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,215,0,0.10)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.45)',
+    padding: 14,
+    marginBottom: 16,
+  },
+  giftTitle: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  giftName: {
+    color: '#f5f5f5',
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  giftLine: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  giftDesc: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 12,
+    lineHeight: 18,
   },
   runCounter: {
     color: COLORS.gradeS,

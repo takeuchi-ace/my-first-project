@@ -55,6 +55,8 @@ interface GameStoreState {
    * 進行中の `run` は保存しない（途中で閉じた状態を復元しても整合が取れない）。
    */
   bestRun: { reached: number; totalScore: number } | null;
+  /** もらった道具の id。相手ごとの条件を満たすと増える */
+  ownedItems: string[];
   /**
    * 進行中の連戦。保存しない。
    * 途中で閉じた状態を復元しても「どのラウンドの途中だったか」が分からず整合が取れない。
@@ -110,6 +112,8 @@ interface GameStoreActions {
   recordRoundResult: (charId: CharacterId, score: number, grade: EntertainGrade) => void;
   getPersonalBest: (charId: CharacterId) => { score: number; grade: EntertainGrade } | null;
   getRoundsPlayed: (charId: CharacterId) => number;
+  /** 道具をもらう。すでに持っているものは無視する */
+  grantItems: (ids: string[]) => void;
   // ===== 連戦 =====
   /** 連戦をはじめる。契約済みから並びを引き、摩耗を初期値に置く */
   startRun: () => CharacterId[];
@@ -157,6 +161,7 @@ const INITIAL_STATE: GameStoreState = {
   personalBest: {},
   roundsPlayed: {},
   bestRun: null,
+  ownedItems: [],
   run: null,
 };
 
@@ -211,6 +216,7 @@ async function loadState(): Promise<GameStoreState | null> {
       personalBest: parsed.personalBest ?? {},
       roundsPlayed: parsed.roundsPlayed ?? {},
       bestRun: parsed.bestRun ?? null,
+      ownedItems: parsed.ownedItems ?? [],
       run: null,
     };
   } catch {
@@ -564,6 +570,14 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const grantItemsFn = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    setState((prev) => ({
+      ...prev,
+      ownedItems: [...new Set([...prev.ownedItems, ...ids])],
+    }));
+  }, []);
+
   // ===== 連戦 =====
   //
   // 21人と契約したあとに何も残らないのを埋めるモード。
@@ -707,13 +721,14 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       recordRoundResult: recordRoundResultFn,
       getPersonalBest: getPersonalBestFn,
       getRoundsPlayed: getRoundsPlayedFn,
+      grantItems: grantItemsFn,
       startRun: startRunFn,
       finishRunRound: finishRunRoundFn,
       abandonRun: abandonRunFn,
       getRun: getRunFn,
       resetAll: resetAllFn,
     }),
-    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, recordRoundResultFn, getPersonalBestFn, getRoundsPlayedFn, startRunFn, finishRunRoundFn, abandonRunFn, getRunFn, setSfxEnabledFn, markAceBallExplainedFn, resetAllFn],
+    [state, hydrated, unlockCharacter, addContract, addContractForCharacter, useAceBallFn, refillAceBallsFn, setLastGameState, getLastGameState, saveQuoteIfNewFn, markCompetitionClearedFn, incrementRoundCounterFn, onCompetitionStartFn, isCompetitionClearedFn, isCompetitionAvailableFn, getNextCompetitionFn, getClearedCompetitionsFn, handleRoundCompleteFn, getCooldownFn, getWearFn, addWearFn, recordDiscoveriesFn, getDiscoveredFn, recordRoundResultFn, getPersonalBestFn, getRoundsPlayedFn, grantItemsFn, startRunFn, finishRunRoundFn, abandonRunFn, getRunFn, setSfxEnabledFn, markAceBallExplainedFn, resetAllFn],
   );
 
   return React.createElement(GameStoreContext.Provider, { value }, children);

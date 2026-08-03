@@ -15,6 +15,7 @@ import ResultScreenSimple from './src/screens/ResultScreenSimple';
 import IntroScreen from './src/screens/IntroScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import RunResultScreen from './src/screens/RunResultScreen';
+import ItemsScreen from './src/screens/ItemsScreen';
 import CompetitionScreen from './src/screens/CompetitionScreen';
 import CompetitionResultScreen from './src/screens/CompetitionResultScreen';
 
@@ -60,6 +61,7 @@ function AppInner() {
           <Stack.Screen name="ResultSimple" component={ResultScreenSimple} />
           <Stack.Screen name="Intro" component={IntroScreen} />
           <Stack.Screen name="RunResult" component={RunResultScreen} />
+          <Stack.Screen name="Items" component={ItemsScreen} />
           <Stack.Screen name="Competition" component={CompetitionScreen} />
           <Stack.Screen name="CompetitionResult" component={CompetitionResultScreen} />
         </Stack.Navigator>

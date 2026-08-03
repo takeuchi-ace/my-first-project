@@ -16,6 +16,7 @@ import { aceConsultPool } from '../data/aceConsults';
 import { getTagInsight } from '../data/tagInsights';
 import { Strategy, drawStrategyOptions } from '../data/strategies';
 import { RoundMood, pickRoundMood, getRoundMood } from '../data/roundMoods';
+import { itemsByCharacter } from '../data/items';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite } from '../faces';
 import { COLORS } from '../theme/colors';
@@ -62,6 +63,19 @@ export default function ProfileScreen({ route, navigation }: Props) {
    * これまでの成績。
    * 相談ラウンドは評価しない場なので記録していない（エースには出ない）。
    */
+  /**
+   * この相手からもらえる道具。
+   * 未取得ならヒントを出す。条件を隠したままだと運で集まるだけになる。
+   */
+  const gifts = useMemo(
+    () =>
+      itemsByCharacter(characterId).map((it) => ({
+        item: it,
+        owned: store.ownedItems.includes(it.id),
+      })),
+    [characterId, store.ownedItems]
+  );
+
   const record = useMemo(() => {
     const rounds = store.getRoundsPlayed(characterId);
     if (rounds === 0) return null;
@@ -233,6 +247,26 @@ export default function ProfileScreen({ route, navigation }: Props) {
         {character.hint && (
           <Text style={styles.hintText}>{character.hint}</Text>
         )}
+
+        {/* もらいもの。取ったら中身、まだなら取り方のヒント */}
+        {gifts.map(({ item, owned }) => (
+          <View key={item.id} style={styles.discoveryCard}>
+            <Text style={styles.discoveryTitle}>
+              {owned ? 'もらったもの' : 'もらえそうなもの'}
+            </Text>
+            {owned ? (
+              <>
+                <Text style={styles.giftName}>{item.name}</Text>
+                <Text style={styles.giftDesc}>{item.desc}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.giftLocked}>？？？</Text>
+                <Text style={styles.giftDesc}>{item.hint}</Text>
+              </>
+            )}
+          </View>
+        ))}
 
         {/* これまでの成績。
             グレードと接待スコアは毎ラウンド計算していたのに保存も表示もしていなかった。
@@ -567,6 +601,23 @@ const styles = StyleSheet.create({
   },
   // ===== Hint =====
   /** 一緒に回って分かったこと */
+  giftName: {
+    color: '#FFD700',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  giftLocked: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  giftDesc: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 12,
+    lineHeight: 19,
+  },
   recordRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

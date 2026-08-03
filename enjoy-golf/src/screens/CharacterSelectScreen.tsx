@@ -15,6 +15,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Character, CompetitionId, RootStackParamList } from '../types';
 import { characters } from '../data/characters';
 import { competitionMap } from '../data/competitionData';
+import { GIFT_ITEM_TOTAL } from '../data/items';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite } from '../faces';
 import { COLORS } from '../theme/colors';
@@ -320,6 +321,21 @@ export default function CharacterSelectScreen({ navigation }: Props) {
               </Pressable>
             )}
 
+            {/* 道具箱。もらいものは相手ごとにプロフィールにも出るが、
+                並べて見られないと集めている感じにならない */}
+            <Pressable
+              style={({ pressed }) => [styles.itemsRow, pressed && { opacity: 0.7 }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                navigation.navigate('Items');
+              }}
+            >
+              <Text style={styles.itemsLabel}>道具箱</Text>
+              <Text style={styles.itemsCount}>
+                {store.ownedItems.length}/{GIFT_ITEM_TOTAL}
+              </Text>
+            </Pressable>
+
             {/* 進捗サブバー */}
             <View style={styles.progressSubBar}>
               <Text style={styles.progressText}>
@@ -409,6 +425,25 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   // ===== Progress sub-bar =====
+  itemsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+  },
+  itemsLabel: {
+    color: COLORS.textCream,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  itemsCount: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+  },
   runCard: {
     backgroundColor: 'rgba(255,215,0,0.10)',
     borderRadius: 12,

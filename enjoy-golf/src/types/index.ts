@@ -433,6 +433,7 @@ export type RootStackParamList = {
     lunchMood: LunchMood;
   };
   RunResult: { reached: number; totalScore: number; isBest: boolean };
+  Items: undefined;
   Competition: { competitionId: CompetitionId };
   CompetitionResult: {
     result: CompetitionResult;
