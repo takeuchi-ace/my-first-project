@@ -245,8 +245,22 @@ export default function CharacterSelectScreen({ navigation }: Props) {
    * 「全員契約済みのときだけ出る」ものが現れて脈絡がなくなる。
    */
   const allContracted = contractedCharacterIds.length >= totalCharCount;
+  /**
+   * 進行中の連戦。
+   * ブラウザの戻るなどで `abandonRun` を通らずにこの画面へ来ることがあるので、
+   * その場合は新しく始めずに続きへ戻す（新規開始だと進行中の記録が黙って消える）。
+   */
+  const activeRun = store.getRun();
   const handleStartRun = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const running = store.getRun();
+    if (running) {
+      navigation.navigate('Profile', {
+        characterId: running.order[running.index],
+        autoStart: true,
+      });
+      return;
+    }
     const order = store.startRun();
     if (order.length === 0) return;
     navigation.navigate('Profile', { characterId: order[0], autoStart: true });
@@ -290,9 +304,13 @@ export default function CharacterSelectScreen({ navigation }: Props) {
                 ]}
                 onPress={handleStartRun}
               >
-                <Text style={styles.runTitle}>連戦</Text>
+                <Text style={styles.runTitle}>
+                  {activeRun ? '連戦を続ける' : '連戦'}
+                </Text>
                 <Text style={styles.runDesc}>
-                  続けて何人と契約できるか。摩耗は回復しません
+                  {activeRun
+                    ? `${activeRun.index + 1}人目・契約 ${activeRun.reached}`
+                    : '続けて何人と契約できるか。摩耗は回復しません'}
                 </Text>
                 <Text style={styles.runBest}>
                   {store.bestRun

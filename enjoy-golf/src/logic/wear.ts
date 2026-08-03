@@ -87,6 +87,13 @@ export const RUN_WEAR_LIMIT = 35;
  */
 export const RUN_ALLOWED_MISSES = 1;
 
+/**
+ * 連戦を始めるときの摩耗。
+ * 通常プレイの値を持ち込むと「疲れているから連戦できない」になって窮屈なので、
+ * 初期値から始めて終わったら元へ戻す。
+ */
+export const RUN_START_WEAR = 10;
+
 // ===== 内なる声 =====
 
 const INNER_VOICE_TIRED: string[] = [

@@ -501,7 +501,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       //
       // 連戦中は回復させない。摩耗が連戦の上限そのものなので、
       // ラウンドを跨いで戻ってしまうと「腕だけで無限に伸びる」構造に戻る。
-      if (!store.getRun()) {
+      // ただし相談ラウンドは連戦の相手に入らない別枠なので、
+      // 連戦が動いている裏で相談した場合も本来の回復を効かせる。
+      if (isAceRound || !store.getRun()) {
         store.addWear(
           isAceRound ? WEAR_ACE_ROUND : calcRoundEndRecovery(roundWearRef.current)
         );

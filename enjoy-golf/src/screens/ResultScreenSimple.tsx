@@ -100,7 +100,11 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
     if (processed.current) return;
     processed.current = true;
 
-    if (!isAceRound) {
+    // クールダウンとコンペのカウンタは通常プレイのもの。
+    // 連戦中に動かすと、連戦で当たった相手が終了後もクールダウンで塞がれ、
+    // 自己ベストを狙いに行けなくなる（連戦は摩耗を巻き戻す自己完結のモードなので、
+    // 通常プレイの都合を持ち出さない）
+    if (!isAceRound && !store.getRun()) {
       store.incrementRoundCounter();
       store.handleRoundComplete(characterId);
     }

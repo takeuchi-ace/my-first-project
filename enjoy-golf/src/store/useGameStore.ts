@@ -4,7 +4,17 @@ import { setSfxEnabled as applySfxEnabled } from '../lib/sound';
 import { GameState, CharacterId, Character, CompetitionId, EntertainGrade, Tag } from '../types';
 import { characters } from '../data/characters';
 import { competitionOrder, competitionMap } from '../data/competitionData';
-import { RUN_ALLOWED_MISSES } from '../logic/wear';
+import { RUN_ALLOWED_MISSES, RUN_START_WEAR } from '../logic/wear';
+
+/** 自己ベストの比較用。SS が最上位 */
+const GRADE_RANK: Record<EntertainGrade, number> = {
+  SS: 5,
+  S: 4,
+  A: 3,
+  B: 2,
+  C: 1,
+  D: 0,
+};
 
 // ===== Types =====
 /** 連戦の最終集計 */
@@ -522,8 +532,15 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
     (charId: CharacterId, score: number, grade: EntertainGrade) => {
       setState((prev) => {
         const prevBest = prev.personalBest[charId];
-        const nextBest =
-          !prevBest || score > prevBest.score ? { score, grade } : prevBest;
+        // グレードを先に見る。SS は「S かつ特別条件かつ7%」なので
+        // スコアだけで比べると、85でSSを取ったあと92でSを取った瞬間に
+        // SS が記録から消える
+        const better =
+          !prevBest ||
+          GRADE_RANK[grade] > GRADE_RANK[prevBest.grade] ||
+          (GRADE_RANK[grade] === GRADE_RANK[prevBest.grade] &&
+            score > prevBest.score);
+        const nextBest = better ? { score, grade } : prevBest;
         return {
           ...prev,
           personalBest: { ...prev.personalBest, [charId]: nextBest },
@@ -576,8 +593,19 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
       ...prev,
       // 通常プレイの摩耗を持ち込むと「疲れているから連戦できない」になって窮屈。
       // 初期値から始め、終わったら元に戻す
-      wear: 10,
-      run: { order, index: 0, reached: 0, misses: 0, totalScore: 0, wearBefore: prev.wear },
+      wear: RUN_START_WEAR,
+      run: {
+        order,
+        index: 0,
+        reached: 0,
+        misses: 0,
+        totalScore: 0,
+        // すでに連戦中なら、そのときの `wearBefore` を引き継ぐ。
+        // `prev.wear` を入れると連戦中の摩耗（10＋蓄積）が
+        // 「連戦前の値」として記録され、本来の摩耗が永久に失われる。
+        // ブラウザの戻るなどで `abandonRun` を通らずに抜けると起きる
+        wearBefore: prev.run ? prev.run.wearBefore : prev.wear,
+      },
     }));
     return order;
   }, []);
