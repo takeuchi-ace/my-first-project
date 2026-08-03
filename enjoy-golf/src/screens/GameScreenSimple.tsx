@@ -85,6 +85,11 @@ import {
   menuItems,
   characterLunchProfiles,
 } from '../data/lunchMiniGame';
+import {
+  morningTalkLines,
+  TALK_ANSWERED_LINE,
+  TALK_IGNORED_LINE,
+} from '../data/morningTalkLines';
 import { HoleMap } from '../components/HoleMap';
 import { HoleMapModal } from '../components/HoleMapModal';
 import { MorningShotView } from '../components/MorningShotView';
@@ -104,6 +109,65 @@ const ACE_HOLE_COUNT = 5;
 // ミニゲームの判定窓（中心 0.5 からの片側幅）。集中力で伸縮する
 const OWN_SHOT_WINDOW = { perfect: 0.10, good: 0.20 };
 const PUTT_WINDOW = { perfect: 0.05, good: 0.10 };
+
+/**
+ * 朝イチのスイングは3段で取る。
+ *
+ * 1回タップで終わると、上手く押せたかどうかだけの単調な操作になり、
+ * 相手との関係が何も動かない。段を分けたうえで、構えの直後に
+ * 相手が話しかけてくる（`own_shot_talk`）。応じれば信頼が動くが、
+ * 次の段の判定窓が狭くなる——自分のスコアと接待がひとつの操作でぶつかる。
+ *
+ * 窓は段ごとに狭くなり、バーも速くなる。インパクトが一番きつい。
+ */
+const SWING_STEPS = [
+  {
+    label: '構え',
+    hint: 'まず構えを合わせる',
+    windowScale: 1.35,
+    durationMs: 1500,
+  },
+  {
+    label: '振り上げ',
+    hint: 'トップの位置で止める',
+    windowScale: 1.0,
+    durationMs: 1200,
+  },
+  {
+    label: 'インパクト',
+    hint: '当てる。ここが一番狭い',
+    windowScale: 0.7,
+    durationMs: 900,
+  },
+] as const;
+
+/** 話しかけに応じたとき、次の段の判定窓にかかる倍率 */
+const TALK_WINDOW_PENALTY = 0.8;
+
+/**
+ * 3段の点（各段 PERFECT=2 / GOOD=1 / MISS=0）からショットの出来を決める。
+ *
+ * **PERFECT はインパクトを取れたときだけ**。合計5点以上に加えて
+ * 最後の段が PERFECT であることを要る。GOOD は合計3点以上。
+ *
+ * 「合計5点以上／2点以上」で始めたが、実測すると6点満点で2点は簡単すぎて、
+ * 下手なタップ（σ=0.15）のミスが 18%（1回タップ時代）から **4% まで落ちた**。
+ * 難しくするつもりの変更で易しくなっていたので、条件を組み替えた。
+ *
+ * | タップの腕 | 旧1回タップ | この式 |
+ * |---|---|---|
+ * | 下手 σ=0.15 | P49 G32 M18 | P24 G61 M15 |
+ * | ふつう σ=0.08 | P79 G20 M1 | P60 G40 M0 |
+ * | 上手 σ=0.04 | P99 G1 M0 | P92 G8 M0 |
+ *
+ * PERFECT はどの腕でも取りにくくなり、ミスの出方は据え置き。
+ */
+const swingScoresToResult = (scores: number[]): OwnShotResult => {
+  const total = scores.reduce((a, b) => a + b, 0);
+  const impact = scores[scores.length - 1];
+  if (total >= 5 && impact === 2) return 'perfect';
+  return total >= 3 ? 'good' : 'miss';
+};
 
 /**
  * 傾斜ごとに必要な「引きの強さ」（0〜1 のスワイプ距離）。
@@ -157,7 +221,13 @@ const MENU_GROUP_LABELS: Record<string, string> = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameSimple'>;
 type LunchSeatPhase = 'seat' | 'menu' | 'result';
-type MorningPhase = 'own_shot_intro' | 'own_shot_swing' | 'own_shot_result' | null;
+type MorningPhase =
+  | 'own_shot_intro'
+  | 'own_shot_swing'
+  /** 構えたところで相手が話しかけてくる。応じるか、集中を通すか */
+  | 'own_shot_talk'
+  | 'own_shot_result'
+  | null;
 type PuttPhase = 'power_tap' | 'result' | null;
 
 const PUTT_AIM_BY_INDEX: import('../types').PuttAim[] = ['left', 'center', 'right'];
@@ -271,6 +341,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const swingAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const swingPositionRef = useRef(0);
   const swingLockedRef = useRef(false);
+  /** いま何段目か（0=構え / 1=振り上げ / 2=インパクト） */
+  const [swingStep, setSwingStep] = useState(0);
+  /** 段ごとの点（2/1/0）。表示と最終判定の両方に使う */
+  const [swingScores, setSwingScores] = useState<number[]>([]);
+  /** 話しかけに応じたか。応じた段の次だけ窓が狭くなる */
+  const [talkAnswered, setTalkAnswered] = useState(false);
+  /** 話しかけへの返事のあとに出す地の文 */
+  const [talkResultLine, setTalkResultLine] = useState<string | null>(null);
 
   // ===== Final Putt mini-game state =====
   const [puttPhase, setPuttPhase] = useState<PuttPhase>(null);
@@ -284,13 +362,36 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   // ミニゲームの判定窓に使う集中力。会話で focus を削ると自分のプレーが決まらなくなる
   const ownShotFocus = pendingMorningState?.gauge.focus ?? gameState.gauge.focus;
   const puttFocus = pendingPuttState?.gauge.focus ?? gameState.gauge.focus;
-  const ownShotZone = useMemo(() => scaledWindow(OWN_SHOT_WINDOW, ownShotFocus), [ownShotFocus]);
+  /**
+   * いまの段の判定窓。
+   *
+   * 集中力 → 段ごとの倍率 → 話しかけに応じた分の狭まり、の順にかける。
+   * 表示するゾーンの幅もこの値から作るので、見た目と判定が食い違わない。
+   */
+  const ownShotZone = useMemo(() => {
+    const base = scaledWindow(OWN_SHOT_WINDOW, ownShotFocus);
+    const step = SWING_STEPS[Math.min(swingStep, SWING_STEPS.length - 1)];
+    // 応じたのは1段目の直後なので、狭まるのは2段目（振り上げ）だけ
+    const penalty = talkAnswered && swingStep === 1 ? TALK_WINDOW_PENALTY : 1;
+    return {
+      perfect: base.perfect * step.windowScale * penalty,
+      good: base.good * step.windowScale * penalty,
+    };
+  }, [ownShotFocus, swingStep, talkAnswered]);
   const puttZone = useMemo(() => scaledWindow(PUTT_WINDOW, puttFocus), [puttFocus]);
   /** 引いている量（0〜1）。指を離した時点の値で強さが決まる */
   const [puttPull, setPuttPull] = useState(0);
   const puttPullRef = useRef(0);
-  /** スワイプの全長として扱う幅（px）。これを超えて引いても 1 で止まる */
-  const PUTT_PULL_RANGE = 200;
+  /**
+   * 引きのゲージの幅（px）。**測るのではなく自分で決める**。
+   *
+   * onLayout で測った幅を使うと、画面幅が変わったときに古い値が残り
+   * （実測: 指100pxで印が50pxしか動かない）、指と印がずれる。
+   * 幅を自分で決めてスタイルにも判定にも同じ数を渡せば、その組は起きない。
+   */
+  const puttGaugeWidth = Math.min(320, Math.max(200, windowWidth - 56));
+  /** いま目標帯の中にいるか。入った瞬間だけ触覚を返すために持つ */
+  const puttInPerfectRef = useRef(false);
   /** これ未満で離した場合は「引いていない」とみなして打たない（誤タップ対策） */
   const PUTT_PULL_MIN = 0.06;
   const [puttResultLabel, setPuttResultLabel] = useState('');
@@ -370,7 +471,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   }, [gameState.gauge.creep]);
 
   // ===== パットの引きをリセット =====
-  // パットは横バーのタップではなく縦のスワイプなので、バーのアニメーションは動かさない
+  // パットは動くバーを止めるのではなく引いて離す操作なので、バーのアニメーションは動かさない
   useEffect(() => {
     if (puttPhase !== 'power_tap') return;
     swingLockedRef.current = false;
@@ -379,6 +480,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   }, [puttPhase]);
 
   // ===== Swing animation for morning mini-game =====
+  // 段が進むごとに速くする（構え1500ms → 振り上げ1200ms → インパクト900ms）。
+  // swingStep を依存に入れてあるので、段が変わるたびに引き直す
   useEffect(() => {
     if (morningPhase !== 'own_shot_swing') return;
     swingBarAnim.setValue(0);
@@ -386,10 +489,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     const listenerId = swingBarAnim.addListener(({ value }) => {
       swingPositionRef.current = value;
     });
+    const duration = SWING_STEPS[Math.min(swingStep, SWING_STEPS.length - 1)].durationMs;
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(swingBarAnim, { toValue: 1, duration: 1500, useNativeDriver: false }),
-        Animated.timing(swingBarAnim, { toValue: 0, duration: 1500, useNativeDriver: false }),
+        Animated.timing(swingBarAnim, { toValue: 1, duration, useNativeDriver: false }),
+        Animated.timing(swingBarAnim, { toValue: 0, duration, useNativeDriver: false }),
       ])
     );
     swingAnimRef.current = anim;
@@ -398,27 +502,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       anim.stop();
       swingBarAnim.removeListener(listenerId);
     };
-  }, [morningPhase, swingBarAnim]);
+  }, [morningPhase, swingBarAnim, swingStep]);
 
-  // ===== Handle swing tap =====
-  const handleSwingTap = useCallback(() => {
-    if (swingLockedRef.current || morningPhase !== 'own_shot_swing') return;
-    swingLockedRef.current = true;
-    swingAnimRef.current?.stop();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    const pos = swingPositionRef.current;
-    // 集中力が低いほど判定窓が狭くなる（目標ゾーンの表示も同じ数値から作っている）
-    const w = scaledWindow(OWN_SHOT_WINDOW, ownShotFocus);
-    const off = Math.abs(pos - 0.5);
-    let result: OwnShotResult;
-    if (off <= w.perfect) {
-      result = 'perfect';
-    } else if (off <= w.good) {
-      result = 'good';
-    } else {
-      result = 'miss';
-    }
+  /**
+   * 3段ぶんの点からショットを確定させる。
+   *
+   * 段の途中では呼ばない（最後の段のタップと、途中で画面を離れたときだけ）。
+   */
+  const finishSwing = useCallback((scores: number[]) => {
+    const result = swingScoresToResult(scores);
 
     const resultText = getOwnShotResultText(result, characterId, character.name);
     setOwnShotResultText(resultText);
@@ -441,7 +533,65 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     }
 
     setMorningPhase('own_shot_result');
-  }, [morningPhase, pendingMorningState, characterId, character.name]);
+  }, [pendingMorningState, characterId, character.name]);
+
+  // ===== Handle swing tap（3段） =====
+  const handleSwingTap = useCallback(() => {
+    if (swingLockedRef.current || morningPhase !== 'own_shot_swing') return;
+    swingLockedRef.current = true;
+    swingAnimRef.current?.stop();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    playSfx('tap');
+
+    // この段の点。窓は ownShotZone（集中力・段・話しかけの狭まりを織り込んだ値）
+    const off = Math.abs(swingPositionRef.current - 0.5);
+    const score = off <= ownShotZone.perfect ? 2 : off <= ownShotZone.good ? 1 : 0;
+    const scores = [...swingScores, score];
+    setSwingScores(scores);
+
+    // 1段目（構え）のあとは相手が話しかけてくる
+    if (swingStep === 0) {
+      setTalkResultLine(null);
+      setMorningPhase('own_shot_talk');
+      return;
+    }
+
+    if (swingStep >= SWING_STEPS.length - 1) {
+      finishSwing(scores);
+      return;
+    }
+
+    setSwingStep(swingStep + 1);
+  }, [morningPhase, ownShotZone, swingScores, swingStep, finishSwing]);
+
+  /**
+   * 話しかけへの返事。
+   *
+   * 応じれば信頼が動くが、次の段（振り上げ）の窓が狭くなる。
+   * 流せば窓はそのままだが、話を流したぶん信頼が下がる。
+   * どちらも engine 経由で入れる（キャラの traitModifiers を効かせるため）。
+   */
+  const answerMorningTalk = useCallback(
+    (answered: boolean) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setTalkAnswered(answered);
+      const base = pendingMorningState;
+      if (base) {
+        setPendingMorningState(
+          applyMinigameResult(base, answered ? { trust: 4 } : { trust: -2 })
+        );
+      }
+      setTalkResultLine(
+        (answered ? TALK_ANSWERED_LINE : TALK_IGNORED_LINE).replace(
+          '{name}',
+          character.name.split('・').pop() ?? character.name
+        )
+      );
+      setSwingStep(1);
+      setMorningPhase('own_shot_swing');
+    },
+    [pendingMorningState, character.name]
+  );
 
   // Advance from own shot result to next hole
   useEffect(() => {
@@ -827,6 +977,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         setSelectedChoiceText('');
         setGameState(newState);
         setPendingMorningState(newState);
+        // 3段ぶんの状態をここで初期化する（前のホールの点や返事を持ち込まない）
+        setSwingStep(0);
+        setSwingScores([]);
+        setTalkAnswered(false);
+        setTalkResultLine(null);
         setMorningPhase('own_shot_intro');
         resetUI();
         timerRef.current = setTimeout(() => {
@@ -1039,12 +1194,21 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   }, [puttPhase, puttSlopeInfo, puttAimIndex, pendingPuttState, characterId, puttFocus]);
 
   /**
-   * 縦方向のドラッグ量を 0〜1 に変換する。上に引くほど強い。
+   * 横方向のドラッグ量を 0〜1 に変換する。右へ引くほど強い。
    *
    * 引かずに離しただけ（誤タップ）でも判定を走らせると引き量0で必ずミスになり、
    * ラウンドの山場が事故で終わる。最低量まで引いていなければ何もせず引き直させる。
    * Capture 版で応答を取るのは、この UI が ScrollView の中にあり、
-   * 縦のドラッグをスクロールに奪われるのを防ぐため。
+   * ドラッグをスクロールに奪われるのを防ぐため。
+   *
+   * ## 指の移動量とゲージの幅を一致させる
+   *
+   * 以前は 200px 固定を 0〜1 に割り当てていた。ゲージの実寸は端末幅の86%
+   * （375幅なら約290px）なので、**指1pxに対して印が1.45px動いていた**。
+   * 目標帯（PERFECT は片側5%）は指の移動量では約±10px しかなく、
+   * 見えている帯より狭いものを当てさせられていた。
+   * ゲージの幅（`puttGaugeWidth`）で割ることで、印と指が同じだけ動く。
+   * 判定窓は変えていない（狭さは同じ・当てやすさだけを直した）。
    */
   const puttPan = useMemo(
     () =>
@@ -1054,14 +1218,24 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         onMoveShouldSetPanResponderCapture: () => true,
         onPanResponderMove: (_e, g) => {
           if (swingLockedRef.current) return;
-          const v = Math.max(0, Math.min(1, g.dx / PUTT_PULL_RANGE));
+          const v = Math.max(0, Math.min(1, g.dx / puttGaugeWidth));
           puttPullRef.current = v;
           setPuttPull(v);
+
+          // 目標帯に入った瞬間だけ短い触覚を返す。
+          // 窓を広げずに「ここだ」と分かる手がかりを足す
+          const target = puttSlopeInfo ? PUTT_POWER_TARGET[puttSlopeInfo.slope] : 0.5;
+          const inPerfect = Math.abs(v - target) <= puttZone.perfect;
+          if (inPerfect !== puttInPerfectRef.current) {
+            puttInPerfectRef.current = inPerfect;
+            if (inPerfect) Haptics.selectionAsync();
+          }
         },
         onPanResponderRelease: () => {
           if (puttPullRef.current < PUTT_PULL_MIN) {
             puttPullRef.current = 0;
             setPuttPull(0);
+            puttInPerfectRef.current = false;
             return;
           }
           handlePuttRelease();
@@ -1070,9 +1244,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           // 途中で奪われたら打たずに戻す
           puttPullRef.current = 0;
           setPuttPull(0);
+          puttInPerfectRef.current = false;
         },
       }),
-    [handlePuttRelease]
+    [handlePuttRelease, puttSlopeInfo, puttZone.perfect, puttGaugeWidth]
   );
 
   // ===== Lunch handlers =====
@@ -1349,18 +1524,82 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* Swing mini-game */}
+          {/* 相手の声かけ。構えたところで話しかけてくる */}
+          {morningPhase === 'own_shot_talk' && (
+            <View>
+              <View style={styles.eventBox}>
+                <View style={styles.morningBadge}>
+                  <Text style={styles.morningBadgeText}>構えたところで</Text>
+                </View>
+                <Text style={styles.eventBoxTitle}>
+                  {'「'}{morningTalkLines[characterId]}{'」'}
+                </Text>
+                <Text style={styles.eventBoxDesc}>
+                  応じれば喜ばれるが、振り上げの狙いが乱れる。
+                </Text>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [styles.talkChoice, pressed && styles.talkChoicePressed]}
+                onPress={() => answerMorningTalk(true)}
+              >
+                <Text style={styles.talkChoiceLabel}>手を止めて応じる</Text>
+                <Text style={styles.talkChoiceNote}>次の判定窓が狭くなる</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.talkChoice, pressed && styles.talkChoicePressed]}
+                onPress={() => answerMorningTalk(false)}
+              >
+                <Text style={styles.talkChoiceLabel}>聞こえなかったふりをする</Text>
+                <Text style={styles.talkChoiceNote}>狙いは乱れないが、話を流すことになる</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Swing mini-game（構え → 振り上げ → インパクトの3段） */}
           {morningPhase === 'own_shot_swing' && (
             <View>
               <View style={styles.eventBox}>
                 <View style={styles.morningBadge}>
-                  <Text style={styles.morningBadgeText}>朝イチのショット</Text>
+                  <Text style={styles.morningBadgeText}>
+                    朝イチのショット {swingStep + 1}/{SWING_STEPS.length}
+                  </Text>
                 </View>
-                <Text style={styles.eventBoxTitle}>スイング！</Text>
-                <Text style={styles.eventBoxDesc}>バーが中央に来たときにタップ</Text>
+                <Text style={styles.eventBoxTitle}>{SWING_STEPS[swingStep].label}</Text>
+                <Text style={styles.eventBoxDesc}>{SWING_STEPS[swingStep].hint}</Text>
+                {talkResultLine && swingStep === 1 && (
+                  <Text style={styles.swingTalkEcho}>{talkResultLine}</Text>
+                )}
               </View>
 
               <Pressable style={styles.swingArea} onPress={handleSwingTap}>
+                {/* 段ごとの首尾。3段のうちどこで取れたかが見えないと、
+                    最後の判定が何で決まったのか分からない */}
+                <View style={styles.swingStepRow}>
+                  {SWING_STEPS.map((s, i) => (
+                    <Text
+                      key={s.label}
+                      style={[
+                        styles.swingStepChip,
+                        i === swingStep && styles.swingStepChipNow,
+                        swingScores[i] === 2 && styles.swingStepChipPerfect,
+                        swingScores[i] === 1 && styles.swingStepChipGood,
+                        swingScores[i] === 0 && styles.swingStepChipMiss,
+                      ]}
+                    >
+                      {s.label}
+                      {swingScores[i] === undefined
+                        ? ''
+                        : swingScores[i] === 2
+                          ? ' ◎'
+                          : swingScores[i] === 1
+                            ? ' ○'
+                            : ' ×'}
+                    </Text>
+                  ))}
+                </View>
+
                 <View style={styles.swingZoneLabels}>
                   <Text style={styles.swingZoneMiss}>MISS</Text>
                   <Text style={styles.swingZoneGood}>GOOD</Text>
@@ -1373,13 +1612,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 <View style={styles.swingTrack}>
                   <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightGood, zoneStyle(ownShotZone.good)]} />
                   <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightPerfect, zoneStyle(ownShotZone.perfect)]} />
+                  {/* 0%〜100% に marginLeft で半径分戻す。2%〜88% だと
+                      印の中心と判定値がずれ、中央で押しても中央で止まらない */}
                   <Animated.View
                     style={[
                       styles.swingIndicator,
                       {
                         left: swingBarAnim.interpolate({
                           inputRange: [0, 1],
-                          outputRange: ['2%', '88%'],
+                          outputRange: ['0%', '100%'],
                         }),
                       },
                     ]}
@@ -1481,8 +1722,19 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           {/* Face — 4 で固定していたため、直前に怒らせていても、
               パットを外しても、最終パットの間だけ機嫌のいい顔になっていた。
               会話で動いた機嫌をそのまま出し、結果が出たら結果の顔にする */}
-          <View style={[styles.faceCenter, { marginVertical: roomyGap }]}>
-            <FaceSprite mood={mood} scale={faceScale} characterId={characterId} />
+          {/* 強さを決める段では上を詰める。顔・グリーン・説明文で高さを使い切って
+              いたため、375×812 で引きのゲージが画面下端で切れて触れなかった */}
+          <View
+            style={[
+              styles.faceCenter,
+              { marginVertical: puttPhase === 'power_tap' ? 4 : roomyGap },
+            ]}
+          >
+            <FaceSprite
+              mood={mood}
+              scale={puttPhase === 'power_tap' ? faceScale * 0.75 : faceScale}
+              characterId={characterId}
+            />
           </View>
 
           {/* Green view (visible during both putt phases) */}
@@ -1494,8 +1746,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 result={
                   puttPhase === 'result' ? (pendingPuttState?.puttResult ?? null) : null
                 }
-                width={260}
-                height={200}
+                width={puttPhase === 'power_tap' ? 200 : 260}
+                height={puttPhase === 'power_tap' ? 140 : 200}
               />
             </View>
           )}
@@ -1517,14 +1769,16 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 </Text>
               </View>
 
-              {/* 引いて離す。朝イチのタップと操作を分けるため、縦のスワイプ量で強さを決める */}
+              {/* 引いて離す。朝イチのタップと操作を分けるため、横のスワイプ量で強さを決める */}
               <View style={styles.puttPullArea} {...puttPan.panHandlers}>
                 {/* ヒントはゲージの上。下に置くと画面下端で切れる */}
                 <Text style={styles.swingTapHint}>
-                  {puttPull > 0.02 ? '離す！' : '右へ引く'}
+                  {puttPull > 0.02 ? '目標の帯で離す' : '右へ引く'}
                 </Text>
                 <View style={styles.puttPullGaugeWrap}>
-                  <View style={styles.puttPullGauge}>
+                  {/* 幅は判定に使う数値そのもの（'86%' のような相対指定にすると
+                      判定側が実寸を知るために測る必要が出て、ずれる余地が生まれる） */}
+                  <View style={[styles.puttPullGauge, { width: puttGaugeWidth }]}>
                     <View
                       style={[
                         styles.puttPullZone,
@@ -1546,6 +1800,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                       ]}
                     />
                     <View style={[styles.puttPullFill, { width: `${puttPull * 100}%` }]} />
+                    {/* いまの位置を示す縦線。塗りの端だけだと、どこで離したのか
+                        目標帯との前後関係が読み取りにくい */}
+                    <View
+                      style={[styles.puttPullMarker, { left: `${puttPull * 100}%` }]}
+                    />
                   </View>
                 </View>
               </View>
@@ -2651,14 +2910,24 @@ const styles = StyleSheet.create({
    */
   puttPullArea: {
     alignItems: 'center',
-    paddingVertical: 12,
+    // 触る帯は上に取る。下に足すとゲージが画面下端に押し出される
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  puttPullMarker: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 3,
+    marginLeft: -1.5,
+    backgroundColor: '#fff',
   },
   puttPullGaugeWrap: {
     alignItems: 'center',
     width: '100%',
   },
   puttPullGauge: {
-    width: '86%',
+    // 幅は puttGaugeWidth を渡して上書きする（判定と同じ数値にするため）
     height: 46,
     borderRadius: 10,
     backgroundColor: 'rgba(0,0,0,0.35)',
@@ -3089,11 +3358,72 @@ const styles = StyleSheet.create({
     width: '20%',
     backgroundColor: 'rgba(255,215,0,0.3)',
   },
+  swingStepRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  swingStepChip: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    overflow: 'hidden',
+  },
+  swingStepChipNow: {
+    color: COLORS.textCream,
+    borderColor: 'rgba(255,215,0,0.55)',
+  },
+  swingStepChipPerfect: {
+    color: '#FFD700',
+    borderColor: 'rgba(255,215,0,0.45)',
+  },
+  swingStepChipGood: {
+    color: '#9ad',
+    borderColor: 'rgba(120,170,220,0.45)',
+  },
+  swingStepChipMiss: {
+    color: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  /** 声かけに応じた／流した結果の地の文。振り上げの段にだけ出す */
+  swingTalkEcho: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  talkChoice: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  talkChoicePressed: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  talkChoiceLabel: {
+    color: COLORS.textCream,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  talkChoiceNote: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    marginTop: 3,
+  },
   swingIndicator: {
     position: 'absolute',
     width: 28,
     height: 28,
     top: 8,
+    marginLeft: -14,
     borderRadius: 14,
     backgroundColor: '#fff',
     shadowColor: '#fff',
