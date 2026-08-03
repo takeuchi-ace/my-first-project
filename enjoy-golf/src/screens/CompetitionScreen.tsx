@@ -739,7 +739,7 @@ export default function CompetitionScreen({ navigation, route }: Props) {
       )}
 
       {/* Insight overlay */}
-      <InsightOverlay isActive={showInsight} onDone={() => {
+      <InsightOverlay isActive={showInsight} reward="相手の機嫌が上がった" onDone={() => {
         setShowInsight(false);
         pendingProceedRef.current?.();
         pendingProceedRef.current = null;

@@ -68,8 +68,6 @@ import {
 } from '../logic/aceEngine';
 import {
   computeReactionPlan,
-  findBestChoiceIndex,
-  updateInsightStreak,
   resolveChoiceSpeech,
 } from '../lib/insight';
 import {
@@ -87,7 +85,6 @@ import {
   menuItems,
   characterLunchProfiles,
 } from '../data/lunchMiniGame';
-import InsightOverlay from '../components/InsightOverlay';
 import { HoleMap } from '../components/HoleMap';
 import { HoleMapModal } from '../components/HoleMapModal';
 import { MorningShotView } from '../components/MorningShotView';
@@ -213,8 +210,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const redoSnapshotRef = useRef<{
     tanaka: ReturnType<typeof snapshotTanakaState>;
     onizuka: ReturnType<typeof snapshotOnizukaState>;
-    insightStreak: number;
-    prevWasMismatch: boolean;
     wear: number;
     roundWear: number;
   } | null>(null);
@@ -238,8 +233,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   );
 
   // ===== Insight state =====
-  const [insightStreak, setInsightStreak] = useState(0);
-  const [showInsight, setShowInsight] = useState(false);
   const [showAceBallIntro, setShowAceBallIntro] = useState(false);
   /** 内なる声。迎合が通って摩耗が溜まったビートだけ出る（null = 出さない） */
   const [innerVoice, setInnerVoice] = useState<string | null>(null);
@@ -248,7 +241,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   /** このラウンドで溜まった摩耗の合計。ラウンド終了時の回復量がこれで決まる */
   const roundWearRef = useRef(0);
   // 直前のターンで相手が本音を隠したか（見抜けたかは次の一手で判定する）
-  const [prevWasMismatch, setPrevWasMismatch] = useState(false);
   // 表示中の仕草が「本音の手がかり」かどうか。強調表示に使う
   const [gestureIsTell, setGestureIsTell] = useState(false);
 
@@ -599,8 +591,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     redoSnapshotRef.current = {
       tanaka: snapshotTanakaState(),
       onizuka: snapshotOnizukaState(),
-      insightStreak,
-      prevWasMismatch,
       wear: store.getWear(),
       roundWear: roundWearRef.current,
     };
@@ -732,21 +722,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       toValue: 0.9, duration: 200, useNativeDriver: true,
     }).start();
 
-    // Insight: 建前に流されなかったか。判定するのは「隠されたターンの次の一手」
-    const bestIdx = findBestChoiceIndex(gameState, currentEvent);
-    const { newStreak, insightFired } = updateInsightStreak(
-      insightStreak, prevWasMismatch, choiceIndex, bestIdx,
-    );
-    setInsightStreak(newStreak);
-    setPrevWasMismatch(plan.isMismatch);
-    if (insightFired && store.gainAceBall()) {
-      setShowInsight(true);
-      // 初めて手にしたときだけ説明する。
-      // 「本心読破！」のトーストが消えてから出す（重ねると両方読めない）
-      if (!store.aceBallExplained) {
-        setTimeout(() => setShowAceBallIntro(true), 1600);
-      }
-    }
+    // 「本心読破」でのACEボール獲得はやめた。
+    // ボールは銀座から預かるもの、という一本の筋にする。
+    // 補充は相談ラウンドが担う（相談は必ず契約成立扱いなので、
+    // 回るたびに `addContractForCharacter` の ACE 分岐で満タンに戻る）。
 
     // Set speech & gesture
     // キャラ固有の演出が下で仕草を差し替えるため、表示予約の判定にはこのローカル値を使う。
@@ -946,7 +925,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       setSelectedChoiceText('');
       advanceToNext(newState);
     }, 2500);
-  }, [choosing, currentEvent, gameState, characterId, isAceRound, insightStreak, store.aceBalls, store.saveQuoteIfNew, advanceToNext, speechOpacity, speechScale, gestureOpacity, worstFlashOpacity, quoteOpacity, lunchSubPhase, resetUI, animateFace, baseLayerOpacity]);
+  }, [choosing, currentEvent, gameState, characterId, isAceRound, store.aceBalls, store.saveQuoteIfNew, advanceToNext, speechOpacity, speechScale, gestureOpacity, worstFlashOpacity, quoteOpacity, lunchSubPhase, resetUI, animateFace, baseLayerOpacity]);
 
   // ===== ACE ball handlers =====
   const handleAceBallRedo = useCallback(() => {
@@ -962,8 +941,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     if (snap) {
       restoreTanakaState(snap.tanaka);
       restoreOnizukaState(snap.onizuka);
-      setInsightStreak(snap.insightStreak);
-      setPrevWasMismatch(snap.prevWasMismatch);
       // 摩耗も戻す。取り消した迎合の分が残ると、選び直したのに
       // 自分を殺した記録だけが積まれてしまう
       store.addWear(snap.wear - store.getWear());
@@ -1824,7 +1801,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       )}
 
       {/* Insight overlay */}
-      <InsightOverlay isActive={showInsight} onDone={() => setShowInsight(false)} />
 
       {/* ACEボールの説明。初めて手にしたときだけ */}
       <AceBallIntro

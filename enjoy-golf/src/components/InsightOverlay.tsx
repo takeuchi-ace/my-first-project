@@ -3,10 +3,18 @@ import { View, Text, Animated, StyleSheet } from 'react-native';
 
 interface Props {
   isActive: boolean;
+  /**
+   * 何が起きたかの一行。
+   *
+   * 以前は「ACEボール +1」を直書きしていたが、コンペではボールを渡しておらず
+   * （上がるのは相手の機嫌）、出していた表示が嘘だった。
+   * 実際に起きたことを呼び出し側から渡す。
+   */
+  reward: string;
   onDone: () => void;
 }
 
-export default function InsightOverlay({ isActive, onDone }: Props) {
+export default function InsightOverlay({ isActive, reward, onDone }: Props) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -59,7 +67,7 @@ export default function InsightOverlay({ isActive, onDone }: Props) {
       >
         <Text style={styles.icon}>💡</Text>
         <Text style={styles.text}>本心読破！</Text>
-        <Text style={styles.reward}>ACEボール +1</Text>
+        <Text style={styles.reward}>{reward}</Text>
       </Animated.View>
     </View>
   );
