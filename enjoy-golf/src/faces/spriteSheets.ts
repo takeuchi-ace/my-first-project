@@ -1,9 +1,22 @@
 /**
  * キャラ別スプライトシート定義
  *
- * AI 生成シートはフレーム配置が不均一（同じシート内でも図形位置がバラつく）。
- * frameCenters に各フレームの図形中心 X 座標を絶対値で保持する設計とし、
- * 描画側はそれを cropW の半分だけ左にオフセットしてクロップする。
+ * ## 2026-08 全21人を統一規格の新シートへ差し替え
+ *
+ * 旧シートは複数キャラ相乗り・フレーム位置が不均一で、キャラごとに
+ * 図形中心を実測した frameCenters を持っていた（tanaka_onizuka_sheet.png ほか）。
+ * 新シート（assets/sprites/generated/character_XX.png）は
+ * **2160×360・360×360の6コマ等間隔・1人1ファイル・背景透過**に揃っているので、
+ * 実測値は不要になり、全員同じ定義をループで生成できる。
+ *
+ * コマの並び（左から）:
+ *   0: 大笑い / 1: 笑顔 / 2: ノーマル / 3: 悲しい・心配 / 4: 怒り / 5: フォーマル
+ *
+ * 既存の Emotion（best/good/neutral/bad/worst）をコマ0〜4に割り当て、
+ * タイトル・一覧用（titleMode）はコマ5（フォーマル）を使う。
+ *
+ * 鷹宮（19）は頭・顔・体の大きさを6表情で統一した最新版。
+ * 旧シート（takamiya_hayase_mitsuki_sheet.png 等）への参照はここに残さないこと。
  */
 
 import { Emotion } from './common';
@@ -30,285 +43,53 @@ export interface SpriteSheetDef {
 
 const SPRITE_SHEETS = new Map<CharacterId, SpriteSheetDef>();
 
+/** Emotion → コマ 0〜4（5=フォーマルは titleFrameIndex で使う） */
 const FRAME_ORDER: Emotion[] = ['best', 'good', 'neutral', 'bad', 'worst'];
-const CROP_W = 200;
-const CROP_H = 200;
 
-// =====================================================================
-// 田中・鬼塚 (1672×941) — 各キャラ図形中心を実測
-// =====================================================================
-const SHEET_TANAKA_ONIZUKA = require('../assets/sprites/tanaka_onizuka_sheet.png');
-const TANAKA_W = 1672;
-const TANAKA_H = 941;
+const SHEET_W = 2160;
+const SHEET_H = 360;
+const FRAME = 360;
+/** 等間隔6コマの各中心X（180, 540, 900, 1260, 1620, 1980） */
+const CENTERS = [0, 1, 2, 3, 4, 5].map((i) => i * FRAME + FRAME / 2);
 
-SPRITE_SHEETS.set(1, {
-  source: SHEET_TANAKA_ONIZUKA,
-  imageWidth: TANAKA_W,
-  imageHeight: TANAKA_H,
-  frameCenters: [185, 431, 691, 958, 1219, 1458],
-  cropY: 31,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
+// require はバンドラが静的に解決するため、パスを変数にできない。21行並べる
+const SOURCES: Record<number, ImageSourcePropType> = {
+  1: require('../../assets/sprites/generated/character_01.png'), // 田中裕也
+  2: require('../../assets/sprites/generated/character_02.png'), // 鬼塚剛志
+  3: require('../../assets/sprites/generated/character_03.png'), // 坊っちゃん
+  4: require('../../assets/sprites/generated/character_04.png'), // 黒田隆之
+  5: require('../../assets/sprites/generated/character_05.png'), // アレクサンダー・スミス
+  6: require('../../assets/sprites/generated/character_06.png'), // 光山陽介
+  7: require('../../assets/sprites/generated/character_07.png'), // 巌源蔵
+  8: require('../../assets/sprites/generated/character_08.png'), // 中村亮介
+  9: require('../../assets/sprites/generated/character_09.png'), // 佐藤直人
+  10: require('../../assets/sprites/generated/character_10.png'), // 松本恒一
+  11: require('../../assets/sprites/generated/character_11.png'), // 大門誠一郎
+  12: require('../../assets/sprites/generated/character_12.png'), // 星野竜也
+  13: require('../../assets/sprites/generated/character_13.png'), // 金城猛
+  14: require('../../assets/sprites/generated/character_14.png'), // 白石敬之
+  15: require('../../assets/sprites/generated/character_15.png'), // 藤原千鶴
+  16: require('../../assets/sprites/generated/character_16.png'), // 銀座ハジメ
+  17: require('../../assets/sprites/generated/character_17.png'), // 篠原拓海
+  18: require('../../assets/sprites/generated/character_18.png'), // 桐生麻衣
+  19: require('../../assets/sprites/generated/character_19.png'), // 鷹宮宗一郎（6表情の大きさ統一版）
+  20: require('../../assets/sprites/generated/character_20.png'), // 早瀬玲奈
+  21: require('../../assets/sprites/generated/character_21.png'), // 立花美月（ミツキ）
+};
 
-SPRITE_SHEETS.set(2, {
-  source: SHEET_TANAKA_ONIZUKA,
-  imageWidth: TANAKA_W,
-  imageHeight: TANAKA_H,
-  frameCenters: [166, 425, 692, 961, 1228, 1475],
-  cropY: 420,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-// =====================================================================
-// 坊っちゃん・黒田・スミス・光山 (1536×1024)
-// =====================================================================
-const SHEET_3_6 = require('../assets/sprites/bocchan_kuroda_smith_mitsuyama_sheet.png');
-const SHEET_W = 1536;
-const SHEET_H = 1024;
-
-SPRITE_SHEETS.set(3, {
-  source: SHEET_3_6,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [177, 379, 597, 827, 1045, 1258],
-  cropY: 6,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(4, {
-  source: SHEET_3_6,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [173, 377, 593, 828, 1046, 1259],
-  cropY: 287,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(5, {
-  source: SHEET_3_6,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [178, 379, 597, 827, 1046, 1261],
-  cropY: 537,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(6, {
-  source: SHEET_3_6,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [179, 379, 596, 826, 1045, 1260],
-  cropY: 787,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-// =====================================================================
-// 巖・中村・佐藤・松本 (1536×1024)
-// =====================================================================
-const SHEET_7_10 = require('../assets/sprites/iwao_nakamura_sato_matsumoto_sheet.png');
-
-SPRITE_SHEETS.set(7, {
-  source: SHEET_7_10,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [171, 387, 618, 844, 1057, 1293],
-  cropY: 17,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(8, {
-  source: SHEET_7_10,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [175, 389, 624, 846, 1060, 1292],
-  cropY: 267,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(9, {
-  source: SHEET_7_10,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [171, 391, 627, 845, 1061, 1293],
-  cropY: 517,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(10, {
-  source: SHEET_7_10,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [169, 390, 626, 847, 1062, 1294],
-  cropY: 758,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-// =====================================================================
-// 大門・星野・金城・白石 (1536×1024)
-// =====================================================================
-const SHEET_11_14 = require('../assets/sprites/daimon_hoshino_kinjo_shiraishi_sheet.png');
-
-SPRITE_SHEETS.set(11, {
-  source: SHEET_11_14,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [240, 431, 621, 815, 1007, 1205],
-  cropY: 12,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(12, {
-  source: SHEET_11_14,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [241, 429, 622, 812, 1012, 1205],
-  cropY: 245,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(13, {
-  source: SHEET_11_14,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [240, 429, 621, 815, 1008, 1205],
-  cropY: 505,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(14, {
-  source: SHEET_11_14,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [240, 429, 622, 813, 1005, 1204],
-  cropY: 752,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-// =====================================================================
-// 千鶴・篠原・美月・桐生 (1536×1024) — 新シート (4 行)
-// =====================================================================
-const SHEET_CHIZURU4 = require('../assets/sprites/chizuru_shinohara_mitsuki_kiryu_sheet.png');
-
-// 新シートは図形が小さいため crop を実寸に合わせて縮め、表示サイズを他キャラに揃える
-SPRITE_SHEETS.set(15, {
-  source: SHEET_CHIZURU4,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [141, 379, 619, 845, 1081, 1344],
-  cropY: 8,
-  cropW: 170,
-  cropH: 170,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(17, {
-  source: SHEET_CHIZURU4,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [144, 384, 624, 848, 1084, 1343],
-  cropY: 307,
-  cropW: 190,
-  cropH: 190,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(18, {
-  source: SHEET_CHIZURU4,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [138, 378, 617, 844, 1081, 1330],
-  cropY: 814,
-  cropW: 160,
-  cropH: 160,
-  frameOrder: FRAME_ORDER,
-});
-
-// =====================================================================
-// 鷹宮・美月 (1536×1024)
-// =====================================================================
-const SHEET_19_21 = require('../assets/sprites/takamiya_hayase_mitsuki_sheet.png');
-
-SPRITE_SHEETS.set(19, {
-  source: SHEET_19_21,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [168, 397, 624, 847, 1073, 1292],
-  cropY: 30,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-SPRITE_SHEETS.set(21, {
-  source: SHEET_CHIZURU4,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [134, 375, 616, 841, 1079, 1328],
-  cropY: 577,
-  cropW: 160,
-  cropH: 160,
-  frameOrder: FRAME_ORDER,
-});
-
-// =====================================================================
-// ACE 単体シート (1536×1024)
-// =====================================================================
-const SHEET_ACE = require('../assets/sprites/ace_sheet.png');
-
-SPRITE_SHEETS.set(16, {
-  source: SHEET_ACE,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [130, 381, 632, 876, 1121, 1369],
-  cropY: 293,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
-
-// =====================================================================
-// 早瀬 玲奈 単体シート (1536×1024)
-// =====================================================================
-const SHEET_HAYASE = require('../assets/sprites/hayase_sheet.png');
-
-SPRITE_SHEETS.set(20, {
-  source: SHEET_HAYASE,
-  imageWidth: SHEET_W,
-  imageHeight: SHEET_H,
-  frameCenters: [145, 394, 641, 882, 1127, 1370],
-  cropY: 280,
-  cropW: CROP_W,
-  cropH: CROP_H,
-  frameOrder: FRAME_ORDER,
-});
+for (const [idStr, source] of Object.entries(SOURCES)) {
+  SPRITE_SHEETS.set(Number(idStr), {
+    source,
+    imageWidth: SHEET_W,
+    imageHeight: SHEET_H,
+    frameCenters: CENTERS,
+    cropY: 0,
+    cropW: FRAME,
+    cropH: FRAME,
+    frameOrder: FRAME_ORDER,
+    titleFrameIndex: 5,
+  });
+}
 
 export function getSpriteSheet(charId: CharacterId): SpriteSheetDef | undefined {
   return SPRITE_SHEETS.get(charId);

@@ -9,7 +9,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { View, Image, Animated, StyleSheet } from 'react-native';
+import { View, Image, Animated, StyleSheet, Platform } from 'react-native';
 import Svg, { Rect as SvgRect } from 'react-native-svg';
 import { CharacterId } from '../types';
 import { COMMON_FACE, PALETTE, Emotion, FaceSheet, FaceGrid, GRID_SIZE as BASE_GRID_SIZE } from './common';
@@ -144,12 +144,17 @@ function SpriteFrame({ def, emotion, displaySize, titleMode }: SpriteFrameProps)
     <View style={{ width: displaySize, height: displaySize, overflow: 'hidden' }}>
       <Image
         source={def.source}
-        style={{
-          width: totalWidth,
-          height: totalHeight,
-          marginLeft,
-          marginTop,
-        }}
+        style={[
+          {
+            width: totalWidth,
+            height: totalHeight,
+            marginLeft,
+            marginTop,
+          },
+          // ドット絵を滑らかに補間させない。RN の型に無いプロパティなので
+          // Web のときだけ生の CSS として渡す
+          Platform.OS === 'web' && ({ imageRendering: 'pixelated' } as object),
+        ]}
         resizeMode="stretch"
       />
     </View>
