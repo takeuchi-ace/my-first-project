@@ -446,6 +446,11 @@ export type RootStackParamList = {
     isAceContract: boolean;
     isRepeatAce?: boolean;
     lunchMood: LunchMood;
+    /**
+     * 幻想画の全画面カットインを出すか。
+     * 初回契約が成立したときだけ true。再契約・連戦・2回目以降の相談では出さない
+     */
+    showFormalReveal?: boolean;
   };
   RunResult: { reached: number; totalScore: number; isBest: boolean };
   Items: undefined;

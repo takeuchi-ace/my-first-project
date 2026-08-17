@@ -291,6 +291,10 @@ export default function ResultScreenSimple({ route, navigation }: Props) {
         isAceContract: isAceRound ?? false,
         isRepeatAce: isAceRound === true && wasAlreadyContracted,
         lunchMood: lastGameState?.lunchMood ?? 'neutral',
+        // 幻想画のカットインは初回契約だけ。`wasAlreadyContracted` は
+        // 契約処理の前に控えた値なので、再契約・全員契約済みの連戦では false になる。
+        // 相談ラウンド（ACE）も2回目以降はここが false
+        showFormalReveal: result.contractSuccess && !wasAlreadyContracted,
       });
     } else {
       navigation.popToTop();

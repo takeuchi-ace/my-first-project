@@ -59,7 +59,12 @@ function AppInner() {
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="GameSimple" component={GameScreenSimple} />
           <Stack.Screen name="ResultSimple" component={ResultScreenSimple} />
-          <Stack.Screen name="Intro" component={IntroScreen} />
+          {/* 幻想画のカットインを木目ヘッダー無しの全画面で見せる */}
+          <Stack.Screen
+            name="Intro"
+            component={IntroScreen}
+            options={{ headerShown: false, animation: 'fade' }}
+          />
           <Stack.Screen name="RunResult" component={RunResultScreen} />
           <Stack.Screen name="Items" component={ItemsScreen} />
           <Stack.Screen name="Competition" component={CompetitionScreen} />

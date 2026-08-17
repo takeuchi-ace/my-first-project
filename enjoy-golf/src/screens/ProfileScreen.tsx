@@ -19,6 +19,7 @@ import { RoundMood, pickRoundMood, getRoundMood } from '../data/roundMoods';
 import { itemsByCharacter } from '../data/items';
 import { useGameStore } from '../store/useGameStore';
 import { FaceSprite, MoodLevel } from '../faces';
+import FormalPortraitModal from '../components/FormalPortraitModal';
 import { COLORS } from '../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
@@ -83,6 +84,8 @@ export default function ProfileScreen({ route, navigation }: Props) {
   }, [store, characterId]);
 
   const isContracted = store.contractedCharacterIds.includes(characterId);
+  /** 契約後の幻想画の再鑑賞。未契約では開かない */
+  const [formalArtVisible, setFormalArtVisible] = useState(false);
   const totalCharCount = characters.length;
 
   // ===== Pre-round line modal state =====
@@ -221,11 +224,27 @@ export default function ProfileScreen({ route, navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Avatar */}
+        {/* Avatar。契約済みなら押して幻想画を再鑑賞できる。
+            ドット絵は差し替えず、上に案内だけ添える */}
         <View style={styles.avatarContainer}>
-          <View style={styles.avatarFrame}>
-            <FaceSprite mood={3} scale={3} characterId={characterId} titleMode />
-          </View>
+          <Pressable
+            onPress={() => {
+              if (!isContracted) return;
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setFormalArtVisible(true);
+            }}
+            disabled={!isContracted}
+            accessibilityRole={isContracted ? 'button' : undefined}
+            accessibilityLabel={isContracted ? '幻想画を見る' : undefined}
+            style={({ pressed }) => [pressed && isContracted && { opacity: 0.7 }]}
+          >
+            <View style={styles.avatarFrame}>
+              <FaceSprite mood={3} scale={3} characterId={characterId} titleMode />
+            </View>
+            {isContracted && (
+              <Text style={styles.formalArtHint}>幻想画を見る</Text>
+            )}
+          </Pressable>
         </View>
 
         {/* Name */}
@@ -442,6 +461,13 @@ export default function ProfileScreen({ route, navigation }: Props) {
           </Animated.View>
         </View>
       )}
+      {/* 幻想画の再鑑賞。常設背景にはせず、モーダルのときだけ見せる */}
+      <FormalPortraitModal
+        visible={formalArtVisible}
+        characterId={characterId}
+        name={character.fullName || character.name}
+        onClose={() => setFormalArtVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -663,6 +689,14 @@ const styles = StyleSheet.create({
   recordLabel: {
     color: 'rgba(255,255,255,0.5)',
     fontSize: 13,
+  },
+  /** ドット絵の下に添える小さな案内。ドット絵の上に重ねない */
+  formalArtHint: {
+    color: 'rgba(201,168,92,0.9)',
+    fontSize: 11,
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginTop: 6,
   },
   recordValue: {
     color: '#f0e6c8',

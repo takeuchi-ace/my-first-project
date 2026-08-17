@@ -11,6 +11,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { characters } from '../data/characters';
 import { FaceSprite } from '../faces';
+import FormalPortraitReveal from '../components/FormalPortraitReveal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Intro'>;
 
@@ -29,7 +30,19 @@ const getShortName = (name: string): string => {
 };
 
 export default function IntroScreen({ navigation, route }: Props) {
-  const { contractedCharId, newlyUnlockedIds, isAceContract, isRepeatAce, lunchMood } = route.params;
+  const {
+    contractedCharId,
+    newlyUnlockedIds,
+    isAceContract,
+    isRepeatAce,
+    lunchMood,
+    showFormalReveal: shouldRevealFormalArt,
+  } = route.params;
+
+  /** 初回契約のときだけ、紹介の前に幻想画を全画面で見せる */
+  const [showFormalArt, setShowFormalArt] = useState(
+    shouldRevealFormalArt === true
+  );
   const contracted = charMap.get(contractedCharId);
   const contractedChar = contracted?.char;
   const contractedIdx = contracted?.idx ?? 0;
@@ -57,7 +70,12 @@ export default function IntroScreen({ navigation, route }: Props) {
   const lunchPositive = lunchMood === 'good';
   const lunchNegative = lunchMood === 'bad';
 
+  // 幻想画を出している間はタイマーを動かさない。
+  // 裏で進めてしまうと、カットインを閉じた瞬間に紹介文・ヒント・ボタンが
+  // すべて表示済みになり、順番に出る演出が消える
   useEffect(() => {
+    if (showFormalArt) return;
+
     // Step 1: Fade in (introLine visible)
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -89,11 +107,23 @@ export default function IntroScreen({ navigation, route }: Props) {
       clearTimeout(hintTimer);
       clearTimeout(contractHintTimer);
     };
-  }, []);
+  }, [showFormalArt, fadeAnim, hintAnim, contractHintAnim]);
 
   const handleDone = () => {
     navigation.popToTop();
   };
+
+  // 幻想画のカットイン。自動では閉じず、タップで紹介画面へ進む
+  if (showFormalArt && contractedChar) {
+    return (
+      <FormalPortraitReveal
+        characterId={contractedCharId}
+        name={contractedChar.fullName || contractedChar.name}
+        title={contractedChar.name}
+        onDismiss={() => setShowFormalArt(false)}
+      />
+    );
+  }
 
   return (
     /* 解放ヒント2枚＋エース解放カード＋昼の一言が重なると、小さい端末では
