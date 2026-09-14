@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "enjoy-golf",
+    "name": "Enjoy Golf Quest",
     "slug": "enjoy-golf",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,15 +10,22 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a472a"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "jp.co.hinano.enjoygolfquest",
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleDisplayName": "ENJOY GOLF",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "jp.co.hinano.enjoygolfquest",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0d1b2e"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
