@@ -7,6 +7,7 @@ import {
   Animated,
   ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { characters } from '../data/characters';
@@ -30,6 +31,9 @@ const getShortName = (name: string): string => {
 };
 
 export default function IntroScreen({ navigation, route }: Props) {
+  // 木目ヘッダーを出さない画面なので、ステータスバーの逃げは自分で取る。
+  // 内容が画面に収まらずスクロールするとき、先頭がノッチに潜る
+  const insets = useSafeAreaInsets();
   const {
     contractedCharId,
     newlyUnlockedIds,
@@ -131,7 +135,10 @@ export default function IntroScreen({ navigation, route }: Props) {
        「次へ」に届かなくなるため、収まらないときだけスクロールさせる */
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.containerContent}
+      contentContainerStyle={[
+        styles.containerContent,
+        { paddingTop: 24 + insets.top, paddingBottom: 24 + insets.bottom },
+      ]}
     >
       <Animated.View style={[styles.introContent, { opacity: fadeAnim }]}>
         {/* Face */}

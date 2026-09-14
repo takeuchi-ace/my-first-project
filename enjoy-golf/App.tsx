@@ -25,7 +25,11 @@ function AppInner() {
   const { hydrated } = useGameStore();
 
   useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    // 端末やブラウザによっては拒否される（Web では必ず失敗する）。
+    // 掴まないと未処理の Promise 拒否がコンソールに積まれる
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(
+      () => {}
+    );
   }, []);
 
   if (!hydrated) {

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setSfxEnabled as applySfxEnabled } from '../lib/sound';
 import { GameState, CharacterId, Character, CompetitionId, EntertainGrade, Tag } from '../types';
 import { characters } from '../data/characters';
@@ -189,13 +190,15 @@ function canUnlockCheck(
 }
 
 // ===== Platform storage =====
+// AsyncStorage は静的に import する。以前は native 側だけ動的 import していたが、
+// 読み書きとも try/catch で握りつぶしているため、**もし読み込みに失敗しても
+// 何も言わずセーブ無しで起動する**。実機で初めて動かす前に、その失敗経路を消しておく。
 async function loadState(): Promise<GameStoreState | null> {
   try {
     let raw: string | null = null;
     if (Platform.OS === 'web') {
       raw = localStorage.getItem(STORAGE_KEY);
     } else {
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
       raw = await AsyncStorage.getItem(STORAGE_KEY);
     }
     if (!raw) return null;
@@ -232,7 +235,6 @@ async function saveState(state: GameStoreState): Promise<void> {
     if (Platform.OS === 'web') {
       localStorage.setItem(STORAGE_KEY, raw);
     } else {
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
       await AsyncStorage.setItem(STORAGE_KEY, raw);
     }
   } catch {
