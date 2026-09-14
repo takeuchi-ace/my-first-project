@@ -60,19 +60,52 @@ function AppInner() {
             options={{ headerShown: false, animation: 'fade' }}
           />
           <Stack.Screen name="CharacterSelect" component={CharacterSelectScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="GameSimple" component={GameScreenSimple} />
-          <Stack.Screen name="ResultSimple" component={ResultScreenSimple} />
+          {/* 連戦の最中だけスワイプで戻れないようにする。
+              戻るボタン（handleBack）は連戦を放棄して摩耗を巻き戻すが、
+              スワイプはそこを通らないので、run が残ったままになる */}
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={({ route }) => ({
+              gestureEnabled: route.params?.autoStart !== true,
+            })}
+          />
+          {/* ラウンド中・結果・紹介はスワイプで抜けさせない。
+              iOS の native-stack は既定でスワイプ戻りが効くため、
+              ラウンドが消えたり、初回契約の幻想画を見逃したまま
+              二度と出なくなったりする（Web では起きない差分） */}
+          <Stack.Screen
+            name="GameSimple"
+            component={GameScreenSimple}
+            options={{ gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="ResultSimple"
+            component={ResultScreenSimple}
+            options={{ gestureEnabled: false }}
+          />
           {/* 幻想画のカットインを木目ヘッダー無しの全画面で見せる */}
           <Stack.Screen
             name="Intro"
             component={IntroScreen}
-            options={{ headerShown: false, animation: 'fade' }}
+            options={{ headerShown: false, animation: 'fade', gestureEnabled: false }}
           />
-          <Stack.Screen name="RunResult" component={RunResultScreen} />
+          <Stack.Screen
+            name="RunResult"
+            component={RunResultScreen}
+            options={{ gestureEnabled: false }}
+          />
           <Stack.Screen name="Items" component={ItemsScreen} />
-          <Stack.Screen name="Competition" component={CompetitionScreen} />
-          <Stack.Screen name="CompetitionResult" component={CompetitionResultScreen} />
+          <Stack.Screen
+            name="Competition"
+            component={CompetitionScreen}
+            options={{ gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="CompetitionResult"
+            component={CompetitionResultScreen}
+            options={{ gestureEnabled: false }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

@@ -74,6 +74,15 @@ interface GameStoreState {
     /** 連戦前の摩耗。終わったらここへ戻す */
     wearBefore: number;
   } | null;
+  /**
+   * 連戦前の摩耗の控え。**`run` と違ってこれは保存する。**
+   *
+   * `run` を保存しないので、連戦の最中にアプリを落とすと
+   * `wearBefore` ごと消え、連戦用に 10 へ置いた `wear` が本物として残る
+   * （＝摩耗が無かったことになる）。iOS ではアプリを落とすのが日常なので、
+   * ここに控えておいて、次回の起動時に戻す。
+   */
+  runWearBefore: number | null;
 }
 
 interface GameStoreActions {
@@ -164,6 +173,7 @@ const INITIAL_STATE: GameStoreState = {
   bestRun: null,
   ownedItems: [],
   run: null,
+  runWearBefore: null,
 };
 
 const STORAGE_KEY = 'enjoy-golf-store';
@@ -213,14 +223,19 @@ async function loadState(): Promise<GameStoreState | null> {
       roundsSinceLastCompetition: parsed.roundsSinceLastCompetition ?? 0,
       aceQuotes: parsed.aceQuotes ?? [],
       cooldowns: parsed.cooldowns ?? {},
-      // 保存データが壊れていても範囲外の摩耗を持ち込ませない
-      wear: Math.max(0, Math.min(100, parsed.wear ?? 10)),
       discovered: parsed.discovered ?? {},
       personalBest: parsed.personalBest ?? {},
       roundsPlayed: parsed.roundsPlayed ?? {},
       bestRun: parsed.bestRun ?? null,
       ownedItems: parsed.ownedItems ?? [],
       run: null,
+      // 保存データが壊れていても範囲外の摩耗を持ち込ませない。
+      // 連戦の最中に落ちていたら、放棄したのと同じ扱いにして元の摩耗へ戻す
+      wear:
+        parsed.runWearBefore != null
+          ? Math.max(0, Math.min(100, parsed.runWearBefore))
+          : Math.max(0, Math.min(100, parsed.wear ?? 10)),
+      runWearBefore: null,
     };
   } catch {
     return null;
@@ -622,6 +637,7 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
         // ブラウザの戻るなどで `abandonRun` を通らずに抜けると起きる
         wearBefore: prev.run ? prev.run.wearBefore : prev.wear,
       },
+      runWearBefore: prev.run ? prev.runWearBefore : prev.wear,
     }));
     return order;
   }, []);
@@ -652,6 +668,7 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
           wear: prev.run ? prev.run.wearBefore : prev.wear,
           bestRun: isBest ? { reached, totalScore } : prev.bestRun,
           run: null,
+          runWearBefore: null,
         }));
         return { ended: { reached, totalScore, isBest } };
       }
@@ -680,7 +697,9 @@ export function GameStoreProvider({ children }: { children: React.ReactNode }) {
   /** 途中で抜けたとき。摩耗だけ戻し、記録は残さない */
   const abandonRunFn = useCallback(() => {
     setState((prev) =>
-      prev.run ? { ...prev, wear: prev.run.wearBefore, run: null } : prev
+      prev.run
+        ? { ...prev, wear: prev.run.wearBefore, run: null, runWearBefore: null }
+        : prev
     );
   }, []);
 
