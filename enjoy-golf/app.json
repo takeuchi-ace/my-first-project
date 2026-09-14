@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "jp.co.hinano.enjoygolfquest",
-      "buildNumber": "1",
+      "buildNumber": "0",
       "infoPlist": {
         "CFBundleDisplayName": "ENJOY GOLF",
         "ITSAppUsesNonExemptEncryption": false
@@ -32,6 +32,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ba26b3d0-abb8-4ae6-9d8c-64d5a6cbbaa1"
+      }
+    },
+    "owner": "takeuchi3"
   }
 }
