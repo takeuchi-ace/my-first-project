@@ -13,9 +13,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "jp.co.hinano.enjoygolfquest",
-      "buildNumber": "0",
+      "buildNumber": "1",
       "infoPlist": {
         "CFBundleDisplayName": "ENJOY GOLF",
         "ITSAppUsesNonExemptEncryption": false
