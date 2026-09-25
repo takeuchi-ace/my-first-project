@@ -183,3 +183,48 @@ Guideline 2.1（App Completeness）。**提出前に実機で一周する。**
 - [ ] `supportsTablet: false` を入れた再ビルド（build 2）
 - [ ] スクリーンショット 6.9インチ 6枚
 - [ ] 音の扱いを決める（iPhone では鳴らない。トグルを隠すか、このまま出すか）
+
+---
+
+## 8. Android 版に持ち越す論点（iOS では影響しない）
+
+プライバシーポリシーを両OS共通にしたので、Android の申告と食い違う点を先に洗った。
+
+### 使わないストレージ権限が宣言される
+
+`expo` が内部で抱える `expo-file-system` が、AndroidManifest に以下を宣言している。
+
+```
+android.permission.INTERNET
+android.permission.WRITE_EXTERNAL_STORAGE
+android.permission.READ_EXTERNAL_STORAGE
+```
+
+**本アプリはファイルの読み書きをしない。**使わない権限が宣言されたままだと、
+Google Play の「データセーフティ」の申告と食い違って見え、指摘の対象になりうる。
+
+Android ビルドの前に `app.json` へ追記する:
+
+```json
+"android": {
+  "blockedPermissions": [
+    "android.permission.READ_EXTERNAL_STORAGE",
+    "android.permission.WRITE_EXTERNAL_STORAGE"
+  ]
+}
+```
+
+**INTERNET は残す。**React Native の基盤が要求するもので、外すと動かなくなる可能性がある。
+権限の宣言は「通信できる」であって「通信する」ではないため、
+「外部通信を行わない」という申告と矛盾しない。プライバシーポリシー第5項に
+この旨を書いてある。
+
+### 実際に使う権限
+
+`android.permission.VIBRATE`（`expo-haptics`）。画面操作の触覚フィードバックに使っている
+（`RunResultScreen` `CharacterSelectScreen` ほか）。ポリシー第5項に記載済み。
+
+### iOS 側への影響
+
+**なし。**上記はすべて Android の AndroidManifest の話。
+iOS のビルドには `NS*UsageDescription` が一つも入っていない（要求する権限がないため）。
