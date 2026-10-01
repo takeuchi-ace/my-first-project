@@ -1,5 +1,8 @@
 # Enjoy Golf Quest — TestFlight 引き継ぎメモ（2026-09-14）
 
+> **この版は役目を終えた。**TestFlight への掲載は完了している。
+> 現行の引き継ぎは `2026-10-02-review-submission-handoff.md`。本書は経緯として残す。
+
 ## いまどこ
 
 - **Web は公開中**: https://enjoy-golf.vercel.app/ （中身は最新）
