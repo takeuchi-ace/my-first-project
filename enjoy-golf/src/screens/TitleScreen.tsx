@@ -46,6 +46,17 @@ const TITLE_IMG_W = 941;
 const TITLE_IMG_H = 1672;
 const TITLE_ASPECT = TITLE_IMG_W / TITLE_IMG_H;
 
+/**
+ * 効果音は Web Audio で合成しているので、ネイティブでは鳴らない（lib/sound.ts）。
+ * そこで「音 ON」を出すと、押しても何も起きないボタンになる。
+ * ネイティブでは「音 ON」を芝生で塗り消した画像に差し替え、トグル自体も置かない。
+ * 画像は同寸・同配置なので、「ラウンドへ」の当たり判定はそのまま使える。
+ */
+const HAS_SFX = Platform.OS === 'web';
+const TITLE_IMG = HAS_SFX
+  ? require('../../assets/title_screen.png')
+  : require('../../assets/title_screen_native.png');
+
 export default function TitleScreen({ navigation }: Props) {
   const store = useGameStore();
   const [stage, setStage] = useState<'splash' | 'title'>('splash');
@@ -130,7 +141,7 @@ export default function TitleScreen({ navigation }: Props) {
       <Animated.View style={[styles.titleLayer, { opacity: titleOpacity }]}>
         <View style={{ width: imgW, height: imgH }}>
           <Image
-            source={require('../../assets/title_screen.png')}
+            source={TITLE_IMG}
             resizeMode="contain"
             style={[
               { width: imgW, height: imgH },
@@ -152,21 +163,23 @@ export default function TitleScreen({ navigation }: Props) {
 
           {/* 「音 ON」。OFF のときは画像の文字が嘘になるので、
               その領域だけドット絵風の小さなパネルで覆って OFF を出す */}
-          <Pressable
-            onPress={handleToggleSound}
-            accessibilityRole="button"
-            accessibilityLabel="効果音を切り替える"
-            style={({ pressed }) => [
-              styles.soundHit,
-              pressed && styles.hitPressed,
-            ]}
-          >
-            {!store.settings.sfxEnabled && (
-              <View style={styles.soundOffPanel}>
-                <Text style={styles.soundOffText}>音 OFF</Text>
-              </View>
-            )}
-          </Pressable>
+          {HAS_SFX && (
+            <Pressable
+              onPress={handleToggleSound}
+              accessibilityRole="button"
+              accessibilityLabel="効果音を切り替える"
+              style={({ pressed }) => [
+                styles.soundHit,
+                pressed && styles.hitPressed,
+              ]}
+            >
+              {!store.settings.sfxEnabled && (
+                <View style={styles.soundOffPanel}>
+                  <Text style={styles.soundOffText}>音 OFF</Text>
+                </View>
+              )}
+            </Pressable>
+          )}
         </View>
       </Animated.View>
 
