@@ -26,6 +26,7 @@ import {
   PATH_POINT_MS,
   PUTT_BALL_START,
   PUTT_CUP,
+  PUTT_GUIDE_ANGLE,
   Vec,
   focusJitter,
   strokeFromDrag,
@@ -50,11 +51,12 @@ interface Props {
 /** これ未満の引きは誤タップとみなして打たない */
 const MIN_POWER = 0.06;
 
-const GUIDE_TARGET: Record<PuttAim, Vec> = {
-  left: [36, 24],
-  center: [50, 22],
-  right: [64, 24],
-};
+/**
+ * ガイド線の長さ（ボール→カップの距離に対する割合）。
+ * 地点まで引くと「ここへ打て」に見えるが、示したいのは向きだけ。
+ * 傾斜で曲がる分を含めた向きなので、カップまで届かせず短く止める
+ */
+const GUIDE_LEN_RATIO = 0.6;
 
 /** 傾斜の向きだけを示す矢印。量は示さない */
 function SlopeArrows({ slope }: { slope: SlopeType }) {
@@ -217,6 +219,8 @@ export function PuttGreenView({
   const [bx, by] = PUTT_BALL_START;
   let aimLine: string | null = null;
   let pullLine: string | null = null;
+  const guideA = PUTT_GUIDE_ANGLE[guideAim];
+  const guideLen = (by - PUTT_CUP[1]) / Math.cos(guideA) * GUIDE_LEN_RATIO;
   if (preview && drag) {
     const a = preview.angle + wobble;
     const len = 6 + preview.power * 16;
@@ -263,7 +267,7 @@ export function PuttGreenView({
           <SlopeArrows slope={slope} />
           {/* 会話で口にした線。打つ向きは縛らない */}
           <Path
-            d={`M ${bx} ${by} L ${GUIDE_TARGET[guideAim][0]} ${GUIDE_TARGET[guideAim][1]}`}
+            d={`M ${bx} ${by} L ${bx + Math.sin(guideA) * guideLen} ${by - Math.cos(guideA) * guideLen}`}
             stroke="rgba(255, 215, 0, 0.35)"
             strokeWidth={0.5}
             strokeDasharray="1.5,1.5"

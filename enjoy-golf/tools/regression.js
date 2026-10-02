@@ -78,6 +78,8 @@ function round(cid, sk, mg, i, seen) {
       const wantsOver = c.ownPlayStance === 'prefersLead' ? Math.random() >= sk : Math.random() < sk;
       if (!wantsOver && r === 'perfect') r = 'good';
       const opp = st.morningShot === 'ob' ? null : true;
+      // 粗いモデル: 大飛ばしの相手を越えるのに要る 0.889 以上のパワーや、会話での答え方による分岐は見ていない。
+      // 契約成功率の目安を取るには十分
       const outdrove = opp === null ? null : wantsOver && r !== 'miss';
       st = engine.applyMinigameResult(
         st,
@@ -112,6 +114,7 @@ const rates = [1.0, 0.8, 0.6, 0.4, 0.2].map((sk) => {
 });
 console.log('契約成功率 ' + rates.join(' / ') + ' %');
 console.log('  ※ 2026-09-14 の基準値: 89.5 / 78.1 / 58.3 / 43.5 / 23.3');
+console.log('  ※ 2026-10-02（朝イチの飛ばし合い込み）の基準値: 90.1 / 78.0 / 59.6 / 39.7 / 22.4');
 console.log('触れたイベント ' + seen.size + '種  ハング ' + hang + '/4200');
 
 let aceOk = 0;

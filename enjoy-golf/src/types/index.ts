@@ -240,7 +240,6 @@ export type OwnShotResult = 'perfect' | 'good' | 'miss';
 // ===== Final Putt =====
 export type SlopeType = 'left' | 'right' | 'flat' | 'uphill';
 export type PuttAim = 'left' | 'center' | 'right';
-export type PuttPower = 'perfect' | 'good' | 'miss';
 export type PuttResult = 'in' | 'lip_out' | 'miss';
 
 export interface MorningShotVariant {

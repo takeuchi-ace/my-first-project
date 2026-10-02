@@ -145,6 +145,20 @@ test('吸い込み: 左右の傾斜でカップへまっすぐ打つと、どの
   }
 });
 
+test('ガイド: 正解の線（約5度）に沿って打てば、どの傾斜でも入る強さがある', () => {
+  // 以前のガイドは約12.7度で、信じて打っても入らなかった。入るのは約0.3〜11.5度（余裕があるのは2〜7度）
+  assert.ok(Math.abs(P.PUTT_GUIDE_ANGLE.right - 0.0873) < 0.002);
+  assert.equal(P.PUTT_GUIDE_ANGLE.left, -P.PUTT_GUIDE_ANGLE.right);
+  assert.equal(P.PUTT_GUIDE_ANGLE.center, 0);
+  for (const [slope, aim] of [['left', 'right'], ['right', 'left'], ['flat', 'center']]) {
+    let n = 0;
+    for (let i = 50; i <= 100; i++) {
+      if (P.simulatePutt({ slope, angle: P.PUTT_GUIDE_ANGLE[aim], power: i / 100 }).result === 'in') n++;
+    }
+    assert.ok(n > 0, `${slope} でガイド(${aim})に沿って入る強さが無い`);
+  }
+});
+
 test('吸い込み: 手前で止まるボールを前へ引きずり込まない', () => {
   // 平らでまっすぐ、カップの 4〜6 手前で止まる強さ。少し向きがずれても miss のまま、縁より手前に残る
   for (const power of [0.67, 0.68]) {

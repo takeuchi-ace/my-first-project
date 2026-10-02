@@ -21,6 +21,8 @@ interface Props {
   /** 相手の到達点（0〜1）。null なら印を出さない */
   opponentDrive: number | null;
   opponentName: string;
+  /** 会話で答え済みなら PERFECT は出ない（判定側の仕様）。窓を薄く描いて狙わせない */
+  talkAnswered: boolean;
   onDone: (shot: { power: number; impact: number | null }) => void;
 }
 
@@ -40,7 +42,7 @@ const POWER_TAP_GUARD_MS = 120;
 
 const pct = (v: number) => `${v * 100}%` as `${number}%`;
 
-export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Props) {
+export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered, onDone }: Props) {
   const pos = useRef(new Animated.Value(0)).current;
   const posRef = useRef(0);
   const phaseRef = useRef<Phase>('ready');
@@ -169,7 +171,9 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
         {/* 刻みの域。ここで止めると PERFECT は出ない */}
         <View style={[styles.layback, { left: 0, width: pct(LAYBACK_POWER) }]} />
         <View style={[styles.zone, styles.zoneGood, zone(w.good)]} />
-        <View style={[styles.zone, styles.zonePerfect, zone(w.perfect)]} />
+        <View
+          style={[styles.zone, talkAnswered ? styles.zoneGood : styles.zonePerfect, zone(w.perfect)]}
+        />
         <View style={[styles.impactMark, { left: pct(IMPACT_POS) }]} />
         {oppMark !== null && <View style={[styles.oppMark, { left: pct(oppMark) }]} />}
         {power !== null && <View style={[styles.powerMark, { left: pct(power) }]} />}

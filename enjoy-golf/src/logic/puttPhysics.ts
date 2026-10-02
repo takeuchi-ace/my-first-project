@@ -17,7 +17,7 @@
  * 同じ入力なら必ず同じ軌跡になるので、テストと調整ができる。
  */
 
-import { PuttResult, SlopeType } from '../types';
+import { PuttAim, PuttResult, SlopeType } from '../types';
 import { focusWindowScale } from './engine';
 
 export type Vec = [number, number];
@@ -101,6 +101,22 @@ const MAX_STEPS = 120 * 8;
 const PATH_EVERY = 2;
 /** 1点あたりの再生時間（ms）。軌跡の点数 × これ で実時間どおりに転がる */
 export const PATH_POINT_MS = (DT * PATH_EVERY) * 1000;
+
+/**
+ * 会話の3択で選んだ線の「向きのヒント」（ラジアン。左が負、正が右。simulatePutt の angle と同じ向き）。
+ *
+ * ## なぜ 5 度か
+ *
+ * 左右の傾斜で入るのは、まっすぐ（0度）から約 0.3〜11.5 度ずれた向きだけで、いちばん余裕があるのは 2〜7 度。
+ * 以前はガイドをカップの左右 14 先の点に引いていたが、それは約 12.7 度で、正解の線を信じて
+ * そのまま打つと入らなかった。地点ではなく向きだけを示すので、打点からカップまでの距離
+ * （縦 64）に対して横へ 5.6 ずれる向き＝約 5 度にしてある（tools/minigame-tests.js で固定）。
+ */
+export const PUTT_GUIDE_ANGLE: Record<PuttAim, number> = {
+  left: -Math.atan2(5.6, PUTT_BALL_START[1] - PUTT_CUP[1]),
+  center: 0,
+  right: Math.atan2(5.6, PUTT_BALL_START[1] - PUTT_CUP[1]),
+};
 
 export interface PuttStroke {
   slope: SlopeType;

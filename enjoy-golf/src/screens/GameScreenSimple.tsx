@@ -1415,6 +1415,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 focus={ownShotFocus}
                 opponentDrive={oppDrive}
                 opponentName={oppShortName}
+                talkAnswered={talkAnswered}
                 onDone={finishSwing}
               />
             </View>
