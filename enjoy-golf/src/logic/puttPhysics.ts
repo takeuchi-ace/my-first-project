@@ -44,7 +44,7 @@ const SLOPE_ACCEL: Record<SlopeType, Vec> = {
   uphill: [0, 22],
 };
 /** これより遅くカップの上を通れば沈む。速いと縁に蹴られる */
-const CAPTURE_SPEED = 50;
+const CAPTURE_SPEED = 54;
 /** 中心がここまで近づけば「カップの上を通った」 */
 const SINK_R = CUP_R * 0.9;
 /** 中心がここまで近づけば縁にかかった（lip_out） */
@@ -68,16 +68,33 @@ const LIP_MIN_SPEED = 10;
  *
  * ## 効き方
  *
- * 力は**進む向きに直交する成分だけ**を加える（向きを曲げるだけで、前へ押さない）。
- * - 速いボールは吸い込みの輪をすぐ抜けるので、ほとんど曲がらない。強さの加減は残る
- * - 手前で止まりかけたボールを前へ引きずり込むことはない
- *   （「縁の手前で止まったら miss」はそのまま）
- * 強さは縁ほど弱く、中心へ向けて直線的に強くなる（`FUNNEL_ACCEL * (1 - d / FUNNEL_R)`）。
+ * 1刻みごとに、芝の抵抗と傾斜をかけた後で次のように向きだけを曲げる。
+ * - **カップへ近づいている間だけ**効く（進む向きとカップへの向きの内積 `along` > 0）。
+ *   強さは `FUNNEL_ACCEL * (1 - d / FUNNEL_R) * along`。縁ほど弱く、
+ *   ボールがカップの横に並ぶにつれて 0 へ落ちる。通り過ぎた後は効かない
+ * - 加えるのはカップへの向きのうち**進む向きに直交する成分だけ**で、加えた後に
+ *   速さを元へ揃え直す。向きが変わるだけで、前へ押すことも速くすることもない。
+ *   手前で止まりかけたボールを引きずり込まないので「縁の手前で止まったら miss」はそのまま
+ * - 速いボールは輪をすぐ抜けるのでほとんど曲がらない。強さの加減は残る
+ * - 1打で曲げる量の合計は `FUNNEL_MAX_TURN`（0.6 ラジアン ≒ 34度）まで。
+ *   これが無いと、引かれ続けたボールがカップを追いかけて回り込み、
+ *   1〜2周してから落ちる（磁石のように見える）
+ *
+ * ## 強さの上限を決めたもの
+ *
+ * 吸い込みを強くすると、下手な打ち手の狙いのずれ（カップの位置で約6）を吸うのと同じだけ
+ * 傾斜の曲がりも吸い、**左右の傾斜でカップへまっすぐ打っても入る**ようになる。
+ * それではグリーンを読む意味が無くなるので、まっすぐ打って入る強さが一つも無い範囲で
+ * いちばん強い値にしてある（tools/minigame-tests.js のテストで固定）。
+ * そのぶん下手な打ち手の in は旧方式より 15 点以上低い（tools/minigame-sim.js）。
+ *
  * 見た目のカップ（`CUP_R`）は変えない。
  */
 const FUNNEL_R = CUP_R * 5;
 /** 吸い込みの強さ（単位/秒²）。中心での値 */
 const FUNNEL_ACCEL = 800;
+/** 吸い込みで向きが変わる量の、1打あたりの上限（ラジアン）。カップを追いかけて回り込ませない */
+const FUNNEL_MAX_TURN = 0.6;
 const DT = 1 / 120;
 const MAX_STEPS = 120 * 8;
 /** 軌跡は2刻みに1点だけ残す（1点 = 1/60 秒） */
@@ -110,6 +127,8 @@ export const simulatePutt = ({ slope, angle, power }: PuttStroke): PuttSim => {
   const path: Vec[] = [[x, y]];
   let closest = Infinity;
   let speedAtClosest = 0;
+  /** 吸い込みでここまでに曲げた量（ラジアン） */
+  let funnelTurn = 0;
 
   for (let i = 0; i < MAX_STEPS; i++) {
     const speed = Math.hypot(vx, vy);
@@ -117,22 +136,42 @@ export const simulatePutt = ({ slope, angle, power }: PuttStroke): PuttSim => {
     if (speed <= FRICTION * DT) break;
     const ux = vx / speed;
     const uy = vy / speed;
-    // 吸い込み: カップへの向きのうち、進む向きに直交する成分だけを足す
-    let fx = 0;
-    let fy = 0;
+    vx += (-ux * FRICTION + ax) * DT;
+    vy += (-uy * FRICTION + ay) * DT;
+    // 吸い込み: カップへ近づいている間だけ、カップへの向きのうち進む向きに直交する成分を足す
     const dx0 = PUTT_CUP[0] - x;
     const dy0 = PUTT_CUP[1] - y;
     const d0 = Math.hypot(dx0, dy0);
     if (d0 > 0 && d0 < FUNNEL_R) {
-      const k = FUNNEL_ACCEL * (1 - d0 / FUNNEL_R);
       const cx = dx0 / d0;
       const cy = dy0 / d0;
       const along = cx * ux + cy * uy;
-      fx = k * (cx - along * ux);
-      fy = k * (cy - along * uy);
+      if (along > 0 && funnelTurn < FUNNEL_MAX_TURN) {
+        // 真っ直ぐカップへ向かうほど強く、横に並ぶにつれて 0 へ（並んだ後は効かない）
+        const k = FUNNEL_ACCEL * (1 - d0 / FUNNEL_R) * along * DT;
+        const s0 = Math.hypot(vx, vy);
+        const nx = vx + k * (cx - along * ux);
+        const ny = vy + k * (cy - along * uy);
+        // 向きを変えるだけで速さは足さない（刻みの誤差で速くならないよう揃え直す）
+        const s1 = Math.hypot(nx, ny);
+        let turn = Math.acos(Math.max(-1, Math.min(1, (nx * vx + ny * vy) / (s1 * s0))));
+        let tx = nx / s1;
+        let ty = ny / s1;
+        if (funnelTurn + turn > FUNNEL_MAX_TURN) {
+          // 上限を超える分は曲げない（上限ちょうどまで回す）
+          const allow = FUNNEL_MAX_TURN - funnelTurn;
+          const sign = Math.sign(vx * ny - vy * nx);
+          const c = Math.cos(allow * sign);
+          const sn = Math.sin(allow * sign);
+          tx = (vx * c - vy * sn) / s0;
+          ty = (vx * sn + vy * c) / s0;
+          turn = allow;
+        }
+        funnelTurn += turn;
+        vx = tx * s0;
+        vy = ty * s0;
+      }
     }
-    vx += (-ux * FRICTION + ax + fx) * DT;
-    vy += (-uy * FRICTION + ay + fy) * DT;
     x += vx * DT;
     y += vy * DT;
 

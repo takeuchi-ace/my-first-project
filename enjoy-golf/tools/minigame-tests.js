@@ -108,6 +108,59 @@ test('吸い込み: カップの脇を遅く通るボールは入り、同じ線
   assert.notEqual(P.simulatePutt({ slope: 'flat', angle, power: 1.0 }).result, 'in');
 });
 
+test('吸い込み: 入るパットはカップの周りを回り込まない（向きの変化の合計 ≤ 100度）', () => {
+  // 吸い込みで曲がるのは1打で最大 0.6 ラジアン（約34度）。残りは傾斜の曲がり（実測で最大 約40度）。
+  // 以前は通り過ぎた後も引き続けて、カップの周りを1〜2周して落ちる軌跡があった
+  const heading = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]);
+  let worst = 0;
+  for (const slope of ['flat', 'left', 'right', 'uphill']) {
+    for (let a = -0.3; a <= 0.3; a += 0.01) {
+      for (let p = 0.5; p <= 1.0; p += 0.01) {
+        const r = P.simulatePutt({ slope, angle: a, power: p });
+        if (r.result !== 'in') continue;
+        const pts = r.path.slice(0, -1); // 最後はカップの中心へ置き直した点なので除く
+        let total = 0;
+        for (let i = 2; i < pts.length; i++) {
+          let d = heading(pts[i - 1], pts[i]) - heading(pts[i - 2], pts[i - 1]);
+          if (d > Math.PI) d -= 2 * Math.PI;
+          if (d < -Math.PI) d += 2 * Math.PI;
+          total += d;
+        }
+        const deg = (Math.abs(total) * 180) / Math.PI;
+        if (deg > worst) worst = deg;
+        assert.ok(deg <= 100, `${slope} a=${a.toFixed(2)} p=${p.toFixed(2)} で ${deg.toFixed(0)} 度曲がった`);
+      }
+    }
+  }
+  assert.ok(worst > 0, '入るパットが一つも無い');
+});
+
+test('吸い込み: 左右の傾斜でカップへまっすぐ打つと、どの強さでも入らない（読む意味を残す）', () => {
+  // 吸い込みを強くしすぎると傾斜の曲がりまで吸って、読まずに入るようになる。その歯止め
+  for (const slope of ['left', 'right']) {
+    for (let i = 55; i <= 100; i++) {
+      const power = i / 100;
+      assert.notEqual(P.simulatePutt({ slope, angle: 0, power }).result, 'in', `${slope} power ${power}`);
+    }
+  }
+});
+
+test('吸い込み: 手前で止まるボールを前へ引きずり込まない', () => {
+  // 平らでまっすぐ、カップの 4〜6 手前で止まる強さ。少し向きがずれても miss のまま、縁より手前に残る
+  for (const power of [0.67, 0.68]) {
+    for (const angle of [0, 0.03, -0.03]) {
+      const r = P.simulatePutt({ slope: 'flat', angle, power });
+      const last = r.path[r.path.length - 1];
+      assert.equal(r.result, 'miss', `power ${power} angle ${angle}`);
+      assert.ok(Math.hypot(last[0] - P.PUTT_CUP[0], last[1] - P.PUTT_CUP[1]) > P.CUP_R + 1);
+      assert.ok(last[1] > P.PUTT_CUP[1], 'カップの手前で止まるはず');
+    }
+    // まっすぐカップへ向かうボールには横向きの力がかからない
+    const straight = P.simulatePutt({ slope: 'flat', angle: 0, power });
+    assert.equal(straight.path[straight.path.length - 1][0], P.PUTT_CUP[0]);
+  }
+});
+
 test('ドラッグ: 真下に引くとまっすぐ上へ', () => {
   const s = P.strokeFromDrag(0, 100, 200);
   assert.ok(Math.abs(s.angle) < 1e-9);
