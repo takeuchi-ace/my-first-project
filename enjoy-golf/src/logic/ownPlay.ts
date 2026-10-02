@@ -76,6 +76,33 @@ export const puttOwnReaction = (
 ): Partial<Gauge> => PUTT[stance][result];
 
 /**
+ * 朝イチで相手の球を越えたかへの反応（ショットの出来への反応に上乗せする）。
+ *
+ * 腕を認める相手は越えれば喜び、上に立ちたい相手は越えられると面白くない。
+ * 気にしない相手は動かない。値は小さくしてある（出来への反応が主）。
+ * 比べる相手が無い（相手が OB）ときは null で、何も動かさない。
+ */
+const OUTDRIVE: Record<OwnPlayStance, Record<'over' | 'under', Partial<Gauge>>> = {
+  respects: { over: { trust: 2 }, under: { trust: -1 } },
+  indifferent: { over: {}, under: {} },
+  prefersLead: { over: { trust: -3 }, under: { trust: 2 } },
+};
+
+export const outdriveReaction = (
+  stance: OwnPlayStance,
+  outdrove: boolean | null
+): Partial<Gauge> => (outdrove === null ? {} : OUTDRIVE[stance][outdrove ? 'over' : 'under']);
+
+/** 2つの反応を足し合わせる（applyMinigameResult に一度で渡すため） */
+export const sumReactions = (a: Partial<Gauge>, b: Partial<Gauge>): Partial<Gauge> => {
+  const out: Partial<Gauge> = { ...a };
+  for (const k of Object.keys(b) as (keyof Gauge)[]) {
+    out[k] = (out[k] ?? 0) + (b[k] ?? 0);
+  }
+  return out;
+};
+
+/**
  * 反応の中身から表情を決める。
  *
  * 結果（PERFECT / MISS）から直に決めると、外して喜ぶ相手のときに

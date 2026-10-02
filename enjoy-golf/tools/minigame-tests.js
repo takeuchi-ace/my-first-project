@@ -124,6 +124,67 @@ test('集中力が高いほどブレが小さい', () => {
   assert.ok(P.focusJitter(100).angle === 0);
 });
 
+// ===== 朝イチ =====
+const T = srcRequire('logic/teeShot.ts');
+const OP = srcRequire('logic/ownPlay.ts');
+
+const judge = (o) =>
+  T.judgeTeeShot({ power: 0.8, impact: T.IMPACT_POS, focus: 50, talkAnswered: false, ...o });
+
+test('印ぴったりで PERFECT', () => {
+  assert.equal(judge({}).result, 'perfect');
+});
+
+test('窓の外で MISS、押さずに通り過ぎても MISS', () => {
+  assert.equal(judge({ impact: T.IMPACT_POS + 0.5 }).result, 'miss');
+  assert.equal(judge({ impact: null }).result, 'miss');
+});
+
+test('話しかけに応じたら PERFECT は GOOD に落ちる', () => {
+  assert.equal(judge({ talkAnswered: true }).result, 'good');
+});
+
+test('刻む（パワーが下限未満）と PERFECT は GOOD に落ちる', () => {
+  assert.equal(judge({ power: T.LAYBACK_POWER - 0.01 }).result, 'good');
+});
+
+test('パワーが高いほどインパクトの窓が狭い', () => {
+  assert.ok(T.teeShotWindow(50, 1.0).perfect < T.teeShotWindow(50, 0.6).perfect);
+});
+
+test('集中力が低いほどインパクトの窓が狭い', () => {
+  assert.ok(T.teeShotWindow(10, 0.8).good < T.teeShotWindow(90, 0.8).good);
+});
+
+test('飛距離はパワー×出来', () => {
+  assert.equal(judge({ power: 0.8 }).distance, 0.8);
+  assert.equal(judge({ power: 0.8, impact: null }).distance, 0.8 * 0.6);
+});
+
+test('早く押すとスライス（正）、遅く押すとフック（負）', () => {
+  assert.ok(judge({ impact: T.IMPACT_POS + 0.03 }).curve > 0);
+  assert.ok(judge({ impact: T.IMPACT_POS - 0.03 }).curve < 0);
+  assert.equal(judge({}).curve, 0);
+});
+
+test('相手が OB なら飛ばし合いは無し', () => {
+  assert.equal(T.didOutdrive(0.9, T.opponentDrive('ob')), null);
+  assert.equal(T.didOutdrive(0.9, T.opponentDrive('great')), true);
+  assert.equal(T.didOutdrive(0.7, T.opponentDrive('great')), false);
+});
+
+test('飛ばし合いの反応は相手の型で逆になる', () => {
+  assert.deepEqual(OP.outdriveReaction('respects', true), { trust: 2 });
+  assert.deepEqual(OP.outdriveReaction('prefersLead', true), { trust: -3 });
+  assert.deepEqual(OP.outdriveReaction('prefersLead', false), { trust: 2 });
+  assert.deepEqual(OP.outdriveReaction('indifferent', true), {});
+  assert.deepEqual(OP.outdriveReaction('respects', null), {});
+});
+
+test('反応の足し合わせ', () => {
+  assert.deepEqual(OP.sumReactions({ trust: 6, fun: 2 }, { trust: -3 }), { trust: 3, fun: 2 });
+});
+
 module.exports = { findBestStroke };
 
 if (require.main === module) {
