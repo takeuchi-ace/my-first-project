@@ -12,11 +12,11 @@
 | | |
 |---|---|
 | Web | 公開中 https://enjoy-golf.vercel.app/ |
-| iOS | **TestFlight に build 1 が上がっている**（内部テスト可） |
+| iOS | TestFlight には build 1。**build 2 は EAS で焼けた（2026-10-02）が、まだ ASC に上げていない** |
 | プライバシーポリシー | **公開済み** https://hinano.co.jp/enjoygolfquest-privacy/ |
 | 掲載文・設問の回答 | 用意済み（`appstore-listing.md` / `appstore-answers.md`） |
 | Android | 未着手。iOS のあと |
-| git | ミニゲームの作り直しは **main にマージ済み**（`99c4140`）。**未プッシュ** |
+| git | ミニゲームの作り直しは main にマージ・プッシュ済み（`06d755d`）。build 2 の番号上げ（`app.json`）はその後のコミット |
 
 **まだ審査には出していない。**出せる状態まであと数手。
 
@@ -229,10 +229,18 @@ npx expo export --platform web && npx vercel --prod --yes   # Web デプロイ
 [x] iPad を切る                   app.json 済み・build 2 で反映
 [x] パット・朝イチの作り直し      main にマージ済み（99c4140）
 [x] 音の扱いを決める              A：ネイティブはトグルなし・画像差し替え
-[ ] build 2 を焼く                ← 次はここ（作り直しを main に入れてから）
+[x] build 2 を焼く                2026-10-02。.ipa 照合済み（下記）
+[ ] build 2 を ASC に上げる       ← 次はここ（Transporter）
 [ ] 実機で一周                    build 2 で
 [ ] スクリーンショット 6枚
 [ ] ASC 入力 → 提出（手動リリース）
 ```
+
+### build 2 の照合結果（2026-10-02）
+
+- .ipa: https://expo.dev/artifacts/eas/ztpkby5hlO5K5J2kO5HWaUAx0nvepXeSP-VueX5sZFE.ipa
+- `CFBundleVersion` 2 / `CFBundleShortVersionString` 1.0.0 / `UIDeviceFamily` [1]（iPad 外れ）/ `ITSAppUsesNonExemptEncryption` false
+- JS バンドル（Hermes・utf-16-le で一致）: 「どこまで飛ばす？」「後ろへ引いて、離す」「を越えるパワー」「上りだ。強めに引いて、離す」「戻ってきたら印でタップ！」あり。旧方式の「強さを決める」「振り上げ」「右へ引く」なし
+- アセットに `title_screen_native.png` あり（音トグルなしのタイトル）
 
 以上
