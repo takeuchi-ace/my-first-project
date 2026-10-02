@@ -17,13 +17,11 @@ import {
   Gauge,
   OwnShotResult,
   OwnPlayStance,
-  PuttAim,
   ReactionRank,
   RootStackParamList,
   SlopeType,
 } from '../types';
 import {
-  getPuttSlopeVariant,
   getPuttReactionText,
   getAdvisedAim,
   getPuttAimReply,
@@ -221,6 +219,17 @@ type MorningPhase =
  */
 type PuttPhase = 'stroke' | 'rolling' | 'result' | null;
 
+/**
+ * 打つ前の一言。傾斜ごとに読みどころだけを言う（量は言わない。読むのはプレイヤー）。
+ * 上りは届かない、平らは強すぎ、曲がる傾斜は狙いのずらしを忘れる、がよくある外し方
+ */
+const PUTT_SLOPE_HINT: Record<SlopeType, string> = {
+  uphill: '上りだ。強めに引いて、離す',
+  flat: '平ら。引きすぎるとオーバーする',
+  left: '曲がる。曲がる分だけ外して狙い、引いて離す',
+  right: '曲がる。曲がる分だけ外して狙い、引いて離す',
+};
+
 const PUTT_AIM_BY_INDEX: import('../types').PuttAim[] = ['left', 'center', 'right'];
 const puttAimToValue = (idx: number): import('../types').PuttAim =>
   PUTT_AIM_BY_INDEX[idx] ?? 'center';
@@ -358,7 +367,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const [pendingPuttState, setPendingPuttState] = useState<GameState | null>(null);
   const [puttAimIndex, setPuttAimIndex] = useState<number>(-1);
   const [puttSlopeInfo, setPuttSlopeInfo] = useState<{
-    slope: SlopeType; correctAim: PuttAim;
+    slope: SlopeType;
   } | null>(null);
   const [puttResultText, setPuttResultText] = useState('');
 
@@ -379,8 +388,32 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       good: base.good * step.windowScale,
     };
   }, [ownShotFocus, swingStep]);
-  /** グリーンは画面幅いっぱい（左右16の余白）。高すぎる端末でも 420 で止める */
-  const puttGreenSize = Math.min(420, windowWidth - 32);
+  /**
+   * グリーンの大きさは**幅と高さの両方**から決める。
+   *
+   * 打つ段ではスクロールを止めているので、ヘッダー・顔・説明・グリーンが
+   * 画面に収まっていないと、はみ出た部分に二度と触れない。幅だけで決めると
+   * 375×667 でグリーンの下端と説明が切れていた。
+   *
+   * - スクロール領域の高さ（`puttScrollH`）と、グリーンより上の高さ（`puttAboveH`）を
+   *   onLayout で測り、残りをグリーンに使う。端末ごとの余白を数字で決め打ちしない
+   * - グリーンより上にはグリーンの大きさで変わるものを置かないので、
+   *   測る → 大きさが変わる → 測り直す、のループにはならない
+   * - 上の高さは打つ段でだけ取り直す。結果の段で説明が結果に置き換わって
+   *   高さが変わっても、グリーンの大きさは動かさない
+   * - 幅は画面いっぱい（左右16の余白）、420 で止める。高さは 240 を下限にする
+   *   （それより小さいと引く距離が取れない）。幅が高さより広いときは、
+   *   絵は高さに合わせて中央に置き、触れる範囲だけ横に広く取る
+   */
+  const [puttScrollH, setPuttScrollH] = useState(0);
+  const [puttAboveH, setPuttAboveH] = useState(0);
+  const puttGreenWidth = Math.min(420, windowWidth - 32);
+  /** スクロール領域の上下の余白 16+16、グリーン枠の上下 8+8 と枠線 1+1 */
+  const PUTT_FIXED_GAPS = 16 + 16 + 16 + 2;
+  const puttGreenHeight =
+    puttScrollH > 0 && puttAboveH > 0
+      ? Math.max(240, Math.min(puttGreenWidth, puttScrollH - puttAboveH - PUTT_FIXED_GAPS))
+      : puttGreenWidth;
   const [puttResultLabel, setPuttResultLabel] = useState('');
   /** 転がりの軌跡と結果。打った瞬間に決まり、転がり終わってから結果を出す */
   const [puttPlay, setPuttPlay] = useState<PuttSim | null>(null);
@@ -986,9 +1019,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     if (isPuttingEvent) {
       const parts = currentEvent.id.split('_');
       const slope = parts[2] as SlopeType;
-      const variant = getPuttSlopeVariant(slope);
       setPuttAimIndex(choiceIndex);
-      setPuttSlopeInfo({ slope, correctAim: variant.correctAim });
+      setPuttSlopeInfo({ slope });
 
       // 反応ランクはそのまま使う（相手の読みに乗ったかで割れるようになった）。
       // セリフだけは汎用テンプレではなくこの場面用のものに差し替える
@@ -1614,64 +1646,87 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         {/* 引いている間にスクロールされると打てない。グリーンが出ている間は止める */}
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, styles.puttScrollContent]}
           scrollEnabled={puttPhase === 'result'}
+          onLayout={(e) => setPuttScrollH(e.nativeEvent.layout.height)}
         >
-          {/* Header */}
-          <View style={styles.compHeader}>
-            <View style={styles.compHeaderLeft}>
-              <Text
-                style={[styles.compHeaderName, narrowLayout && styles.compHeaderNameNarrow]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {headerName}
-              </Text>
-              {store.aceBalls > 0 && (
-                <View style={styles.aceBallBadge}>
-                  <Text style={styles.aceBallText}>ACE x{store.aceBalls}</Text>
-                </View>
+          {/* グリーンより上。ここの高さを測ってグリーンの大きさを決める（puttGreenHeight） */}
+          {/* 結果の段では打つ段で測った高さより縮めない。結果の文が1行だと枠が低くなり、
+              グリーンが上へずれる（実測 2〜3px） */}
+          <View
+            style={puttPhase !== 'stroke' && puttAboveH > 0 ? { minHeight: puttAboveH } : undefined}
+            onLayout={(e) => {
+              if (puttPhase === 'stroke') setPuttAboveH(e.nativeEvent.layout.height);
+            }}
+          >
+            {/* Header */}
+            <View style={styles.compHeader}>
+              <View style={styles.compHeaderLeft}>
+                <Text
+                  style={[styles.compHeaderName, narrowLayout && styles.compHeaderNameNarrow]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {headerName}
+                </Text>
+                {store.aceBalls > 0 && (
+                  <View style={styles.aceBallBadge}>
+                    <Text style={styles.aceBallText}>ACE x{store.aceBalls}</Text>
+                  </View>
+                )}
+              </View>
+              {courseHole ? (
+                <Pressable
+                  style={({ pressed }) => [styles.holeMapBtn, pressed && { opacity: 0.7 }]}
+                  onPress={() => setHoleMapVisible(true)}
+                >
+                  <View style={styles.holeMapBtnMap}>
+                    <HoleMap layout={courseHole} {...holeMapSize} />
+                  </View>
+                  <View style={styles.holeMapBtnInfo}>
+                    <Text style={styles.holeMapBtnPhase}>後半 4/4</Text>
+                    <Text style={styles.holeMapBtnPar}>P{courseHole.par} · {courseHole.yards}y</Text>
+                  </View>
+                </Pressable>
+              ) : (
+                <Text style={styles.compHeaderPhase}>後半 9</Text>
               )}
             </View>
-            {courseHole ? (
-              <Pressable
-                style={({ pressed }) => [styles.holeMapBtn, pressed && { opacity: 0.7 }]}
-                onPress={() => setHoleMapVisible(true)}
-              >
-                <View style={styles.holeMapBtnMap}>
-                  <HoleMap layout={courseHole} {...holeMapSize} />
-                </View>
-                <View style={styles.holeMapBtnInfo}>
-                  <Text style={styles.holeMapBtnPhase}>後半 4/4</Text>
-                  <Text style={styles.holeMapBtnPar}>P{courseHole.par} · {courseHole.yards}y</Text>
-                </View>
-              </Pressable>
-            ) : (
-              <Text style={styles.compHeaderPhase}>後半 9</Text>
-            )}
-          </View>
 
-          {/* Phase tag */}
-          <View style={styles.phaseTag}>
-            <Text style={styles.phaseTagText}>後半 4/4</Text>
-          </View>
+            {/* 段のタグ（後半 4/4）は出さない。ヘッダーのホールカードと同じ情報で、
+                縦の余白を食ってグリーンが画面に収まらなくなる */}
 
-          {/* Face — 4 で固定していたため、直前に怒らせていても、
-              パットを外しても、最終パットの間だけ機嫌のいい顔になっていた。
-              会話で動いた機嫌をそのまま出し、結果が出たら結果の顔にする */}
-          {/* 強さを決める段では上を詰める。顔・グリーン・説明文で高さを使い切って
-              いたため、375×812 で引きのゲージが画面下端で切れて触れなかった */}
-          <View
-            style={[
-              styles.faceCenter,
-              { marginVertical: puttPhase !== 'result' ? 4 : roomyGap },
-            ]}
-          >
-            <FaceSprite
-              mood={mood}
-              scale={puttPhase !== 'result' ? faceScale * 0.75 : faceScale}
-              characterId={characterId}
-            />
+            {/* Face — 4 で固定していたため、直前に怒らせていても、
+                パットを外しても、最終パットの間だけ機嫌のいい顔になっていた。
+                会話で動いた機嫌をそのまま出し、結果が出たら結果の顔にする。
+                大きさは小さめで固定。グリーンを画面に収めるため上を詰める。
+                結果の段で大きくすると、転がり終わった直後にグリーンが下へずれる */}
+            <View style={[styles.faceCenter, { marginVertical: 4 }]}>
+              <FaceSprite mood={mood} scale={faceScale * 0.75} characterId={characterId} />
+            </View>
+
+            {/* 説明はグリーンの上。下に置くと小さい画面でスクロールの外に出て読めない。
+                結果も同じ枠に出して、グリーンの位置を動かさない */}
+            <View style={[styles.eventBox, styles.puttInfoBox]}>
+              {puttPhase === 'result' ? (
+                <>
+                  <Text style={styles.puttResultLabel}>{puttResultLabel}</Text>
+                  <Text style={styles.puttInfoText}>{puttResultText}</Text>
+                </>
+              ) : (
+                <>
+                  <View style={styles.puttInfoRow}>
+                    <View style={[styles.puttBadge, styles.puttBadgeInline]}>
+                      <Text style={styles.puttBadgeText}>最終パット</Text>
+                    </View>
+                    <Text style={styles.puttInfoTitle}>後ろへ引いて、離す</Text>
+                  </View>
+                  <Text style={styles.puttInfoText}>
+                    {puttSlopeInfo ? PUTT_SLOPE_HINT[puttSlopeInfo.slope] : ''}
+                  </Text>
+                </>
+              )}
+            </View>
           </View>
 
           {/* グリーン。打つ・転がる・結果の全段で出す（結果の間も止まった位置を見せる） */}
@@ -1681,33 +1736,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 slope={puttSlopeInfo.slope}
                 guideAim={puttAimToValue(puttAimIndex)}
                 focus={puttFocus}
-                width={puttGreenSize}
-                height={puttGreenSize}
+                width={puttGreenWidth}
+                height={puttGreenHeight}
                 interactive={puttPhase === 'stroke'}
                 onStroke={handlePuttStroke}
                 playback={puttPlayback}
                 onPlaybackDone={handlePuttRolled}
               />
-            </View>
-          )}
-
-          {puttPhase === 'stroke' && (
-            <View style={styles.eventBox}>
-              <View style={styles.puttBadge}>
-                <Text style={styles.puttBadgeText}>最終パット</Text>
-              </View>
-              <Text style={styles.eventBoxTitle}>引いて、離す</Text>
-              <Text style={styles.eventBoxDesc}>
-                打ちたい向きと反対へ指を引く。長く引くほど強い
-              </Text>
-            </View>
-          )}
-
-          {/* Result phase */}
-          {puttPhase === 'result' && (
-            <View style={styles.eventBox}>
-              <Text style={styles.ownShotResultLabel}>{puttResultLabel}</Text>
-              <Text style={styles.eventBoxDesc}>{puttResultText}</Text>
             </View>
           )}
         </ScrollView>
@@ -3129,6 +3164,43 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   // ===== Final Putt mini-game =====
+  /** パットの画面は下の余白を詰める（グリーンを画面に収めるため。puttGreenHeight と揃える） */
+  puttScrollContent: {
+    paddingBottom: 16,
+  },
+  /** グリーンの上の説明・結果の枠。打つ段と結果の段で高さがあまり変わらないよう、2段に揃える */
+  puttInfoBox: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 0,
+    marginTop: 4,
+  },
+  puttInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  puttBadgeInline: {
+    marginBottom: 0,
+  },
+  puttInfoTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  puttInfoText: {
+    fontSize: 13,
+    color: '#e0e0e0',
+    lineHeight: 19,
+  },
+  puttResultLabel: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: '#FFD700',
+    marginBottom: 2,
+  },
   puttGreenViewWrap: {
     alignSelf: 'center',
     marginVertical: 8,

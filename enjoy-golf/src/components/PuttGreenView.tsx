@@ -6,15 +6,18 @@
  *   ボールに正確に触れなくてよいのは、小さな球を指で隠してしまうと引く向きが見えないため。
  * - 引いている間は、打ち出し方向の短い線だけを出す。曲がりは見せない（読むのはプレイヤー）。
  *   集中力が低いと線が揺れ、離した瞬間の揺れがそのまま向きに乗る。
- * - 再生: 親が `playback`（`simulatePutt` の軌跡）を渡すと、実時間どおりに転がす。
+ * - 再生: 親が `playback`（`simulatePutt` の軌跡）を渡すと転がす。長さはおおむね実時間
+ *   （点の数 × `PATH_POINT_MS`）だが、0.6〜3.5秒に収める。ごく短い転がりは見えないうちに
+ *   終わり、長すぎると結果を待たされるため。
  *   判定は持たない。結果は親が `simulatePutt` から受け取っている。
+ *   `playback` は同じ打球なら同じオブジェクトを渡すこと（変わるたびに頭から再生し直す）。
  *
  * PanResponder は Capture 版で取る。親は ScrollView なので、取らないとドラッグを
  * スクロールに奪われる（親側でもこの画面の間はスクロールを止めている）。
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { PuttAim, SlopeType } from '../types';
 import {
@@ -222,7 +225,16 @@ export function PuttGreenView({
   }
 
   return (
-    <View style={{ width, height }} {...pan.panHandlers}>
+    <View
+      style={[
+        { width, height },
+        // web のタッチ端末では、指を動かすとページのスクロールや引っぱって更新に取られ、
+        // 引いている途中で打てなくなる。グリーンの上ではブラウザの既定の動きを止める。
+        // 長押しで文字が選択されるのも止める
+        Platform.OS === 'web' && ({ touchAction: 'none', userSelect: 'none' } as object),
+      ]}
+      {...pan.panHandlers}
+    >
       <Svg width={width} height={height}>
         <Defs>
           <LinearGradient id="puttRough" x1="0" y1="0" x2="0" y2="1">
