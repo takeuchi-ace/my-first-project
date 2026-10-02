@@ -49,6 +49,12 @@ const CAPTURE_SPEED = 38;
 const SINK_R = CUP_R * 0.9;
 /** 中心がここまで近づけば縁にかかった（lip_out） */
 const RIM_R = CUP_R + 0.9;
+/**
+ * 縁に最も近づいた瞬間の速さがこれ以上なら lip_out（縁をかすめて越えた）。
+ * これより遅い＝縁の手前で力尽きて止まっただけなので、ショートの miss とする。
+ * 「入りそうで入らなかった」演出は、勢いが残っていたときだけ出したい。
+ */
+const LIP_MIN_SPEED = 10;
 const DT = 1 / 120;
 const MAX_STEPS = 120 * 8;
 /** 軌跡は2刻みに1点だけ残す（1点 = 1/60 秒） */
@@ -80,6 +86,7 @@ export const simulatePutt = ({ slope, angle, power }: PuttStroke): PuttSim => {
   const [ax, ay] = SLOPE_ACCEL[slope];
   const path: Vec[] = [[x, y]];
   let closest = Infinity;
+  let speedAtClosest = 0;
 
   for (let i = 0; i < MAX_STEPS; i++) {
     const speed = Math.hypot(vx, vy);
@@ -95,13 +102,17 @@ export const simulatePutt = ({ slope, angle, power }: PuttStroke): PuttSim => {
       path.push([...PUTT_CUP] as Vec);
       return { path, result: 'in' };
     }
-    closest = Math.min(closest, d);
-    if (i % PATH_EVERY === 0) path.push([x, y]);
+    if (d < closest) {
+      closest = d;
+      speedAtClosest = Math.hypot(vx, vy);
+    }
+    if ((i + 1) % PATH_EVERY === 0) path.push([x, y]);
     if (!insideGreen(x, y)) break;
   }
   const last = path[path.length - 1];
   if (last[0] !== x || last[1] !== y) path.push([x, y]);
-  return { path, result: closest <= RIM_R ? 'lip_out' : 'miss' };
+  return { path, result: closest <= RIM_R && speedAtClosest >= LIP_MIN_SPEED ? 'lip_out' : 'miss',
+  };
 };
 
 /**

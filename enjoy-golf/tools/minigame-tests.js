@@ -48,6 +48,15 @@ test('平らでまっすぐ・強すぎるとカップの上を通っても入�
   assert.equal(r.result, 'lip_out');
 });
 
+test('縁の手前でちょうど止まるボールは lip_out ではなく miss', () => {
+  for (const power of [0.688, 0.692]) {
+    const r = P.simulatePutt({ slope: 'flat', angle: 0, power });
+    const gap = r.path[r.path.length - 1][1] - P.PUTT_CUP[1];
+    assert.ok(gap > 1.9 && gap < 3.0, `想定の止まり位置でない: ${gap}`);
+    assert.equal(r.result, 'miss', `power ${power}`);
+  }
+});
+
 test('大きく外すと miss', () => {
   assert.equal(P.simulatePutt({ slope: 'flat', angle: 0.4, power: 0.7 }).result, 'miss');
 });
@@ -89,6 +98,23 @@ test('ドラッグ: 引き量は上限で頭打ち', () => {
 
 test('ドラッグ: 前（上）へ引いたら打たない', () => {
   assert.equal(P.strokeFromDrag(0, -50, 200), null);
+});
+
+test('強さは 1 で頭打ち（1.5 でも 1 と同じ）', () => {
+  const a = P.simulatePutt({ slope: 'flat', angle: 0, power: 1.5 });
+  const b = P.simulatePutt({ slope: 'flat', angle: 0, power: 1 });
+  assert.equal(a.result, b.result);
+  assert.deepEqual(a.path[a.path.length - 1], b.path[b.path.length - 1]);
+});
+
+test('弱いパットでもボールは動く（開始位置がグリーン内）', () => {
+  const r = P.simulatePutt({ slope: 'flat', angle: 0, power: 0.3 });
+  assert.ok(r.path.length > 2);
+  assert.ok(r.path[r.path.length - 1][1] < P.PUTT_BALL_START[1]);
+});
+
+test('ドラッグ: 横に引きすぎ（60度超）は打たない', () => {
+  assert.equal(P.strokeFromDrag(200, 100, 200), null);
 });
 
 test('集中力が高いほどブレが小さい', () => {
