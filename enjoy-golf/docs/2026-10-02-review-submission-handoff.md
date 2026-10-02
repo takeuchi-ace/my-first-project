@@ -16,9 +16,12 @@
 | プライバシーポリシー | **公開済み** https://hinano.co.jp/enjoygolfquest-privacy/ |
 | 掲載文・設問の回答 | 用意済み（`appstore-listing.md` / `appstore-answers.md`） |
 | Android | 未着手。iOS のあと |
-| git | 未プッシュ 0（`6db85d7` が origin/main） |
+| git | ミニゲームの作り直しはブランチ **`putt-teeshot-rework`**（main に未マージ・未プッシュ）。main は `6db85d7` が origin/main |
 
 **まだ審査には出していない。**出せる状態まであと数手。
+
+**最終パットと朝イチのミニゲームを作り直した**（設計：`docs/superpowers/specs/2026-10-02-putt-and-tee-shot-design.md`）。
+**build 1 には入っていない。**
 
 ---
 
@@ -48,14 +51,20 @@
 
 ## 次にやる順番
 
-### 1. 実機で一周する（build 1 のままでよい）
+### 1. 実機で一周する（**build 2 で行う**）
+
+**build 1 には新しいミニゲームが入っていないので、一周は build 2 で行う。**
+（順番としては「3. build 2 を焼く」を先に済ませ、TestFlight で build 2 を入れて一周する。提出はその後）
 
 TestFlight から入れて、ひと通り遊ぶ。**ここを飛ばして提出しない。**
-Web では出ない不具合が4つ疑われている。
+Web では出ない不具合が疑われている。ミニゲームの作り直しは **Web（375×667）でしか確かめていない。**
 
 | 優先 | 見るところ |
 |---|---|
-| **最優先** | **パットの引き**（ドラッグが ScrollView に取られないか）。ここが死ぬとゲームが成立せず、審査で落ちる |
+| **最優先** | **パットの引き（グリーン上で後ろへ引く）**。引いている間に画面がスクロールしないか。iOS のタッチで後ろへ引いて離すと打てるか。ここが死ぬとゲームが成立せず、審査で落ちる |
+| 高 | パットの説明文とグリーンが、SE 級の小さい端末・ノッチ端末でスクロールなしに収まっているか |
+| 高 | 朝イチの3タップ。タップの反応が遅れて印を外しやすくないか（Web より実機のほうがタッチの遅延が大きい）。タップがすぐ効くか |
+| 高 | 朝イチの画面が **1番ホール**（地図・パー・進行の点）を出しているか |
 | 高 | ラウンド中の**端からの右スワイプ**で戻れてしまわないか。戻れると初回契約のカットインを取りこぼす |
 | 中 | ノッチに木目ヘッダー・紹介画面の頭が潜っていないか |
 | 中 | ドット絵がぼやけていないか |
@@ -91,6 +100,8 @@ npx eas-cli@latest build --platform ios --profile production
 - `UIDeviceFamily` が `1` だけになったか（iPad が外れたか）
 - `ITSAppUsesNonExemptEncryption: false` が入っているか
 - 今回の修正がバンドルに載っているか（音：`title_screen_native.png` がアセットに入っているか）
+- パット・朝イチの作り直しがバンドルに載っているか（`TeeShotMeter` の文言「どこまで飛ばす？」を utf-8 / utf-16-le で照合）
+- **焼く前に `putt-teeshot-rework` を main に入れたか**（ブランチのまま焼くなら、そのブランチを checkout しているか）
 
 **JS は Hermes バイトコードなので `strings` では日本語を拾えない。**
 utf-8 と utf-16-le の両方でバイト列照合する。1.0 で「修正の入っていないビルドを
@@ -164,10 +175,14 @@ utf-8 と utf-16-le の両方でバイト列照合する。1.0 で「修正の�
 
 ```bash
 node tools/regression.js          # 回帰（数分）。基準値はファイル内に書いてある
+node tools/minigame-tests.js      # ミニゲームの単体テスト（41件）
+node tools/minigame-sim.js        # ミニゲームの難易度（旧方式との比較・合否）
 npx tsc --noEmit                  # 型
 npx expo-doctor@latest            # 18項目
 npx expo export --platform web && npx vercel --prod --yes   # Web デプロイ
 ```
+
+**`minigame-sim.js` が難易度の基準。**パット・朝イチの定数を触ったら必ず回す。
 
 **回帰ハーネスがリポジトリにあるのは、scratchpad で2回消えて、書き直したら
 条件が変わって前回と比較できなくなったから。**消さない。
@@ -179,6 +194,7 @@ npx expo export --platform web && npx vercel --prod --yes   # Web デプロイ
 - **契約判定まわりの実測値** — 大門の20%、坊っちゃんの低い初期難易度、ACEの引用率は決着済み。蒸し返さない
 - **プレイヤーの発言そのもの** — 極端な・ふざけた台詞はそのまま。変えてよいのは delta・tag・条件だけ
 - **難易度を下げる変更** — 一貫して「下げない」。やるなら上げる方向
+- **パットの吸い込みの強さ**（`puttPhysics.ts` の `FUNNEL_*`・`CAPTURE_SPEED`）— ぎりぎりで止めてある。強めると左右の傾斜でまっすぐ打って入る（読む意味が消える）、弱めると ふつう が下限を割る。触ったら `node tools/minigame-sim.js` を回す
 - **第三者の音源** — ライセンスを持っていない。効果音は自作波形のみ
 
 ### git の注意
@@ -200,6 +216,9 @@ npx expo export --platform web && npx vercel --prod --yes   # Web デプロイ
 | `docs/2026-09-14-testflight-handoff.md` | 前版。TestFlight に上げるまでの経緯 |
 | `AUDIT_EVENT_QA_v2.md` | イベントテキストの監査記録 |
 | `tools/regression.js` | 回帰ハーネス |
+| `tools/minigame-sim.js` | ミニゲームの難易度の基準（旧方式との比較。経緯と実測は冒頭） |
+| `tools/minigame-tests.js` | ミニゲームの単体テスト |
+| `docs/superpowers/specs/2026-10-02-putt-and-tee-shot-design.md` | パット・朝イチ作り直しの設計と、実装で確定した点 |
 
 ---
 
@@ -209,9 +228,10 @@ npx expo export --platform web && npx vercel --prod --yes   # Web デプロイ
 [x] プライバシーポリシー公開      2026-09-30 到達確認済み
 [x] 掲載文・設問の回答            用意済み
 [x] iPad を切る                   app.json 済み・build 2 で反映
-[ ] 実機で一周                    ← 次はここ
+[x] パット・朝イチの作り直し      ブランチ putt-teeshot-rework（未マージ）
 [x] 音の扱いを決める              A：ネイティブはトグルなし・画像差し替え
-[ ] build 2 を焼く
+[ ] build 2 を焼く                ← 次はここ（作り直しを main に入れてから）
+[ ] 実機で一周                    build 2 で
 [ ] スクリーンショット 6枚
 [ ] ASC 入力 → 提出（手動リリース）
 ```
