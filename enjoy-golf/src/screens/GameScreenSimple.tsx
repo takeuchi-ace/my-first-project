@@ -245,6 +245,17 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     () => (isAceRound ? undefined : getHoleLayout(characterId, gameState.currentHole)),
     [isAceRound, characterId, gameState.currentHole],
   );
+  /**
+   * 朝イチのショットの画面で出すホール（1番）。
+   *
+   * courseHole は使えない: 朝イチの画面に入るときには相手のショットへの返事で
+   * applyChoice が済んでいて、gameState.currentHole はもう 2 に進んでいる。
+   * そのまま使うと2番ホールの図に自分と相手の球を描き、ヘッダーのパー・距離も2番になる
+   */
+  const morningHole = useMemo(
+    () => (isAceRound ? undefined : getHoleLayout(characterId, 1)),
+    [isAceRound, characterId],
+  );
 
   // ===== Insight state =====
   const [showAceBallIntro, setShowAceBallIntro] = useState(false);
@@ -1266,7 +1277,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         <HoleMapModal
           visible={holeMapVisible}
           characterId={characterId}
-          currentHole={gameState.currentHole}
+          currentHole={1}
           onClose={() => setHoleMapVisible(false)}
         />
 
@@ -1287,17 +1298,17 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 </View>
               )}
             </View>
-            {courseHole ? (
+            {morningHole ? (
               <Pressable
                 style={({ pressed }) => [styles.holeMapBtn, pressed && { opacity: 0.7 }]}
                 onPress={() => setHoleMapVisible(true)}
               >
                 <View style={styles.holeMapBtnMap}>
-                  <HoleMap layout={courseHole} {...holeMapSize} />
+                  <HoleMap layout={morningHole} {...holeMapSize} />
                 </View>
                 <View style={styles.holeMapBtnInfo}>
                   <Text style={styles.holeMapBtnPhase}>前半 1/4</Text>
-                  <Text style={styles.holeMapBtnPar}>P{courseHole.par} · {courseHole.yards}y</Text>
+                  <Text style={styles.holeMapBtnPar}>P{morningHole.par} · {morningHole.yards}y</Text>
                 </View>
               </Pressable>
             ) : (
@@ -1317,10 +1328,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           </View>
 
           {/* Hole view (always visible during morning shot) */}
-          {courseHole && (
+          {morningHole && (
             <View style={styles.morningHoleViewWrap}>
               <MorningShotView
-                layout={courseHole}
+                layout={morningHole}
                 width={260}
                 height={MORNING_HOLE_VIEW_H}
                 // teeShot は state なので同じオブジェクトのまま。弾道は一度だけ飛ぶ
