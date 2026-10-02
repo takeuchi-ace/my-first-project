@@ -31,7 +31,6 @@ import {
   createInitialState,
   applyChoice,
   applyMinigameResult,
-  focusWindowScale,
   selectEvent,
   selectLunchTalkEvent,
   isChoiceAllowed,
@@ -89,6 +88,8 @@ import {
 import { HoleMap } from '../components/HoleMap';
 import { HoleMapModal } from '../components/HoleMapModal';
 import { MorningShotView } from '../components/MorningShotView';
+import { TeeShotMeter } from '../components/TeeShotMeter';
+import { TeeShotOutcome, judgeTeeShot, opponentDrive, didOutdrive } from '../logic/teeShot';
 import { PuttGreenView } from '../components/PuttGreenView';
 import { PuttSim, simulatePutt, focusJitter } from '../logic/puttPhysics';
 import { getHoleLayout } from '../data/holeLayouts';
@@ -103,87 +104,20 @@ import { COLORS } from '../theme/colors';
 const QUOTE_RATE = 0.5;
 const ACE_HOLE_COUNT = 5;
 
-// ミニゲームの判定窓（中心 0.5 からの片側幅）。集中力で伸縮する
-const OWN_SHOT_WINDOW = { perfect: 0.10, good: 0.20 };
-
 /**
- * 朝イチのスイングは3段で取る。
+ * 朝イチの画面の顔と俯瞰図の大きさ。
  *
- * 1回タップで終わると、上手く押せたかどうかだけの単調な操作になり、
- * 相手との関係が何も動かない。段を分けたうえで、構えの直後に
- * 相手が話しかけてくる（`own_shot_talk`）。応じれば信頼が動くが、
- * その一打では PERFECT が出なくなる——自分のスコアと接待がひとつの操作でぶつかる。
- *
- * 窓は段ごとに狭くなり、バーも速くなる。インパクトが一番きつい。
+ * 3タップはタイミングの操作なので、メーターがスクロールなしで見えていないといけない。
+ * Web の 375×667 で収まっても、実機ではセーフエリアとヘッダーのぶん 20〜40pt 狭い。
+ * 顔（通常 1.4）と俯瞰図（以前 170）を削って、実機の 667pt でも収まる高さにしてある
  */
-const SWING_STEPS = [
-  {
-    label: '構え',
-    hint: 'まず構えを合わせる',
-    windowScale: 1.35,
-    durationMs: 1500,
-  },
-  {
-    label: '振り上げ',
-    hint: 'トップの位置で止める',
-    windowScale: 1.0,
-    durationMs: 1200,
-  },
-  {
-    label: 'インパクト',
-    hint: '当てる。ここが一番狭い',
-    windowScale: 0.7,
-    durationMs: 900,
-  },
-] as const;
+const MORNING_FACE_SCALE = 1.05;
+const MORNING_HOLE_VIEW_H = 140;
 
-/**
- * 3段の点（各段 PERFECT=2 / GOOD=1 / MISS=0）からショットの出来を決める。
- *
- * **PERFECT はインパクトを取れたときだけ**。合計5点以上に加えて
- * 最後の段が PERFECT であることを要る。GOOD は合計3点以上。
- *
- * 「合計5点以上／2点以上」で始めたが、実測すると6点満点で2点は簡単すぎて、
- * 下手なタップ（σ=0.15）のミスが 18%（1回タップ時代）から **4% まで落ちた**。
- * 難しくするつもりの変更で易しくなっていたので、条件を組み替えた。
- *
- * | タップの腕 | 旧1回タップ | この式 |
- * |---|---|---|
- * | 下手 σ=0.15 | P49 G32 M18 | P24 G61 M15 |
- * | ふつう σ=0.08 | P79 G20 M1 | P60 G40 M0 |
- * | 上手 σ=0.04 | P99 G1 M0 | P92 G8 M0 |
- *
- * PERFECT はどの腕でも取りにくくなり、ミスの出方は据え置き。
- *
- * `talkAnswered`（声かけに応じた）ときは **PERFECT を出さない**。
- * 最初は「次の段の判定窓を0.8倍」にしていたが、実測すると
- * **腕のある人（σ=0.04）には打数の期待値が 0.00 打しか動かず**、
- * 信頼だけもらえる無料の選択になっていた。窓の狭さは腕で吸収できる。
- * 上限を切る形なら腕に関係なく効く（PERFECT と GOOD の差は3打）。
- */
-const swingScoresToResult = (
-  scores: number[],
-  talkAnswered: boolean
-): OwnShotResult => {
-  const total = scores.reduce((a, b) => a + b, 0);
-  const impact = scores[scores.length - 1];
-  if (!talkAnswered && total >= 5 && impact === 2) return 'perfect';
-  return total >= 3 ? 'good' : 'miss';
-};
-
-/** focus を反映した判定窓を返す */
-const scaledWindow = (base: { perfect: number; good: number }, focus: number) => {
-  const s = focusWindowScale(focus);
-  return { perfect: base.perfect * s, good: base.good * s };
-};
-
-/** 判定窓を目標ゾーンの描画位置に変換する（判定と見た目を同じ数値から作る） */
-const zoneStyle = (half: number) => ({
-  left: `${(0.5 - half) * 100}%` as `${number}%`,
-  width: `${half * 200}%` as `${number}%`,
-});
 import {
   ownShotReaction,
+  outdriveReaction,
+  sumReactions,
   puttOwnReaction,
   reactionMood,
   ownShotLine,
@@ -347,15 +281,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const [morningPhase, setMorningPhase] = useState<MorningPhase>(null);
   const [pendingMorningState, setPendingMorningState] = useState<GameState | null>(null);
   const [ownShotResultText, setOwnShotResultText] = useState('');
-  const swingBarAnim = useRef(new Animated.Value(0)).current;
-  const swingAnimRef = useRef<Animated.CompositeAnimation | null>(null);
-  const swingPositionRef = useRef(0);
+  /** 朝イチの飛距離と曲がり（俯瞰図の弾道）と、相手を越えたか */
+  const [teeShot, setTeeShot] = useState<(TeeShotOutcome & { outdrove: boolean | null }) | null>(null);
+  /** 二度確定の守り。パットと共用（どちらも打った瞬間に閉じ、始まるときに開ける） */
   const swingLockedRef = useRef(false);
-  /** いま何段目か（0=構え / 1=振り上げ / 2=インパクト） */
-  const [swingStep, setSwingStep] = useState(0);
-  /** 段ごとの点（2/1/0）。表示と最終判定の両方に使う */
-  const [swingScores, setSwingScores] = useState<number[]>([]);
-  /** 話しかけに応じたか。応じた段の次だけ窓が狭くなる */
+  /** 話しかけに応じたか。応じた一打では PERFECT が出ない */
   const [talkAnswered, setTalkAnswered] = useState(false);
   /** 話しかけへの返事のあとに出す地の文 */
   const [talkResultLine, setTalkResultLine] = useState<string | null>(null);
@@ -374,20 +304,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   // ミニゲームの判定窓に使う集中力。会話で focus を削ると自分のプレーが決まらなくなる
   const ownShotFocus = pendingMorningState?.gauge.focus ?? gameState.gauge.focus;
   const puttFocus = pendingPuttState?.gauge.focus ?? gameState.gauge.focus;
-  /**
-   * いまの段の判定窓。
-   *
-   * 集中力 → 段ごとの倍率 → 話しかけに応じた分の狭まり、の順にかける。
-   * 表示するゾーンの幅もこの値から作るので、見た目と判定が食い違わない。
-   */
-  const ownShotZone = useMemo(() => {
-    const base = scaledWindow(OWN_SHOT_WINDOW, ownShotFocus);
-    const step = SWING_STEPS[Math.min(swingStep, SWING_STEPS.length - 1)];
-    return {
-      perfect: base.perfect * step.windowScale,
-      good: base.good * step.windowScale,
-    };
-  }, [ownShotFocus, swingStep]);
   /**
    * グリーンの大きさは**幅と高さの両方**から決める。
    *
@@ -501,87 +417,43 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     }
   }, [gameState.gauge.creep]);
 
-  // ===== Swing animation for morning mini-game =====
-  // 段が進むごとに速くする（構え1500ms → 振り上げ1200ms → インパクト900ms）。
-  // swingStep を依存に入れてあるので、段が変わるたびに引き直す
-  useEffect(() => {
-    if (morningPhase !== 'own_shot_swing') return;
-    swingBarAnim.setValue(0);
-    swingLockedRef.current = false;
-    const listenerId = swingBarAnim.addListener(({ value }) => {
-      swingPositionRef.current = value;
-    });
-    const duration = SWING_STEPS[Math.min(swingStep, SWING_STEPS.length - 1)].durationMs;
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(swingBarAnim, { toValue: 1, duration, useNativeDriver: false }),
-        Animated.timing(swingBarAnim, { toValue: 0, duration, useNativeDriver: false }),
-      ])
-    );
-    swingAnimRef.current = anim;
-    anim.start();
-    return () => {
-      anim.stop();
-      swingBarAnim.removeListener(listenerId);
-    };
-  }, [morningPhase, swingBarAnim, swingStep]);
-
   /**
-   * 3段ぶんの点からショットを確定させる。
+   * 3タップの結果からショットを確定させる。
    *
-   * 段の途中では呼ばない（最後の段のタップと、途中で画面を離れたときだけ）。
+   * 出来（PERFECT/GOOD/MISS）への反応に、相手を越えたかの反応を上乗せして
+   * 一度に engine へ渡す（キャラの traitModifiers を効かせるため）。
    */
-  const finishSwing = useCallback((scores: number[]) => {
-    const result = swingScoresToResult(scores, talkAnswered);
+  const finishSwing = useCallback(
+    (shot: { power: number; impact: number | null }) => {
+      if (swingLockedRef.current) return;
+      swingLockedRef.current = true;
+      const outcome = judgeTeeShot({ ...shot, focus: ownShotFocus, talkAnswered });
+      // 相手の球は直前の相手のショット（applyChoice で pendingMorningState に入っている）から決める
+      const opp = opponentDrive(pendingMorningState?.morningShot ?? null);
+      const outdrove = didOutdrive(outcome.distance, opp);
+      setTeeShot({ ...outcome, outdrove });
 
-    // 相手の構え方（腕を認める／気にしない／上に立ちたい）で反応が変わる。
-    // 上手いことが常に得ではないのが接待ゴルフ
-    const delta = ownShotReaction(character.ownPlayStance, result);
-    const resultText = getOwnShotResultText(result, characterId, character.name, character.ownPlayStance);
-    setOwnShotResultText(resultText);
-    playSfx('shot');
-    // 表情は結果からではなく信頼の動きから決める。
-    // 結果から決めると、外して喜ぶ相手のときに顔とセリフが食い違う
-    setMood(reactionMood(delta));
+      const result = outcome.result;
+      // 相手の構え方（腕を認める／気にしない／上に立ちたい）で反応が変わる。
+      // 上手いことが常に得ではないのが接待ゴルフ
+      const delta = sumReactions(
+        ownShotReaction(character.ownPlayStance, result),
+        outdriveReaction(character.ownPlayStance, outdrove)
+      );
+      setOwnShotResultText(getOwnShotResultText(result, characterId, character.name, character.ownPlayStance));
+      playSfx('shot');
+      // 表情は結果からではなく信頼の動きから決める。
+      // 結果から決めると、外して喜ぶ相手のときに顔とセリフが食い違う
+      setMood(reactionMood(delta));
 
-    const base = pendingMorningState;
-    if (base) {
-      // engine 経由で反映する（キャラの traitModifiers を効かせるため）
-      setPendingMorningState({ ...applyMinigameResult(base, delta), ownShot: result });
-    }
-
-    setMorningPhase('own_shot_result');
-  }, [pendingMorningState, characterId, character.name, talkAnswered]);
-
-  // ===== Handle swing tap（3段） =====
-  const handleSwingTap = useCallback(() => {
-    if (swingLockedRef.current || morningPhase !== 'own_shot_swing') return;
-    swingLockedRef.current = true;
-    swingAnimRef.current?.stop();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    playSfx('tap');
-
-    // この段の点。窓は ownShotZone（集中力・段・話しかけの狭まりを織り込んだ値）
-    const off = Math.abs(swingPositionRef.current - 0.5);
-    const score = off <= ownShotZone.perfect ? 2 : off <= ownShotZone.good ? 1 : 0;
-    const scores = [...swingScores, score];
-    setSwingScores(scores);
-
-    // 1段目（構え）のあとは相手が話しかけてくる
-    if (swingStep === 0) {
-      setTalkResultLine(null);
-      talkLockedRef.current = false;
-      setMorningPhase('own_shot_talk');
-      return;
-    }
-
-    if (swingStep >= SWING_STEPS.length - 1) {
-      finishSwing(scores);
-      return;
-    }
-
-    setSwingStep(swingStep + 1);
-  }, [morningPhase, ownShotZone, swingScores, swingStep, finishSwing]);
+      const base = pendingMorningState;
+      if (base) {
+        setPendingMorningState({ ...applyMinigameResult(base, delta), ownShot: result });
+      }
+      setMorningPhase('own_shot_result');
+    },
+    [pendingMorningState, characterId, character.name, character.ownPlayStance, talkAnswered, ownShotFocus]
+  );
 
   /**
    * 話しかけへの返事。
@@ -610,7 +482,6 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           character.name.split('・').pop() ?? character.name
         )
       );
-      setSwingStep(1);
       setMorningPhase('own_shot_swing');
     },
     [pendingMorningState, character.name]
@@ -1000,15 +871,19 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         setSelectedChoiceText('');
         setGameState(newState);
         setPendingMorningState(newState);
-        // 3段ぶんの状態をここで初期化する（前のホールの点や返事を持ち込まない）
-        setSwingStep(0);
-        setSwingScores([]);
+        // 一打ぶんの状態をここで初期化する（前の結果や返事を持ち込まない）。
+        // ロックはパットと共用なので、ここで必ず開ける
+        setTeeShot(null);
+        swingLockedRef.current = false;
         setTalkAnswered(false);
         setTalkResultLine(null);
         setMorningPhase('own_shot_intro');
         resetUI();
         timerRef.current = setTimeout(() => {
-          setMorningPhase('own_shot_swing');
+          // 構えたところで話しかけられる（3タップは途中で止めないので、打ち始める前に置く）
+          talkLockedRef.current = false;
+          setTalkResultLine(null);
+          setMorningPhase('own_shot_talk');
         }, 1500);
       }, 2500);
       return;
@@ -1430,14 +1305,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             )}
           </View>
 
-          {/* Phase tag */}
-          <View style={styles.phaseTag}>
-            <Text style={styles.phaseTagText}>前半 1/4</Text>
-          </View>
+          {/* 段のタグ（前半 1/4）は出さない。ヘッダーのホールカードと同じ情報で、
+              縦の余白を食って3タップのメーターが画面に収まらなくなる */}
 
-          {/* Face */}
-          <View style={[styles.faceCenter, { marginVertical: roomyGap }]}>
-            <FaceSprite mood={mood} scale={faceScale} characterId={characterId} />
+          {/* Face — 小さめで固定。3タップはタイミングの操作なので、メーターが
+              スクロールなしで見えていないといけない（375×667 で収める）。
+              faceScale は今の会話イベントの選択肢の長さで変わるので使わない。
+              話しかけ → 構え → 結果で顔の大きさが変わると、俯瞰図が上下にずれる */}
+          <View style={[styles.faceCenter, { marginVertical: 4 }]}>
+            <FaceSprite mood={mood} scale={MORNING_FACE_SCALE} characterId={characterId} />
           </View>
 
           {/* Hole view (always visible during morning shot) */}
@@ -1446,12 +1322,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               <MorningShotView
                 layout={courseHole}
                 width={260}
-                height={170}
-                result={
-                  morningPhase === 'own_shot_result'
-                    ? (pendingMorningState?.ownShot ?? null)
-                    : null
-                }
+                height={MORNING_HOLE_VIEW_H}
+                // teeShot は state なので同じオブジェクトのまま。弾道は一度だけ飛ぶ
+                shot={morningPhase === 'own_shot_result' ? teeShot : null}
+                opponentDistance={opponentDrive(pendingMorningState?.morningShot ?? null)}
               />
             </View>
           )}
@@ -1502,78 +1376,30 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* Swing mini-game（構え → 振り上げ → インパクトの3段） */}
+          {/* 3タップ（スイング開始 → パワー → インパクト） */}
           {morningPhase === 'own_shot_swing' && (
             <View>
-              <View style={styles.eventBox}>
-                <View style={styles.morningBadge}>
-                  <Text style={styles.morningBadgeText}>
-                    朝イチのショット {swingStep + 1}/{SWING_STEPS.length}
-                  </Text>
+              {/* 説明は詰めて置く（バッジと見出しを1行に）。メーターを画面内に収めるため */}
+              <View style={[styles.eventBox, styles.morningInfoBox]}>
+                <View style={styles.morningInfoRow}>
+                  <View style={[styles.morningBadge, styles.morningBadgeInline]}>
+                    <Text style={styles.morningBadgeText}>朝イチのショット</Text>
+                  </View>
+                  <Text style={styles.morningInfoTitle}>どこまで飛ばす？</Text>
                 </View>
-                <Text style={styles.eventBoxTitle}>{SWING_STEPS[swingStep].label}</Text>
-                <Text style={styles.eventBoxDesc}>{SWING_STEPS[swingStep].hint}</Text>
-                {talkResultLine && swingStep === 1 && (
-                  <Text style={styles.swingTalkEcho}>{talkResultLine}</Text>
+                <Text style={styles.morningInfoText}>
+                  強く振るほど飛ぶが、当てるのが難しくなる
+                </Text>
+                {talkResultLine && (
+                  <Text style={[styles.swingTalkEcho, { marginTop: 2 }]}>{talkResultLine}</Text>
                 )}
               </View>
-
-              <Pressable style={styles.swingArea} onPress={handleSwingTap}>
-                {/* 段ごとの首尾。3段のうちどこで取れたかが見えないと、
-                    最後の判定が何で決まったのか分からない */}
-                <View style={styles.swingStepRow}>
-                  {SWING_STEPS.map((s, i) => (
-                    <Text
-                      key={s.label}
-                      style={[
-                        styles.swingStepChip,
-                        i === swingStep && styles.swingStepChipNow,
-                        swingScores[i] === 2 && styles.swingStepChipPerfect,
-                        swingScores[i] === 1 && styles.swingStepChipGood,
-                        swingScores[i] === 0 && styles.swingStepChipMiss,
-                      ]}
-                    >
-                      {s.label}
-                      {swingScores[i] === undefined
-                        ? ''
-                        : swingScores[i] === 2
-                          ? ' ◎'
-                          : swingScores[i] === 1
-                            ? ' ○'
-                            : ' ×'}
-                    </Text>
-                  ))}
-                </View>
-
-                <View style={styles.swingZoneLabels}>
-                  <Text style={styles.swingZoneMiss}>MISS</Text>
-                  <Text style={styles.swingZoneGood}>GOOD</Text>
-                  <Text style={styles.swingZonePerfect}>PERFECT</Text>
-                  <Text style={styles.swingZoneGood}>GOOD</Text>
-                  <Text style={styles.swingZoneMiss}>MISS</Text>
-                </View>
-
-                {/* ゾーン幅は判定に使う数値そのもの。集中力が低いと目に見えて狭くなる */}
-                <View style={styles.swingTrack}>
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightGood, zoneStyle(ownShotZone.good)]} />
-                  <View style={[styles.swingZoneHighlight, styles.swingZoneHighlightPerfect, zoneStyle(ownShotZone.perfect)]} />
-                  {/* 0%〜100% に marginLeft で半径分戻す。2%〜88% だと
-                      印の中心と判定値がずれ、中央で押しても中央で止まらない */}
-                  <Animated.View
-                    style={[
-                      styles.swingIndicator,
-                      {
-                        left: swingBarAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%'],
-                        }),
-                      },
-                    ]}
-                  />
-                </View>
-
-                <Text style={styles.swingTapHint}>タップ！</Text>
-              </Pressable>
+              <TeeShotMeter
+                focus={ownShotFocus}
+                opponentDrive={opponentDrive(pendingMorningState?.morningShot ?? null)}
+                opponentName={character.name.split('・').pop() ?? character.name}
+                onDone={finishSwing}
+              />
             </View>
           )}
 
@@ -1587,23 +1413,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                   ? 'GOOD'
                   : 'MISS...'}
               </Text>
-              {/* 3段の内訳。結果だけ出しても、どの段で崩れたのか分からない */}
-              <View style={styles.swingStepRow}>
-                {SWING_STEPS.map((s, i) => (
-                  <Text
-                    key={s.label}
-                    style={[
-                      styles.swingStepChip,
-                      swingScores[i] === 2 && styles.swingStepChipPerfect,
-                      swingScores[i] === 1 && styles.swingStepChipGood,
-                      swingScores[i] === 0 && styles.swingStepChipMiss,
-                    ]}
-                  >
-                    {s.label}
-                    {swingScores[i] === 2 ? ' ◎' : swingScores[i] === 1 ? ' ○' : ' ×'}
-                  </Text>
-                ))}
-              </View>
+              {/* 相手の球と比べた一行。俯瞰図の灰色の球と合わせて、前後がはっきり分かるように */}
+              {teeShot?.outdrove != null && (
+                <Text style={[styles.eventBoxDesc, { marginTop: 6 }]}>
+                  {teeShot.outdrove
+                    ? `${character.name.split('・').pop()}の球を越えた。`
+                    : `${character.name.split('・').pop()}の球の手前に止まった。`}
+                </Text>
+              )}
               <Text style={[styles.eventBoxDesc, { marginTop: 10 }]}>
                 {ownShotResultText}
               </Text>
@@ -2731,21 +2548,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: 'rgba(245, 230, 200, 0.7)',
   },
-  phaseTag: {
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#FFD700',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginBottom: 12,
-  },
-  phaseTagText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFD700',
-  },
   eventBox: {
     backgroundColor: '#2d6a3f',
     borderRadius: 10,
@@ -3163,6 +2965,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  /** 3タップの上の説明。メーターを画面に収めるため、通常の eventBox より詰める */
+  morningInfoBox: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 0,
+  },
+  morningInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  morningBadgeInline: {
+    marginBottom: 0,
+  },
+  morningInfoTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  morningInfoText: {
+    fontSize: 13,
+    color: '#e0e0e0',
+    lineHeight: 19,
+  },
   // ===== Final Putt mini-game =====
   /** パットの画面は下の余白を詰める（グリーンを画面に収めるため。puttGreenHeight と揃える） */
   puttScrollContent: {
@@ -3225,87 +3052,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  swingArea: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginTop: 8,
-  },
-  swingZoneLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 4,
-  },
-  swingZoneMiss: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  swingZoneGood: {
-    color: '#4FC3F7',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  swingZonePerfect: {
-    color: '#FFD700',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  swingTrack: {
-    width: '100%',
-    height: 44,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 22,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  swingZoneHighlight: {
-    position: 'absolute',
-    height: '100%',
-  },
-  swingZoneHighlightGood: {
-    left: '30%',
-    width: '40%',
-    backgroundColor: 'rgba(79,195,247,0.2)',
-  },
-  swingZoneHighlightPerfect: {
-    left: '40%',
-    width: '20%',
-    backgroundColor: 'rgba(255,215,0,0.3)',
-  },
-  swingStepRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  swingStepChip: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.35)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    overflow: 'hidden',
-  },
-  swingStepChipNow: {
-    color: COLORS.textCream,
-    borderColor: 'rgba(255,215,0,0.55)',
-  },
-  swingStepChipPerfect: {
-    color: '#FFD700',
-    borderColor: 'rgba(255,215,0,0.45)',
-  },
-  swingStepChipGood: {
-    color: '#9ad',
-    borderColor: 'rgba(120,170,220,0.45)',
-  },
-  swingStepChipMiss: {
-    color: 'rgba(255,255,255,0.3)',
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  /** 声かけに応じた／流した結果の地の文。振り上げの段にだけ出す */
+  /** 声かけに応じた／流した結果の地の文。メーターの上に出す */
   swingTalkEcho: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
@@ -3333,27 +3080,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     fontSize: 12,
     marginTop: 3,
-  },
-  swingIndicator: {
-    position: 'absolute',
-    width: 28,
-    height: 28,
-    top: 8,
-    marginLeft: -14,
-    borderRadius: 14,
-    backgroundColor: '#fff',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  swingTapHint: {
-    color: COLORS.textCream,
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 4,
   },
   ownShotResultLabel: {
     fontSize: 22,

@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { IMPACT_POS, LAYBACK_POWER, teeShotWindow } from '../logic/teeShot';
 import { playSfx } from '../lib/sound';
@@ -137,8 +137,17 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
           : '';
 
   return (
-    // onPress は指を離したときに来るので、タイミングを取る操作では遅れる。押した瞬間で取る
-    <Pressable style={styles.area} onPressIn={handleTap} disabled={phase === 'done'}>
+    // 押した瞬間で取る（onPress は指を離したときに来るので、タイミングを取る操作では遅れる）。
+    // Pressable の onPressIn は使わない: Web では既定で 50ms 遅れて来て、その間に離すと
+    // （トラックパッドのタップ・素早いクリック）来ないまま終わる。遅れの 50ms も
+    // 戻りのバーでは 0.07 ぶんで、PERFECT の窓より広い。responder の grant は
+    // Web でも端末でも触れた瞬間に来る
+    <View
+      style={styles.area}
+      accessibilityRole="button"
+      onStartShouldSetResponder={() => phaseRef.current !== 'done'}
+      onResponderGrant={handleTap}
+    >
       <Text style={styles.hint}>{hint}</Text>
 
       <View style={styles.labels}>
@@ -177,7 +186,7 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
           <Text style={[styles.legendText, styles.legendOpp]}>{`▼ ${opponentName}の球`}</Text>
         )}
       </View>
-    </Pressable>
+    </View>
   );
 }
 

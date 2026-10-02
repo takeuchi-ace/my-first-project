@@ -2,11 +2,12 @@
  * MorningShotView — 朝イチショット用のホール俯瞰図＋ボール弾道アニメ
  *
  * - HoleMap で Hole 1 の俯瞰図を描画
- * - ボールはティーから着弾点へ放物線軌道でアニメーション
- *   - perfect: グリーン手前（フェアウェイの 85% 地点、オフセットなし）
- *   - good:    フェアウェイ中ほど（70% 地点、わずかにオフセット）
- *   - miss:    ラフ／ハザード（50% 地点、大きく横にオフセット）
- * - result プロップが null→値 に変化したタイミングでアニメ起動
+ * - 着地点は飛距離（0〜1）と曲がり（-1〜1）から出す。
+ *   飛距離はコースの中心線に沿った位置、曲がりは中心線からの横ずれ
+ * - 相手の球（あれば）を先に灰色で置いておく。どちらが前かが一目で分かる
+ * - 弾道は二次ベジェ。曲がりの向きへ膨らませて、フック・スライスに見せる
+ * - shot プロップが null→値 に変化したタイミングでアニメ起動
+ *   （shot の同一性が変わるたびに飛び直すので、親は同じオブジェクトを渡し続けること）
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -14,14 +15,19 @@ import { Animated, View, StyleSheet } from 'react-native';
 import { HoleLayout } from '../data/holeLayouts';
 import { HoleMap } from './HoleMap';
 
-export type ShotResult = 'perfect' | 'good' | 'miss';
+export interface TeeShotView {
+  distance: number;
+  curve: number;
+}
 
 interface Props {
   layout: HoleLayout;
   width: number;
   height: number;
   /** null = ボールはティーで待機。値が入るとアニメ開始 */
-  result: ShotResult | null;
+  shot: TeeShotView | null;
+  /** 相手の球の到達点（0〜1）。null なら置かない */
+  opponentDistance: number | null;
   onAnimationDone?: () => void;
 }
 
@@ -45,30 +51,18 @@ function normalAt(path: [number, number][], t: number): [number, number] {
   return [-dy / len, dx / len];
 }
 
-/** 結果別の着弾点を 0-100 空間で計算 */
-function computeLanding(layout: HoleLayout, result: ShotResult): [number, number] {
-  const path = layout.path;
-  switch (result) {
-    case 'perfect': {
-      // グリーンに近いフェアウェイ中央
-      return pointOnPath(path, 0.85);
-    }
-    case 'good': {
-      // フェアウェイ中ほど、わずかに右にオフセット
-      const center = pointOnPath(path, 0.7);
-      const n = normalAt(path, 0.7);
-      return [center[0] + n[0] * 4, center[1] + n[1] * 4];
-    }
-    case 'miss': {
-      // ラフ/ハザード、大きく左に外す
-      const center = pointOnPath(path, 0.5);
-      const n = normalAt(path, 0.5);
-      return [center[0] - n[0] * 18, center[1] - n[1] * 18];
-    }
-  }
+/** 飛距離 0〜1 を中心線上の位置に。0 でもティーより少し前（空振りでも転がる） */
+const distanceToT = (d: number) => 0.2 + 0.72 * Math.max(0, Math.min(1, d));
+
+/** 着地点（0-100 空間）。曲がりは中心線の法線方向に最大 12 ずらす */
+function landingPoint(layout: HoleLayout, shot: TeeShotView): [number, number] {
+  const t = distanceToT(shot.distance);
+  const c = pointOnPath(layout.path, t);
+  const n = normalAt(layout.path, t);
+  return [c[0] + n[0] * shot.curve * 12, c[1] + n[1] * shot.curve * 12];
 }
 
-export function MorningShotView({ layout, width, height, result, onAnimationDone }: Props) {
+export function MorningShotView({ layout, width, height, shot, opponentDistance, onAnimationDone }: Props) {
   // 0-100 → ピクセル変換用スケール（HoleMap と同じロジック）
   const scale = Math.min(width / 100, height / 100);
   const offsetX = (width - 100 * scale) / 2;
@@ -81,16 +75,22 @@ export function MorningShotView({ layout, width, height, result, onAnimationDone
   );
 
   const landingPx = useMemo<[number, number] | null>(() => {
-    if (!result) return null;
-    const [lx, ly] = computeLanding(layout, result);
+    if (!shot) return null;
+    const [lx, ly] = landingPoint(layout, shot);
     return [offsetX + lx * scale, offsetY + ly * scale];
-  }, [result, layout, offsetX, offsetY, scale]);
+  }, [shot, layout, offsetX, offsetY, scale]);
+
+  const oppPx = useMemo<[number, number] | null>(() => {
+    if (opponentDistance === null) return null;
+    const [x, y] = pointOnPath(layout.path, distanceToT(opponentDistance));
+    return [offsetX + x * scale, offsetY + y * scale];
+  }, [opponentDistance, layout, offsetX, offsetY, scale]);
 
   // 0 → 1 の進行 t
   const flightT = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!result) {
+    if (!shot) {
       flightT.setValue(0);
       return;
     }
@@ -102,16 +102,41 @@ export function MorningShotView({ layout, width, height, result, onAnimationDone
     }).start(({ finished }) => {
       if (finished && onAnimationDone) onAnimationDone();
     });
-  }, [result, flightT, onAnimationDone]);
+  }, [shot, flightT, onAnimationDone]);
 
-  // ボールの位置 (px)
+  // 弾道の制御点: ティーと着地点の中点から、曲がりと逆向きに少し膨らませる
+  // （曲がる球は打ち出しが逆へ出てから戻ってくるように見える）
+  const flightSamples = useMemo(() => {
+    if (!landingPx || !shot) return null;
+    const mx = (teePx[0] + landingPx[0]) / 2;
+    const my = (teePx[1] + landingPx[1]) / 2;
+    const dx = landingPx[0] - teePx[0];
+    const dy = landingPx[1] - teePx[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const bulge = -shot.curve * len * 0.18;
+    const cx = mx + (-dy / len) * bulge;
+    const cy = my + (dx / len) * bulge;
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16;
+      const u = 1 - t;
+      xs.push(u * u * teePx[0] + 2 * u * t * cx + t * t * landingPx[0]);
+      ys.push(u * u * teePx[1] + 2 * u * t * cy + t * t * landingPx[1]);
+    }
+    return { xs, ys };
+  }, [landingPx, teePx, shot]);
+
+  const inputRange = Array.from({ length: 17 }, (_, i) => i / 16);
+  // 待機中もティーに止めた補間にしておく。素の数値 → 補間に差し替えると、
+  // Web では途中のフレームが描かれず、球が着地点へ飛び移るだけになった
   const ballX = flightT.interpolate({
-    inputRange: [0, 1],
-    outputRange: [teePx[0], landingPx ? landingPx[0] : teePx[0]],
+    inputRange,
+    outputRange: flightSamples ? flightSamples.xs : inputRange.map(() => teePx[0]),
   });
   const ballY = flightT.interpolate({
-    inputRange: [0, 1],
-    outputRange: [teePx[1], landingPx ? landingPx[1] : teePx[1]],
+    inputRange,
+    outputRange: flightSamples ? flightSamples.ys : inputRange.map(() => teePx[1]),
   });
 
   // 飛行中の見た目（高さによる擬似的な「飛んでる感」）：
@@ -145,8 +170,16 @@ export function MorningShotView({ layout, width, height, result, onAnimationDone
         pointerEvents="none"
       />
 
+      {/* 相手の球。灰色で先に置いておく */}
+      {oppPx && (
+        <View
+          style={[styles.oppBall, { left: oppPx[0] - 3, top: oppPx[1] - 3 }]}
+          pointerEvents="none"
+        />
+      )}
+
       {/* 飛行中の地表シャドウ（淡い円。ボールの下層に置きたいので先に配置） */}
-      {result && (
+      {shot && (
         <Animated.View
           style={[
             styles.shadow,
@@ -209,6 +242,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 4,
     elevation: 4,
+  },
+  oppBall: {
+    position: 'absolute',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#b8b8b8',
+    borderWidth: 1,
+    borderColor: '#7a7a7a',
   },
   shadow: {
     position: 'absolute',
