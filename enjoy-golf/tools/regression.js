@@ -8,6 +8,7 @@
  *  - ハングしないこと（イベント選択が終わらないループの検出）
  *  - 相談ラウンド（ACE）が必ず成立すること
  *  - 1周で触れたイベントの種類数
+ * ※ 2026-10-02 から朝イチに飛ばし合い（outdriveReaction）を含む。それより前の基準値とは条件が違う。
  *
  * ※ TypeScript を都度トランスパイルするので数分かかる。
  * ※ Metro のバンドル対象外（src/ の外にあり、どこからも import していない）。
@@ -70,8 +71,18 @@ function round(cid, sk, mg, i, seen) {
     if (seen) seen.add(e.id);
     st = engine.applyChoice(st, e, Math.random() < sk ? best(st, e) : Math.floor(Math.random() * e.choices.length));
     if (e.id.startsWith('morning_shot_')) {
-      const r = pk(mg, 'perfect', 'good', 'miss');
-      st = engine.applyMinigameResult(st, OP.ownShotReaction(c.ownPlayStance, r));
+      let r = pk(mg, 'perfect', 'good', 'miss');
+      // 飛ばし合い（2026-10-02〜）。会話の腕 sk の確率で相手の型に合った方を選ぶ
+      // （腕を認める・気にしない相手には飛ばす、上に立ちたい相手には刻む）。
+      // 刻めば PERFECT は出ず、越えない。飛ばしても MISS なら越えない
+      const wantsOver = c.ownPlayStance === 'prefersLead' ? Math.random() >= sk : Math.random() < sk;
+      if (!wantsOver && r === 'perfect') r = 'good';
+      const opp = st.morningShot === 'ob' ? null : true;
+      const outdrove = opp === null ? null : wantsOver && r !== 'miss';
+      st = engine.applyMinigameResult(
+        st,
+        OP.sumReactions(OP.ownShotReaction(c.ownPlayStance, r), OP.outdriveReaction(c.ownPlayStance, outdrove))
+      );
       st = { ...st, ownShot: r };
     }
     if (e.id.startsWith('putting_event_')) {
