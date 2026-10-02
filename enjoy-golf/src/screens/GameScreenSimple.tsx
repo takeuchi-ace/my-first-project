@@ -314,6 +314,10 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
   // ミニゲームの判定窓に使う集中力。会話で focus を削ると自分のプレーが決まらなくなる
   const ownShotFocus = pendingMorningState?.gauge.focus ?? gameState.gauge.focus;
+  /** 相手のティーショットの到達点（0〜1）。直前の相手のショットから決まる。OB なら null */
+  const oppDrive = opponentDrive(pendingMorningState?.morningShot ?? null);
+  /** 地の文やメーターで使う相手の短い呼び名（「銀行マン・田中」→「田中」） */
+  const oppShortName = character.name.split('・').pop() ?? character.name;
   const puttFocus = pendingPuttState?.gauge.focus ?? gameState.gauge.focus;
   /**
    * グリーンの大きさは**幅と高さの両方**から決める。
@@ -440,8 +444,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       swingLockedRef.current = true;
       const outcome = judgeTeeShot({ ...shot, focus: ownShotFocus, talkAnswered });
       // 相手の球は直前の相手のショット（applyChoice で pendingMorningState に入っている）から決める
-      const opp = opponentDrive(pendingMorningState?.morningShot ?? null);
-      const outdrove = didOutdrive(outcome.distance, opp);
+      const outdrove = didOutdrive(outcome.distance, oppDrive);
       setTeeShot({ ...outcome, outdrove });
 
       const result = outcome.result;
@@ -463,7 +466,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       }
       setMorningPhase('own_shot_result');
     },
-    [pendingMorningState, characterId, character.name, character.ownPlayStance, talkAnswered, ownShotFocus]
+    [pendingMorningState, characterId, character.name, character.ownPlayStance, talkAnswered, ownShotFocus, oppDrive]
   );
 
   /**
@@ -488,14 +491,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         );
       }
       setTalkResultLine(
-        (answered ? TALK_ANSWERED_LINE : TALK_IGNORED_LINE).replace(
-          '{name}',
-          character.name.split('・').pop() ?? character.name
-        )
+        (answered ? TALK_ANSWERED_LINE : TALK_IGNORED_LINE).replace('{name}', oppShortName)
       );
       setMorningPhase('own_shot_swing');
     },
-    [pendingMorningState, character.name]
+    [pendingMorningState, oppShortName]
   );
 
   // Advance from own shot result to next hole
@@ -1281,7 +1281,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           onClose={() => setHoleMapVisible(false)}
         />
 
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        {/* 3タップの間はスクロールを止める。指の動きがスクロールとタップの両方に取られないように。
+            メーターは 375×667 でもスクロールなしで収まる高さにしてある */}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          scrollEnabled={morningPhase !== 'own_shot_swing'}
+        >
           {/* Header */}
           <View style={styles.compHeader}>
             <View style={styles.compHeaderLeft}>
@@ -1336,7 +1342,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 height={MORNING_HOLE_VIEW_H}
                 // teeShot は state なので同じオブジェクトのまま。弾道は一度だけ飛ぶ
                 shot={morningPhase === 'own_shot_result' ? teeShot : null}
-                opponentDistance={opponentDrive(pendingMorningState?.morningShot ?? null)}
+                opponentDistance={oppDrive}
               />
             </View>
           )}
@@ -1407,8 +1413,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               </View>
               <TeeShotMeter
                 focus={ownShotFocus}
-                opponentDrive={opponentDrive(pendingMorningState?.morningShot ?? null)}
-                opponentName={character.name.split('・').pop() ?? character.name}
+                opponentDrive={oppDrive}
+                opponentName={oppShortName}
                 onDone={finishSwing}
               />
             </View>
@@ -1428,8 +1434,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               {teeShot?.outdrove != null && (
                 <Text style={[styles.eventBoxDesc, { marginTop: 6 }]}>
                   {teeShot.outdrove
-                    ? `${character.name.split('・').pop()}の球を越えた。`
-                    : `${character.name.split('・').pop()}の球の手前に止まった。`}
+                    ? `${oppShortName}の球を越えた。`
+                    : `${oppShortName}の球の手前に止まった。`}
                 </Text>
               )}
               <Text style={[styles.eventBoxDesc, { marginTop: 10 }]}>
@@ -1439,14 +1445,14 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           )}
         </ScrollView>
 
-        {/* Progress dots */}
+        {/* Progress dots — 1番ホールまで点ける（morningHole と同じ理由で currentHole は使わない） */}
         <View style={styles.progressBar}>
           {Array.from({ length: 9 }).map((_, i) => (
             <View
               key={i}
               style={[
                 styles.dot,
-                (i + 1) <= gameState.currentHole ? styles.dotActive : styles.dotInactive,
+                (i + 1) <= 1 ? styles.dotActive : styles.dotInactive,
                 (i + 1) === 5 && styles.dotLunch,
               ]}
             />

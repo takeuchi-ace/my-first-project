@@ -74,6 +74,16 @@ export const judgeTeeShot = ({ power: rawPower, impact, focus, talkAnswered }: T
 export const opponentDrive = (shot: MorningShotResult | null): number | null =>
   shot === 'great' ? 0.8 : shot === 'normal' ? 0.62 : null;
 
+/**
+ * 相手の球を越えるのに要るパワー。メーターの赤い印はここに置く。
+ *
+ * 越えるのは飛距離（パワー×出来）が相手を上回ったとき。相手の到達点そのものに
+ * 印を置くと、印をわずかに越えて GOOD（×0.9）で当てても手前に止まり、印が嘘になる。
+ * 話しかけに応じた一打では GOOD が最上なので、GOOD の係数で割った位置に置く。
+ * 印を越えて GOOD で当てれば越える。PERFECT ならもう少し手前でも越える
+ */
+export const powerToOutdrive = (opp: number): number => Math.min(1, opp / QUALITY.good);
+
 /** 相手を越えたか。比べる相手が無ければ null。同じ飛距離（引き分け）は「越えていない」 */
 export const didOutdrive = (distance: number, opp: number | null): boolean | null =>
   opp === null ? null : distance > opp;

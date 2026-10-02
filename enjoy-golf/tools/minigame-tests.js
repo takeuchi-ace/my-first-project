@@ -283,6 +283,24 @@ test('反応の足し合わせ: b にだけあるキーも入る', () => {
   assert.deepEqual(OP.sumReactions({ trust: 1 }, { fun: 2 }), { trust: 1, fun: 2 });
 });
 
+// 赤い印（越えるパワー）を挟んで、GOOD で当てたときに越える／越えないが分かれる
+const goodTapAt = (power) => {
+  const w = T.teeShotWindow(50, power);
+  return judge({ power, impact: T.IMPACT_POS + (w.perfect + w.good) / 2 });
+};
+
+test('印のすぐ先で GOOD に当てれば越える', () => {
+  const o = goodTapAt(T.powerToOutdrive(0.8) + 0.005);
+  assert.equal(o.result, 'good');
+  assert.equal(T.didOutdrive(o.distance, 0.8), true);
+});
+
+test('印のすぐ手前で GOOD に当てても越えない', () => {
+  const o = goodTapAt(T.powerToOutdrive(0.8) - 0.005);
+  assert.equal(o.result, 'good');
+  assert.equal(T.didOutdrive(o.distance, 0.8), false);
+});
+
 test('相手が OB なら飛ばし合いは無し', () => {
   assert.equal(T.didOutdrive(0.9, T.opponentDrive('ob')), null);
   assert.equal(T.didOutdrive(0.9, T.opponentDrive('great')), true);

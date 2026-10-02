@@ -7,13 +7,13 @@
  * バーの上には、判定に使う数値そのものから描いた印を置く:
  *  - インパクトの窓（集中力とパワーで伸縮。パワーが決まるまでは強さ1の最も狭い幅）
  *  - 刻みの境（`LAYBACK_POWER`。これより手前で止めると PERFECT は出ない）
- *  - 相手の球の到達点（OB のときは出さない）
+ *  - 相手の球を越えるのに要るパワー（`powerToOutdrive`。OB のときは出さない）
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { IMPACT_POS, LAYBACK_POWER, teeShotWindow } from '../logic/teeShot';
+import { IMPACT_POS, LAYBACK_POWER, powerToOutdrive, teeShotWindow } from '../logic/teeShot';
 import { playSfx } from '../lib/sound';
 
 interface Props {
@@ -32,6 +32,11 @@ const UP_MS = 1000;
 const DOWN_MS_PER_UNIT = 700;
 /** バーはここまで戻って止まる（印を通り過ぎた＝押し損ね） */
 const BAR_END = -0.03;
+/**
+ * 振り始めからこれより早いパワーのタップは無視する（バーは伸び続ける）。
+ * 素早い二度押しがそのままパワーになると、ほぼ 0 の空振りが確定してしまう
+ */
+const POWER_TAP_GUARD_MS = 120;
 
 const pct = (v: number) => `${v * 100}%` as `${number}%`;
 
@@ -42,6 +47,7 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
   const [phase, setPhase] = useState<Phase>('ready');
   const [power, setPower] = useState<number | null>(null);
   const powerRef = useRef(1);
+  const startedAtRef = useRef(0);
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -88,6 +94,7 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       playSfx('tap');
       go('up');
+      startedAtRef.current = Date.now();
       pos.setValue(0);
       const anim = Animated.timing(pos, {
         toValue: 1,
@@ -107,6 +114,7 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
       return;
     }
     if (p === 'up') {
+      if (Date.now() - startedAtRef.current < POWER_TAP_GUARD_MS) return;
       animRef.current?.stop();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       powerRef.current = posRef.current;
@@ -122,6 +130,8 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
   };
 
   const w = teeShotWindow(focus, power ?? 1);
+  /** 赤い印。相手の到達点ではなく、GOOD で当てて越えるのに要るパワーに置く */
+  const oppMark = opponentDrive === null ? null : powerToOutdrive(opponentDrive);
   const zone = (half: number) => ({
     left: pct(Math.max(0, IMPACT_POS - half)),
     width: pct(IMPACT_POS + half - Math.max(0, IMPACT_POS - half)),
@@ -161,9 +171,7 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
         <View style={[styles.zone, styles.zoneGood, zone(w.good)]} />
         <View style={[styles.zone, styles.zonePerfect, zone(w.perfect)]} />
         <View style={[styles.impactMark, { left: pct(IMPACT_POS) }]} />
-        {opponentDrive !== null && (
-          <View style={[styles.oppMark, { left: pct(opponentDrive) }]} />
-        )}
+        {oppMark !== null && <View style={[styles.oppMark, { left: pct(oppMark) }]} />}
         {power !== null && <View style={[styles.powerMark, { left: pct(power) }]} />}
         <Animated.View
           style={[
@@ -183,7 +191,7 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, onDone }: Pro
           {`刻み（〜${Math.round(LAYBACK_POWER * 100)}）は PERFECT なし`}
         </Text>
         {opponentDrive !== null && (
-          <Text style={[styles.legendText, styles.legendOpp]}>{`▼ ${opponentName}の球`}</Text>
+          <Text style={[styles.legendText, styles.legendOpp]}>{`▼ ${opponentName}を越えるパワー`}</Text>
         )}
       </View>
     </View>
