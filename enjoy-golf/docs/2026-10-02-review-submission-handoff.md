@@ -16,7 +16,7 @@
 | プライバシーポリシー | **公開済み** https://hinano.co.jp/enjoygolfquest-privacy/ |
 | 掲載文・設問の回答 | 用意済み（`appstore-listing.md` / `appstore-answers.md`） |
 | Android | 未着手。iOS のあと |
-| git | ミニゲームの作り直しはブランチ **`putt-teeshot-rework`**（main に未マージ・未プッシュ）。main は `6db85d7` が origin/main |
+| git | ミニゲームの作り直しは **main にマージ済み**（`99c4140`）。**未プッシュ** |
 
 **まだ審査には出していない。**出せる状態まであと数手。
 
@@ -101,7 +101,6 @@ npx eas-cli@latest build --platform ios --profile production
 - `ITSAppUsesNonExemptEncryption: false` が入っているか
 - 今回の修正がバンドルに載っているか（音：`title_screen_native.png` がアセットに入っているか）
 - パット・朝イチの作り直しがバンドルに載っているか（`TeeShotMeter` の文言「どこまで飛ばす？」を utf-8 / utf-16-le で照合）
-- **焼く前に `putt-teeshot-rework` を main に入れたか**（ブランチのまま焼くなら、そのブランチを checkout しているか）
 
 **JS は Hermes バイトコードなので `strings` では日本語を拾えない。**
 utf-8 と utf-16-le の両方でバイト列照合する。1.0 で「修正の入っていないビルドを
@@ -228,7 +227,7 @@ npx expo export --platform web && npx vercel --prod --yes   # Web デプロイ
 [x] プライバシーポリシー公開      2026-09-30 到達確認済み
 [x] 掲載文・設問の回答            用意済み
 [x] iPad を切る                   app.json 済み・build 2 で反映
-[x] パット・朝イチの作り直し      ブランチ putt-teeshot-rework（未マージ）
+[x] パット・朝イチの作り直し      main にマージ済み（99c4140）
 [x] 音の扱いを決める              A：ネイティブはトグルなし・画像差し替え
 [ ] build 2 を焼く                ← 次はここ（作り直しを main に入れてから）
 [ ] 実機で一周                    build 2 で
