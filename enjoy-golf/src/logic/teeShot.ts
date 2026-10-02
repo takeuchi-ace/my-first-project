@@ -47,21 +47,23 @@ export interface TeeShotOutcome {
   result: OwnShotResult;
   /** 0〜1。相手の到達点と同じ物差し */
   distance: number;
-  /** -1〜1。正 = スライス（右）、負 = フック（左） */
+  /** -1〜1。正 = スライス（右）、負 = フック（左）。PERFECT の窓の中は 0（真っ直ぐ）で、窓の縁から外へ向けて曲がる */
   curve: number;
 }
 
-export const judgeTeeShot = ({ power, impact, focus, talkAnswered }: TeeShotInput): TeeShotOutcome => {
+export const judgeTeeShot = ({ power: rawPower, impact, focus, talkAnswered }: TeeShotInput): TeeShotOutcome => {
+  const power = Math.max(0, Math.min(1, rawPower));
   const w = teeShotWindow(focus, power);
   const off = impact === null ? -w.good * 2 : impact - IMPACT_POS;
   const a = Math.abs(off);
   let result: OwnShotResult = a <= w.perfect ? 'perfect' : a <= w.good ? 'good' : 'miss';
   // 応じた一打・刻んだ一打では PERFECT を出さない（譲った分は自分の一打で払う）
   if (result === 'perfect' && (talkAnswered || power < LAYBACK_POWER)) result = 'good';
+  const bend = Math.max(0, Math.min(1, (a - w.perfect) / (w.good - w.perfect)));
   return {
     result,
     distance: power * QUALITY[result],
-    curve: Math.max(-1, Math.min(1, off / w.good)),
+    curve: bend === 0 ? 0 : Math.sign(off) * bend, // -0 を作らない
   };
 };
 
@@ -72,6 +74,6 @@ export const judgeTeeShot = ({ power, impact, focus, talkAnswered }: TeeShotInpu
 export const opponentDrive = (shot: MorningShotResult | null): number | null =>
   shot === 'great' ? 0.8 : shot === 'normal' ? 0.62 : null;
 
-/** 相手を越えたか。比べる相手が無ければ null */
+/** 相手を越えたか。比べる相手が無ければ null。同じ飛距離（引き分け）は「越えていない」 */
 export const didOutdrive = (distance: number, opp: number | null): boolean | null =>
   opp === null ? null : distance > opp;

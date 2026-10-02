@@ -97,7 +97,9 @@ export const outdriveReaction = (
 export const sumReactions = (a: Partial<Gauge>, b: Partial<Gauge>): Partial<Gauge> => {
   const out: Partial<Gauge> = { ...a };
   for (const k of Object.keys(b) as (keyof Gauge)[]) {
-    out[k] = (out[k] ?? 0) + (b[k] ?? 0);
+    const v = b[k];
+    if (v == null) continue;
+    out[k] = (out[k] ?? 0) + v;
   }
   return out;
 };

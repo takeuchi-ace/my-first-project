@@ -161,10 +161,47 @@ test('飛距離はパワー×出来', () => {
   assert.equal(judge({ power: 0.8, impact: null }).distance, 0.8 * 0.6);
 });
 
-test('早く押すとスライス（正）、遅く押すとフック（負）', () => {
-  assert.ok(judge({ impact: T.IMPACT_POS + 0.03 }).curve > 0);
-  assert.ok(judge({ impact: T.IMPACT_POS - 0.03 }).curve < 0);
+test('PERFECT の窓の外へ外れるほど曲がる（早い=スライス正、遅い=フック負）', () => {
+  const w = T.teeShotWindow(50, 0.8);
+  const d = w.perfect + 0.03;
+  assert.ok(judge({ impact: T.IMPACT_POS + d }).curve > 0);
+  assert.ok(judge({ impact: T.IMPACT_POS - d }).curve < 0);
   assert.equal(judge({}).curve, 0);
+});
+
+test('PERFECT の窓の内側なら少しずれても曲がらない', () => {
+  const w = T.teeShotWindow(50, 0.8);
+  assert.equal(judge({ impact: T.IMPACT_POS + w.perfect * 0.9 }).curve, 0);
+  assert.equal(judge({ impact: T.IMPACT_POS - w.perfect * 0.9 }).curve, 0);
+});
+
+test('大きく外すと曲がりは端（±1）に張り付く', () => {
+  assert.equal(judge({ impact: T.IMPACT_POS + 0.5 }).curve, 1);
+  assert.equal(judge({ impact: null }).curve, -1);
+});
+
+test('パワーちょうど LAYBACK_POWER は刻みではない', () => {
+  assert.equal(judge({ power: T.LAYBACK_POWER }).result, 'perfect');
+});
+
+test('話しかけに応じても GOOD と MISS は変わらない', () => {
+  const w = T.teeShotWindow(50, 0.8);
+  const goodImpact = T.IMPACT_POS + w.perfect + 0.01;
+  assert.equal(judge({ impact: goodImpact }).result, 'good');
+  assert.equal(judge({ impact: goodImpact, talkAnswered: true }).result, 'good');
+  assert.equal(judge({ impact: null, talkAnswered: true }).result, 'miss');
+});
+
+test('相手の到達点: normal は 0.62', () => {
+  assert.equal(T.opponentDrive('normal'), 0.62);
+});
+
+test('同じ飛距離（引き分け）は越えていない', () => {
+  assert.equal(T.didOutdrive(0.8, T.opponentDrive('great')), false);
+});
+
+test('反応の足し合わせ: b にだけあるキーも入る', () => {
+  assert.deepEqual(OP.sumReactions({ trust: 1 }, { fun: 2 }), { trust: 1, fun: 2 });
 });
 
 test('相手が OB なら飛ばし合いは無し', () => {
