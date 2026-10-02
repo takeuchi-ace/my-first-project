@@ -44,7 +44,7 @@ const SLOPE_ACCEL: Record<SlopeType, Vec> = {
   uphill: [0, 22],
 };
 /** これより遅くカップの上を通れば沈む。速いと縁に蹴られる */
-const CAPTURE_SPEED = 38;
+const CAPTURE_SPEED = 50;
 /** 中心がここまで近づけば「カップの上を通った」 */
 const SINK_R = CUP_R * 0.9;
 /** 中心がここまで近づけば縁にかかった（lip_out） */
@@ -55,6 +55,29 @@ const RIM_R = CUP_R + 0.9;
  * 「入りそうで入らなかった」演出は、勢いが残っていたときだけ出したい。
  */
 const LIP_MIN_SPEED = 10;
+/**
+ * カップの「吸い込み」。中心からこの距離の内側を通るボールを、カップの方へ曲げる。
+ *
+ * ## なぜ要るか
+ *
+ * - 旧方式は「狙いが正解か」の三択で、正解を選べば狙いのずれはゼロだった。
+ *   物理にすると、指の向きのずれがそのまま外れになる。
+ * - 打点からカップまで 64 離れ、カップは半径 2.2。まっすぐ入る向きは打点から
+ *   ±1.7度ほどしかない。これだけだと、強さが完璧でも下手な打ち手は3割も入らない。
+ * - スマホのゴルフでは、縁に寄ったボールがカップへ吸い込まれるのが定番の手触り。
+ *
+ * ## 効き方
+ *
+ * 力は**進む向きに直交する成分だけ**を加える（向きを曲げるだけで、前へ押さない）。
+ * - 速いボールは吸い込みの輪をすぐ抜けるので、ほとんど曲がらない。強さの加減は残る
+ * - 手前で止まりかけたボールを前へ引きずり込むことはない
+ *   （「縁の手前で止まったら miss」はそのまま）
+ * 強さは縁ほど弱く、中心へ向けて直線的に強くなる（`FUNNEL_ACCEL * (1 - d / FUNNEL_R)`）。
+ * 見た目のカップ（`CUP_R`）は変えない。
+ */
+const FUNNEL_R = CUP_R * 5;
+/** 吸い込みの強さ（単位/秒²）。中心での値 */
+const FUNNEL_ACCEL = 800;
 const DT = 1 / 120;
 const MAX_STEPS = 120 * 8;
 /** 軌跡は2刻みに1点だけ残す（1点 = 1/60 秒） */
@@ -92,8 +115,24 @@ export const simulatePutt = ({ slope, angle, power }: PuttStroke): PuttSim => {
     const speed = Math.hypot(vx, vy);
     // 抵抗で止まりきる刻み。ここで向きが反転させないよう、止める
     if (speed <= FRICTION * DT) break;
-    vx += (-(vx / speed) * FRICTION + ax) * DT;
-    vy += (-(vy / speed) * FRICTION + ay) * DT;
+    const ux = vx / speed;
+    const uy = vy / speed;
+    // 吸い込み: カップへの向きのうち、進む向きに直交する成分だけを足す
+    let fx = 0;
+    let fy = 0;
+    const dx0 = PUTT_CUP[0] - x;
+    const dy0 = PUTT_CUP[1] - y;
+    const d0 = Math.hypot(dx0, dy0);
+    if (d0 > 0 && d0 < FUNNEL_R) {
+      const k = FUNNEL_ACCEL * (1 - d0 / FUNNEL_R);
+      const cx = dx0 / d0;
+      const cy = dy0 / d0;
+      const along = cx * ux + cy * uy;
+      fx = k * (cx - along * ux);
+      fy = k * (cy - along * uy);
+    }
+    vx += (-ux * FRICTION + ax + fx) * DT;
+    vy += (-uy * FRICTION + ay + fy) * DT;
     x += vx * DT;
     y += vy * DT;
 

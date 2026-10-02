@@ -13,21 +13,37 @@ const test = (name, fn) => tests.push({ name, fn });
 // ===== パット =====
 const P = srcRequire('logic/puttPhysics.ts');
 
-/** 傾斜ごとに「入る打ち方」を総当たりで探す。テストとシミュレーションで使う */
+/**
+ * 傾斜ごとに「入る打ち方」を総当たりで探す。テストとシミュレーションで使う。
+ *
+ * 入る打ち方の**真ん中**（格子上で入った打ち方の重心）を返す。
+ * 以前は「周りも入る」点数が最大の打ち方のうち走査順で最初のものを取っていたが、
+ * それは入る領域の端（角度・強さとも小さい側）に寄り、シミュレーションの in 率を
+ * 実際より低く見せていた。重心そのものが入らない（領域がくびれている）ときだけ、
+ * 点数が最大の打ち方に戻す。
+ */
 const findBestStroke = (slope) => {
-  let best = null;
+  let sumA = 0;
+  let sumP = 0;
+  let n = 0;
+  let fallback = null;
   for (let a = -0.5; a <= 0.5; a += 0.005) {
     for (let p = 0.3; p <= 1.0; p += 0.005) {
       if (P.simulatePutt({ slope, angle: a, power: p }).result !== 'in') continue;
-      // 入る打ち方のうち、周りも入る（余裕がある）ものを選ぶ
+      sumA += a;
+      sumP += p;
+      n++;
+      // 入る打ち方のうち、周りも入る（余裕がある）ものを控えに取っておく
       let score = 0;
       for (const [da, dp] of [[0.01, 0], [-0.01, 0], [0, 0.02], [0, -0.02]]) {
         if (P.simulatePutt({ slope, angle: a + da, power: p + dp }).result === 'in') score++;
       }
-      if (!best || score > best.score) best = { angle: a, power: p, score };
+      if (!fallback || score > fallback.score) fallback = { angle: a, power: p, score };
     }
   }
-  return best;
+  if (n === 0) return null;
+  const centre = { angle: sumA / n, power: sumP / n };
+  return P.simulatePutt({ slope, ...centre }).result === 'in' ? centre : fallback;
 };
 
 test('どの傾斜にも入る打ち方がある', () => {
@@ -80,6 +96,16 @@ test('入ったら軌跡の最後はカップの中心', () => {
   const b = findBestStroke('flat');
   const r = P.simulatePutt({ slope: 'flat', angle: b.angle, power: b.power });
   assert.deepEqual(r.path[r.path.length - 1], P.PUTT_CUP);
+});
+
+test('吸い込み: カップの脇を遅く通るボールは入り、同じ線を速く通るボールは入らない', () => {
+  // 平らなので、吸い込みが無ければボールはまっすぐ進む。
+  // この向きの直線はカップの中心から約 2.9 離れて通る（沈む距離 SINK_R≈2.0 の外、吸い込みの輪の内）
+  const angle = 0.045;
+  const lineDist = Math.hypot(...P.PUTT_CUP.map((c, i) => c - P.PUTT_BALL_START[i])) * Math.sin(angle);
+  assert.ok(lineDist > P.CUP_R && lineDist < P.CUP_R * 2, `前提が崩れた: ${lineDist}`);
+  assert.equal(P.simulatePutt({ slope: 'flat', angle, power: 0.74 }).result, 'in');
+  assert.notEqual(P.simulatePutt({ slope: 'flat', angle, power: 1.0 }).result, 'in');
 });
 
 test('ドラッグ: 真下に引くとまっすぐ上へ', () => {
