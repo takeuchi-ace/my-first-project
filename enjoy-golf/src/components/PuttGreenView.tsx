@@ -24,8 +24,24 @@
  * ヘッダーの地図のボタンなどのタップまで奪ってしまう。
  */
 
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Animated, Easing, PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  Animated,
+  Easing,
+  GestureResponderEvent,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { PuttAim, SlopeType } from '../types';
 import {
@@ -160,7 +176,8 @@ const swallowNextClick = () => {
  * 親の state に持つと、指が動くたび・揺れが進むたびに 3000 行あるパット画面ごと描き直す。
  * ここを通せば描き直すのはグリーン（購読している `PuttGreenView`）だけ。
  *
- * `wobble` は**グリーンが最後に描いた揺れ**。グリーンが描くたびに書き、離した瞬間に入力が読む。
+ * `wobble` は**グリーンが最後に画面に出した揺れ**。描いた絵が確定するたびに（useLayoutEffect で）書き、
+ * 離した瞬間に入力が読む。
  * 見えた揺れと打つときに乗る揺れを同じ値にするため（ずれると「線どおりに打ったのに曲がった」になる）
  */
 export type PuttDragChannel = {
@@ -195,8 +212,13 @@ export const createPuttDragChannel = (): PuttDragChannel => {
  * 画面のどこから引いても打てる。`channel` は `PuttGreenView` に渡し、線とゲージはそちらで描く。
  *
  * - 引いた量は state に持たない（`channel` に流す）。持つと呼んだ画面ごと指の動きのたびに描き直す。
- * - 引いた量は**指を置いた所から**の差。取るのは `DRAG_CLAIM_PX` 動いてからだが、
- *   PanResponder は取った時点で dx/dy を 0 に戻すので、取るまでに動いた分を足し戻す。
+ * - 引いた量は**指を置いた所から**の差。置いた所（pageX/pageY）は自分で控え、
+ *   取る判定も引いた量も「今の pageX/pageY − 置いた所」で出す。
+ *   PanResponder の gestureState.dx/dy は使わない: 取らなかった触れ方（タップ・小さなぶれ）の
+ *   あとで 0 に戻らず、次に引いたとき前の動きが混ざって強さがずれた。
+ *   置いた所は Start の Capture（触れるたびに必ず呼ばれる）で控え、false を返して取らない。
+ * - 指は1本だけを見る。触れた瞬間に2本以上なら控えを消し、その触れ方では打たない
+ *   （2本目で置き直した所を基準にすると、引いた量が飛ぶため。単純さを優先）。
  * - 方向線の揺れはグリーンが進めて描き、描いた値を `channel.wobble` に残す。離した瞬間はそれを読む。
  * - PanResponder は一度だけ作り、変わる値（interactive・maxDragPx・onStroke）は ref で読む。
  *   作り直すと引いている途中の gestureState が失われ、古い onStroke を呼ぶおそれもある。
@@ -212,8 +234,8 @@ export function usePuttDrag({
   onStroke: (stroke: { angle: number; power: number }) => void;
 }) {
   const channel = useMemo(createPuttDragChannel, []);
-  /** 取るまでに動いた分（指を置いた所から、取った所まで） */
-  const claimOffsetRef = useRef<PuttDrag>({ dx: 0, dy: 0 });
+  /** 指を置いた所（ページ座標）。触れるたびに書き換える。2本以上で触れたら null（打たない） */
+  const startRef = useRef<{ x: number; y: number } | null>(null);
   const interactiveRef = useRef(interactive);
   interactiveRef.current = interactive;
   const maxDragRef = useRef(maxDragPx);
@@ -227,27 +249,42 @@ export function usePuttDrag({
   }, [interactive, channel]);
 
   const pan = useMemo(() => {
-    const shouldClaim = (g: { dx: number; dy: number }) => {
+    /** 置いた所からの差。控えが無い（2本で触れた・置いた所を見ていない）ときは null */
+    const fromStart = (e: GestureResponderEvent): PuttDrag | null => {
+      const s = startRef.current;
+      if (!s) return null;
+      return { dx: e.nativeEvent.pageX - s.x, dy: e.nativeEvent.pageY - s.y };
+    };
+    const shouldClaim = (e: GestureResponderEvent) => {
       if (!interactiveRef.current) return false;
-      if (Math.hypot(g.dx, g.dy) < DRAG_CLAIM_PX) return false;
-      claimOffsetRef.current = { dx: g.dx, dy: g.dy };
-      return true;
+      const d = fromStart(e);
+      return d !== null && Math.hypot(d.dx, d.dy) >= DRAG_CLAIM_PX;
     };
     return PanResponder.create({
-      // 触れただけでは取らない。タップはその下のボタンへ届ける
+      // 触れただけでは取らない。タップはその下のボタンへ届ける。
+      // Capture 版は触れるたびに（取る・取らないに関わらず）必ず呼ばれるので、ここで置いた所を控える
       onStartShouldSetPanResponder: () => false,
-      onStartShouldSetPanResponderCapture: () => false,
+      onStartShouldSetPanResponderCapture: (e) => {
+        const touches = e.nativeEvent.touches;
+        startRef.current =
+          touches && touches.length > 1 ? null : { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+        return false;
+      },
       // 動いたら取る。Capture 版なので、指がボタンの上で下りていてもこちらが先に取り、
       // ボタン（Pressable）は取られることを認めて押下を取り消す（onPress は出ない）
-      onMoveShouldSetPanResponder: (_e, g) => shouldClaim(g),
-      onMoveShouldSetPanResponderCapture: (_e, g) => shouldClaim(g),
+      onMoveShouldSetPanResponder: (e) => shouldClaim(e),
+      onMoveShouldSetPanResponderCapture: (e) => shouldClaim(e),
       onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: () => {
-        channel.set({ ...claimOffsetRef.current });
+      // 取った時点の差から描く（取るまでに動いた DRAG_CLAIM_PX ぶんも引いた量に入る）
+      onPanResponderGrant: (e) => {
+        channel.set(fromStart(e));
       },
-      onPanResponderMove: (_e, g) => {
-        const base = claimOffsetRef.current;
-        channel.set({ dx: base.dx + g.dx, dy: base.dy + g.dy });
+      onPanResponderMove: (e) => {
+        // 引いている途中で2本目が触れたら、その間は動かさない（pageX がどちらの指か定まらない）
+        const touches = e.nativeEvent.touches;
+        if (touches && touches.length > 1) return;
+        const d = fromStart(e);
+        if (d) channel.set(d);
       },
       onPanResponderRelease: () => {
         // 線を消す前に読む（消すとグリーンが描き直し、揺れの値も書き換わりうる）
@@ -300,8 +337,12 @@ export function PuttGreenView({
     return () => clearInterval(id);
   }, [dragging, jitterAmp]);
   const wobble = jitterAmp * Math.sin(wobbleT * 5);
-  // 描いた揺れを残す。離した瞬間に入力がこれを読み、見えた向きのまま打つ
-  channel.wobble.current = wobble;
+  // 描いた揺れを残す。離した瞬間に入力がこれを読み、見えた向きのまま打つ。
+  // 描画中には書かない（描いたが画面に出なかった・捨てられた描画の値が残りうる）。
+  // useLayoutEffect は確定したあと・画面に出る前に走るので、残るのは必ず出た絵の揺れになる
+  useLayoutEffect(() => {
+    channel.wobble.current = wobble;
+  }, [channel, wobble]);
 
   const preview = drag ? strokeFromDrag(drag.dx, drag.dy, maxDragPx) : null;
 
