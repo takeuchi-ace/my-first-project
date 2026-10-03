@@ -1257,13 +1257,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   /**
    * 最終パットの「引いて打つ」入力。パット画面の一番外側に付け、画面のどこから引いても打てるようにする
    * （グリーンの中だけだと、ボールのそばで指が線とゲージを隠す）。線とゲージはグリーンに描く。
+   * 引いている量は state ではなく channel でグリーンへ渡す。この画面は指が動いても描き直さない。
    * 強さ 1 に要る引きはグリーンの大きさから（puttMaxDragPx）。どこから引いても手応えは同じ。
    * 地図を開いている間は打たない（閉じるための指の動きで打ってしまう）
    */
   const puttDrag = usePuttDrag({
     interactive: puttPhase === 'stroke' && !holeMapVisible,
     maxDragPx: puttMaxDragPx(puttGreenWidth, puttSizes.greenH),
-    focus: puttFocus,
     onStroke: handlePuttStroke,
   });
 
@@ -1711,8 +1711,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 width={puttGreenWidth}
                 height={puttSizes.greenH}
                 interactive={puttPhase === 'stroke'}
-                drag={puttDrag.drag}
-                wobble={puttDrag.wobble}
+                focus={puttFocus}
+                channel={puttDrag.channel}
                 playback={puttPlayback}
                 onPlaybackDone={handlePuttRolled}
               />

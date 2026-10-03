@@ -5,7 +5,8 @@
  *   引いた向きの反対へ打ち出し、引いた長さが強さ（`strokeFromDrag`）。
  *   ボールに正確に触れなくてよいのは、小さな球を指で隠してしまうと引く向きが見えないため。
  *   入力そのものは `usePuttDrag` が持ち、親（パット画面）が画面全体に `panHandlers` を付ける。
- *   このビューは受け取った `drag`・`wobble` を描くだけ。グリーンの外から引いても、線とゲージはここに出る。
+ *   このビューは `channel` を購読して線とゲージを描く。グリーンの外から引いても、線とゲージはここに出る。
+ *   引いている量を親の state に持たないのは、指が動くたびにパット画面ごと描き直さないため。
  * - 引いている間は、打ち出し方向の線（破線の矢印）だけを出す。曲がりは見せない（読むのはプレイヤー）。
  *   集中力が低いと線が揺れ、離した瞬間の揺れがそのまま向きに乗る。
  * - 実機では指がボールの近く（グリーンの下のほう）に乗るので、ボールのそばの表示は指と手で隠れる。
@@ -23,7 +24,7 @@
  * ヘッダーの地図のボタンなどのタップまで奪ってしまう。
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Animated, Easing, PanResponder, Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { PuttAim, SlopeType } from '../types';
@@ -47,10 +48,10 @@ interface Props {
   height: number;
   /** false の間は打てない（転がり中・結果表示中）。強さのゲージを出すかどうかにだけ使う */
   interactive: boolean;
-  /** 引いている量（`usePuttDrag` の `drag`）。null の間は線を出さない */
-  drag: PuttDrag | null;
-  /** 方向線の揺れ（`usePuttDrag` の `wobble`）。描く揺れと打つときに乗る揺れは同じ値 */
-  wobble: number;
+  /** 集中力。低いほど方向線が揺れる */
+  focus: number;
+  /** 引いている量の通り道（`usePuttDrag` の `channel`）。引いていない間は線を出さない */
+  channel: PuttDragChannel;
   /** 再生する軌跡。null の間はボールはスタート位置 */
   playback: { path: Vec[]; sink: boolean } | null;
   onPlaybackDone?: () => void;
@@ -155,29 +156,62 @@ const swallowNextClick = () => {
 };
 
 /**
- * 最終パットの「引いて、離して打つ」入力。パット画面の一番外側に `panHandlers` を付けると、
- * 画面のどこから引いても打てる。`drag`・`wobble` は `PuttGreenView` に渡して線とゲージを描く。
+ * 引いている量を、入力（パット画面の一番外側）から描画（グリーン）へ渡す小さな通り道。
+ * 親の state に持つと、指が動くたび・揺れが進むたびに 3000 行あるパット画面ごと描き直す。
+ * ここを通せば描き直すのはグリーン（購読している `PuttGreenView`）だけ。
  *
+ * `wobble` は**グリーンが最後に描いた揺れ**。グリーンが描くたびに書き、離した瞬間に入力が読む。
+ * 見えた揺れと打つときに乗る揺れを同じ値にするため（ずれると「線どおりに打ったのに曲がった」になる）
+ */
+export type PuttDragChannel = {
+  get: () => PuttDrag | null;
+  subscribe: (listener: () => void) => () => void;
+  set: (drag: PuttDrag | null) => void;
+  wobble: { current: number };
+};
+
+export const createPuttDragChannel = (): PuttDragChannel => {
+  let current: PuttDrag | null = null;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => current,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    set: (drag) => {
+      if (drag === current) return;
+      current = drag;
+      listeners.forEach((l) => l());
+    },
+    wobble: { current: 0 },
+  };
+};
+
+/**
+ * 最終パットの「引いて、離して打つ」入力。パット画面の一番外側に `panHandlers` を付けると、
+ * 画面のどこから引いても打てる。`channel` は `PuttGreenView` に渡し、線とゲージはそちらで描く。
+ *
+ * - 引いた量は state に持たない（`channel` に流す）。持つと呼んだ画面ごと指の動きのたびに描き直す。
  * - 引いた量は**指を置いた所から**の差。取るのは `DRAG_CLAIM_PX` 動いてからだが、
  *   PanResponder は取った時点で dx/dy を 0 に戻すので、取るまでに動いた分を足し戻す。
- * - 方向線の揺れはここで進める。描いた揺れ（`wobble`）と離した瞬間に乗る揺れ（`wobbleRef`）は同じ値。
+ * - 方向線の揺れはグリーンが進めて描き、描いた値を `channel.wobble` に残す。離した瞬間はそれを読む。
  * - PanResponder は一度だけ作り、変わる値（interactive・maxDragPx・onStroke）は ref で読む。
  *   作り直すと引いている途中の gestureState が失われ、古い onStroke を呼ぶおそれもある。
  */
 export function usePuttDrag({
   interactive,
   maxDragPx,
-  focus,
   onStroke,
 }: {
   interactive: boolean;
   maxDragPx: number;
-  focus: number;
   /** 離して打ったとき。強さのブレは親が乗せる */
   onStroke: (stroke: { angle: number; power: number }) => void;
 }) {
-  const [drag, setDrag] = useState<PuttDrag | null>(null);
-  const dragRef = useRef<PuttDrag | null>(null);
+  const channel = useMemo(createPuttDragChannel, []);
   /** 取るまでに動いた分（指を置いた所から、取った所まで） */
   const claimOffsetRef = useRef<PuttDrag>({ dx: 0, dy: 0 });
   const interactiveRef = useRef(interactive);
@@ -189,24 +223,8 @@ export function usePuttDrag({
 
   // 打てなくなったら（転がり始め・地図を開いた等）引いている途中の線を消す
   useEffect(() => {
-    if (!interactive) {
-      dragRef.current = null;
-      setDrag(null);
-    }
-  }, [interactive]);
-
-  // 方向線の揺れ。引いている間だけ進める
-  const jitterAmp = focusJitter(focus).angle;
-  const [wobbleT, setWobbleT] = useState(0);
-  const wobbleRef = useRef(0);
-  const dragging = drag !== null;
-  useEffect(() => {
-    if (!dragging || jitterAmp === 0) return;
-    const id = setInterval(() => setWobbleT((t) => t + 0.05), 50);
-    return () => clearInterval(id);
-  }, [dragging, jitterAmp]);
-  const wobble = jitterAmp * Math.sin(wobbleT * 5);
-  wobbleRef.current = wobble;
+    if (!interactive) channel.set(null);
+  }, [interactive, channel]);
 
   const pan = useMemo(() => {
     const shouldClaim = (g: { dx: number; dy: number }) => {
@@ -225,35 +243,31 @@ export function usePuttDrag({
       onMoveShouldSetPanResponderCapture: (_e, g) => shouldClaim(g),
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
-        const d = { ...claimOffsetRef.current };
-        dragRef.current = d;
-        setDrag(d);
+        channel.set({ ...claimOffsetRef.current });
       },
       onPanResponderMove: (_e, g) => {
         const base = claimOffsetRef.current;
-        const d = { dx: base.dx + g.dx, dy: base.dy + g.dy };
-        dragRef.current = d;
-        setDrag(d);
+        channel.set({ dx: base.dx + g.dx, dy: base.dy + g.dy });
       },
       onPanResponderRelease: () => {
-        const d = dragRef.current;
-        dragRef.current = null;
-        setDrag(null);
+        // 線を消す前に読む（消すとグリーンが描き直し、揺れの値も書き換わりうる）
+        const d = channel.get();
+        const wobble = channel.wobble.current;
+        channel.set(null);
         swallowNextClick();
         if (!d || !interactiveRef.current) return;
         const s = strokeFromDrag(d.dx, d.dy, maxDragRef.current);
         if (!s || s.power < MIN_POWER) return;
-        onStrokeRef.current({ angle: s.angle + wobbleRef.current, power: s.power });
+        onStrokeRef.current({ angle: s.angle + wobble, power: s.power });
       },
       onPanResponderTerminate: () => {
-        dragRef.current = null;
-        setDrag(null);
+        channel.set(null);
         swallowNextClick();
       },
     });
-  }, []);
+  }, [channel]);
 
-  return { panHandlers: pan.panHandlers, drag, wobble };
+  return { panHandlers: pan.panHandlers, channel };
 }
 
 export function PuttGreenView({
@@ -261,9 +275,9 @@ export function PuttGreenView({
   guideAim,
   width,
   height,
+  focus,
   interactive,
-  drag,
-  wobble,
+  channel,
   playback,
   onPlaybackDone,
 }: Props) {
@@ -271,6 +285,23 @@ export function PuttGreenView({
   const offsetX = (width - 100 * scale) / 2;
   const offsetY = (height - 100 * scale) / 2;
   const maxDragPx = puttMaxDragPx(width, height);
+
+  // ===== 入力の表示 =====
+  // 引いている量は channel から読む。指が動くたびに描き直すのはこのビューだけ
+  const drag = useSyncExternalStore(channel.subscribe, channel.get, channel.get);
+
+  // 方向線の揺れ。引いている間だけ進める（揺れの進みでも描き直すのはこのビューだけ）
+  const jitterAmp = focusJitter(focus).angle;
+  const [wobbleT, setWobbleT] = useState(0);
+  const dragging = drag !== null;
+  useEffect(() => {
+    if (!dragging || jitterAmp === 0) return;
+    const id = setInterval(() => setWobbleT((t) => t + 0.05), 50);
+    return () => clearInterval(id);
+  }, [dragging, jitterAmp]);
+  const wobble = jitterAmp * Math.sin(wobbleT * 5);
+  // 描いた揺れを残す。離した瞬間に入力がこれを読み、見えた向きのまま打つ
+  channel.wobble.current = wobble;
 
   const preview = drag ? strokeFromDrag(drag.dx, drag.dy, maxDragPx) : null;
 
