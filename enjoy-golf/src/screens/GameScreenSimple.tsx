@@ -1557,8 +1557,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                     </View>
                     <Text style={styles.puttInfoTitle}>後ろへ引いて、離す</Text>
                   </View>
+                  {/* 指がボールに重なると線もゲージも見えにくい。下のほうから引くよう一言添える */}
                   <Text style={styles.puttInfoText}>
-                    {puttSlopeInfo ? PUTT_SLOPE_HINT[puttSlopeInfo.slope] : ''}
+                    {puttSlopeInfo ? `${PUTT_SLOPE_HINT[puttSlopeInfo.slope]}。ボールの下のほうを引くと見やすい` : ''}
                   </Text>
                 </>
               )}

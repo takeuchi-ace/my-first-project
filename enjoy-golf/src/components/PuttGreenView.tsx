@@ -4,8 +4,11 @@
  * - 入力: グリーンのどこからでも指を置いて**後ろへ引き、離して打つ**。
  *   引いた向きの反対へ打ち出し、引いた長さが強さ（`strokeFromDrag`）。
  *   ボールに正確に触れなくてよいのは、小さな球を指で隠してしまうと引く向きが見えないため。
- * - 引いている間は、打ち出し方向の短い線だけを出す。曲がりは見せない（読むのはプレイヤー）。
+ * - 引いている間は、打ち出し方向の線（破線の矢印）だけを出す。曲がりは見せない（読むのはプレイヤー）。
  *   集中力が低いと線が揺れ、離した瞬間の揺れがそのまま向きに乗る。
+ * - 実機では指がボールの近く（グリーンの下のほう）に乗るので、ボールのそばの表示は指と手で隠れる。
+ *   そこで向きの線はカップの手前まで長く伸ばし、強さはグリーンの**上端**（指からいちばん遠い所）の
+ *   横長のゲージで見せる。線の太さと色の暖かさにも強さを乗せて、上を見なくても分かるようにする。
  * - 再生: 親が `playback`（`simulatePutt` の軌跡）を渡すと転がす。長さはおおむね実時間
  *   （点の数 × `PATH_POINT_MS`）だが、0.6〜3.5秒に収める。ごく短い転がりは見えないうちに
  *   終わり、長すぎると結果を待たされるため。
@@ -57,6 +60,20 @@ const MIN_POWER = 0.06;
  * 傾斜で曲がる分を含めた向きなので、カップまで届かせず短く止める
  */
 const GUIDE_LEN_RATIO = 0.6;
+
+/**
+ * 引いている間の向きの線の長さ（ボール→カップの距離に対する割合）。強さによらず一定。
+ * 短いと指に隠れる。カップまで届かせると「ここへ打てば入る」に見えるので手前で止める
+ */
+const AIM_LEN_RATIO = 0.7;
+
+/** 強さ 0 → 1 の色。黄から朱へ。強く引くほど暖かくなる */
+const powerColor = (power: number): string => {
+  const p = Math.max(0, Math.min(1, power));
+  const g = Math.round(215 + (77 - 215) * p);
+  const b = Math.round(0 + (46 - 0) * p);
+  return `rgb(255, ${g}, ${b})`;
+};
 
 /** 傾斜の向きだけを示す矢印。量は示さない */
 function SlopeArrows({ slope }: { slope: SlopeType }) {
@@ -215,16 +232,27 @@ export function PuttGreenView({
 
   const BALL_PX = Math.max(7, scale * 2.2);
 
-  // 方向線（打ち出し方向のみ。長さは強さに比例）
+  // 方向線（打ち出し方向のみ。長さは一定で、強さは太さと色に出す）
   const [bx, by] = PUTT_BALL_START;
   let aimLine: string | null = null;
+  let aimHead: string | null = null;
   let pullLine: string | null = null;
   const guideA = PUTT_GUIDE_ANGLE[guideAim];
   const guideLen = (by - PUTT_CUP[1]) / Math.cos(guideA) * GUIDE_LEN_RATIO;
+  const aimLen = Math.hypot(PUTT_CUP[0] - bx, PUTT_CUP[1] - by) * AIM_LEN_RATIO;
+  const aimColor = powerColor(preview?.power ?? 0);
+  const aimWidth = 0.7 + (preview?.power ?? 0) * 0.9;
   if (preview && drag) {
     const a = preview.angle + wobble;
-    const len = 6 + preview.power * 16;
-    aimLine = `M ${bx} ${by} L ${bx + Math.sin(a) * len} ${by - Math.cos(a) * len}`;
+    const ux = Math.sin(a);
+    const uy = -Math.cos(a);
+    const tx = bx + ux * aimLen;
+    const ty = by + uy * aimLen;
+    aimLine = `M ${bx} ${by} L ${tx} ${ty}`;
+    // 矢じり。線の先から少し先へ尖らせ、左右に開く
+    const nx = -uy;
+    const ny = ux;
+    aimHead = `M ${tx + ux * 2.6} ${ty + uy * 2.6} L ${tx + nx * 1.7} ${ty + ny * 1.7} L ${tx - nx * 1.7} ${ty - ny * 1.7} Z`;
     pullLine = `M ${bx} ${by} L ${bx + drag.dx / scale} ${by + drag.dy / scale}`;
   }
 
@@ -282,19 +310,43 @@ export function PuttGreenView({
           {pullLine && (
             <Path d={pullLine} stroke="rgba(255,255,255,0.35)" strokeWidth={0.6} strokeDasharray="1,1" />
           )}
-          {aimLine && <Path d={aimLine} stroke="#FFD700" strokeWidth={0.9} strokeLinecap="round" />}
+          {aimLine && (
+            <Path
+              d={aimLine}
+              stroke={aimColor}
+              strokeWidth={aimWidth}
+              strokeDasharray="2.4,1.6"
+              strokeLinecap="round"
+            />
+          )}
+          {aimHead && <Path d={aimHead} fill={aimColor} />}
         </G>
       </Svg>
 
-      <View style={styles.slopeBadge} pointerEvents="none">
-        <Text style={styles.slopeBadgeText}>{slopeLabel(slope)}</Text>
-      </View>
-
-      {preview && (
-        <View style={styles.powerBadge} pointerEvents="none">
-          <Text style={styles.powerBadgeText}>強さ {Math.round(preview.power * 100)}</Text>
+      {/* 強さのゲージ。指から最も遠い上端に置く（下に置くと指と手で隠れる）。
+          打てる間は空でも出しておく。引き始めに枠が現れると、目がそちらへ跳ぶ */}
+      {interactive && (
+        <View style={styles.gauge} pointerEvents="none">
+          <Text style={styles.gaugeLabel}>強さ</Text>
+          <View style={styles.gaugeTrack}>
+            <View
+              style={[
+                styles.gaugeFill,
+                {
+                  width: `${Math.round((preview?.power ?? 0) * 100)}%`,
+                  backgroundColor: aimColor,
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.gaugeValue}>{preview ? Math.round(preview.power * 100) : ''}</Text>
         </View>
       )}
+
+      {/* 傾斜はゲージの下・左上。上端中央はゲージと重なる */}
+      <View style={[styles.slopeBadge, interactive ? styles.slopeBadgeBelowGauge : null]} pointerEvents="none">
+        <Text style={styles.slopeBadgeText}>{slopeLabel(slope)}</Text>
+      </View>
 
       <Animated.View
         pointerEvents="none"
@@ -330,7 +382,8 @@ function slopeLabel(slope: SlopeType): string {
 }
 
 const styles = StyleSheet.create({
-  slopeBadge: { position: 'absolute', top: 6, left: 0, right: 0, alignItems: 'center' },
+  slopeBadge: { position: 'absolute', top: 6, left: 8 },
+  slopeBadgeBelowGauge: { top: 30 },
   slopeBadgeText: {
     color: '#F5E6C8',
     fontSize: 11,
@@ -342,16 +395,36 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  powerBadge: { position: 'absolute', bottom: 6, right: 8 },
-  powerBadgeText: {
+  gauge: {
+    position: 'absolute',
+    top: 6,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  gaugeLabel: { color: '#F5E6C8', fontSize: 11, fontWeight: '700', marginRight: 6 },
+  gaugeTrack: {
+    flex: 1,
+    height: 14,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 230, 200, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    overflow: 'hidden',
+  },
+  gaugeFill: { height: '100%' },
+  gaugeValue: {
     color: '#FFD700',
     fontSize: 12,
     fontWeight: '700',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    overflow: 'hidden',
+    width: 26,
+    textAlign: 'right',
+    marginLeft: 4,
   },
   ball: {
     position: 'absolute',
