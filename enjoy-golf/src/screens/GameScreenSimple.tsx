@@ -105,14 +105,29 @@ const QUOTE_RATE = 0.5;
 const ACE_HOLE_COUNT = 5;
 
 /**
- * 朝イチの画面の顔と俯瞰図の大きさ。
+ * 朝イチの画面の顔と俯瞰図の**下限**。
  *
  * 3タップはタイミングの操作なので、メーターがスクロールなしで見えていないといけない。
- * Web の 375×667 で収まっても、実機ではセーフエリアとヘッダーのぶん 20〜40pt 狭い。
- * 顔（通常 1.4）と俯瞰図（以前 170）を削って、実機の 667pt でも収まる高さにしてある
+ * 2026-10-03 から想定端末は iPhone 16/17（393×852 / 402×874）。顔と俯瞰図は
+ * 測った高さから広げる（`morningSizes`）。ここの値は SE（375×667）のように
+ * 高さが足りないときに縮めきる大きさで、窮屈でもメーターは収まる
  */
 const MORNING_FACE_SCALE = 1.05;
 const MORNING_HOLE_VIEW_H = 140;
+/**
+ * 朝イチの画面で、俯瞰図より下に積むものの高さ。話しかけ（声かけの枠＋2択）と
+ * 3タップ（説明の枠＋メーター）の高いほうに合わせる。
+ * 393 幅の Web での実測: 話しかけ 約278、3タップ 約248。文の折り返しの余裕を少し足してある。
+ * どちらの段も、顔と俯瞰図の大きさを決める時点ではまだ描かれていないので測れない。
+ * 描かれてから測って縮めると、話しかけ → 構えで俯瞰図がずれる
+ */
+const MORNING_BELOW_HOLE_H = 284;
+/** 最終パットの顔の下限。グリーンを優先して、ここまでは縮める（以前の 375×667 と同じ大きさ） */
+const PUTT_FACE_MIN_SCALE = 1.875;
+/** FaceSprite の外寸（32×scale ＋ 枠と余白 12） */
+const faceBoxPx = (scale: number) => 32 * scale + 12;
+const faceScaleForBox = (px: number) => (px - 12) / 32;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 import {
   ownShotReaction,
@@ -302,6 +317,12 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const [talkResultLine, setTalkResultLine] = useState<string | null>(null);
   /** 返事の二度押しを閉じる。state だとボタンが消える前にもう一度通る */
   const talkLockedRef = useRef(false);
+  /**
+   * 朝イチの画面の、スクロール領域の高さとヘッダーの高さ（onLayout で測る）。
+   * どちらも顔や俯瞰図の大きさで変わらないので、測る → 広げる → 測り直す のループにならない
+   */
+  const [morningScrollH, setMorningScrollH] = useState(0);
+  const [morningHeaderH, setMorningHeaderH] = useState(0);
 
   // ===== Final Putt mini-game state =====
   const [puttPhase, setPuttPhase] = useState<PuttPhase>(null);
@@ -326,25 +347,31 @@ export default function GameScreenSimple({ route, navigation }: Props) {
    * 画面に収まっていないと、はみ出た部分に二度と触れない。幅だけで決めると
    * 375×667 でグリーンの下端と説明が切れていた。
    *
-   * - スクロール領域の高さ（`puttScrollH`）と、グリーンより上の高さ（`puttAboveH`）を
-   *   onLayout で測り、残りをグリーンに使う。端末ごとの余白を数字で決め打ちしない
-   * - グリーンより上にはグリーンの大きさで変わるものを置かないので、
+   * - スクロール領域の高さ（`puttScrollH`）・ヘッダーの高さ（`puttHeaderH`）・
+   *   説明の枠の高さ（`puttInfoH`）を onLayout で測り、残りをグリーンと顔に分ける。
+   *   端末ごとの余白を数字で決め打ちしない
+   * - 測るのは顔やグリーンの大きさで変わらないものだけなので、
    *   測る → 大きさが変わる → 測り直す、のループにはならない
-   * - 上の高さは打つ段でだけ取り直す。結果の段で説明が結果に置き換わって
+   *   （以前は顔ごと「グリーンより上」を測っていた。顔を測った値から決めるとループになる）
+   * - 説明の枠は打つ段でだけ取り直す。結果の段で説明が結果に置き換わって
    *   高さが変わっても、グリーンの大きさは動かさない
    * - 幅は画面いっぱい（左右16の余白）、420 で止める。高さは 240 を下限にする
    *   （それより小さいと引く距離が取れない）。幅が高さより広いときは、
    *   絵は高さに合わせて中央に置き、触れる範囲だけ横に広く取る
+   * - 分け方はグリーンが先（顔を下限まで縮めてでも幅いっぱいに近づける）。
+   *   グリーンが幅いっぱいになって余った分で顔を会話の画面の大きさまで戻し、
+   *   それでも余れば顔の上下とグリーンの上に配る（グリーンの下に帯を残さない）。
+   *   iPhone 16/17 ではグリーンが幅いっぱい、SE ではグリーンも顔も縮む
    */
   const [puttScrollH, setPuttScrollH] = useState(0);
-  const [puttAboveH, setPuttAboveH] = useState(0);
+  const [puttHeaderH, setPuttHeaderH] = useState(0);
+  const [puttInfoH, setPuttInfoH] = useState(0);
   const puttGreenWidth = Math.min(420, windowWidth - 32);
-  /** スクロール領域の上下の余白 16+16、グリーン枠の上下 8+8 と枠線 1+1 */
-  const PUTT_FIXED_GAPS = 16 + 16 + 16 + 2;
-  const puttGreenHeight =
-    puttScrollH > 0 && puttAboveH > 0
-      ? Math.max(240, Math.min(puttGreenWidth, puttScrollH - puttAboveH - PUTT_FIXED_GAPS))
-      : puttGreenWidth;
+  /**
+   * スクロール領域の上下の余白 16+16、ヘッダーの下 12、顔の上下 4+4、
+   * 説明の枠の上 4、グリーン枠の上下 8+8 と枠線 1+1
+   */
+  const PUTT_FIXED_GAPS = 16 + 16 + 12 + 8 + 4 + 16 + 2;
   const [puttResultLabel, setPuttResultLabel] = useState('');
   /** 転がりの軌跡と結果。打った瞬間に決まり、転がり終わってから結果を出す */
   const [puttPlay, setPuttPlay] = useState<PuttSim | null>(null);
@@ -1174,6 +1201,58 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const roomyGap = Math.round(16 * roomyScale);
   const roomyPad = Math.round(14 * roomyScale);
 
+  // ===== ミニゲーム（朝イチ・最終パット）の顔・俯瞰図・グリーンの大きさ =====
+  // 想定端末は iPhone 16/17（393×852 / 402×874）。どちらも測った高さから決め、
+  // 端末ごとの数字は持たない。SE（375×667）は下限まで縮めて、窮屈でも収める。
+  //
+  // 顔の上限は会話の画面の顔（選択肢が長くて縮めていないとき）と同じ大きさ。
+  // faceScale そのものは今のイベントの選択肢の長さで縮むので使わない
+  const miniFaceMaxPx = faceBoxPx(2.5 * Math.min(1.4, Math.max(1, windowHeight / 667)));
+
+  /**
+   * 朝イチ。俯瞰図の下の段（MORNING_BELOW_HOLE_H）を先に取り、残りを顔と俯瞰図に分ける。
+   * 3段（話しかけ → 構え → 結果）とも同じ値を使うので、俯瞰図は上下に動かない。
+   * - 顔は残りの 35% を目安に、下限 MORNING_FACE_SCALE から会話の画面の大きさまで
+   * - 俯瞰図は残り全部。絵は正方形の中に描くので、高さは幅で止める
+   * - それでも余った分は、顔と俯瞰図の上下に配る（メーターの下に帯を残さない）
+   * SE のように下限でも入らないときは、話しかけの段だけスクロールになる（3タップは収まる）
+   * 測る前（最初の1コマ）は下限で描く
+   */
+  const morningHoleW = Math.min(320, windowWidth - 48);
+  const morningSizes = (() => {
+    if (!(morningScrollH > 0 && morningHeaderH > 0)) {
+      return { faceScale: MORNING_FACE_SCALE, holeH: MORNING_HOLE_VIEW_H, gap: 0 };
+    }
+    // スクロール領域の上下の余白 16+16、ヘッダーの下 12、顔の上下 4+4、俯瞰図の枠の上下 8+8 と枠線 1+1
+    const fixed = 16 + 16 + 12 + 8 + 16 + 2;
+    const avail = morningScrollH - morningHeaderH - fixed - MORNING_BELOW_HOLE_H;
+    const faceMin = faceBoxPx(MORNING_FACE_SCALE);
+    let face = clamp(avail * 0.35, faceMin, Math.max(faceMin, miniFaceMaxPx));
+    const holeH = clamp(avail - face, MORNING_HOLE_VIEW_H, morningHoleW);
+    if (face + holeH > avail) face = Math.max(faceMin, avail - holeH);
+    return {
+      faceScale: faceScaleForBox(face),
+      holeH: Math.floor(holeH),
+      gap: Math.max(0, Math.floor(avail - face - holeH)),
+    };
+  })();
+
+  /** 最終パット。グリーンが先、顔はその残り、余りは顔の上下とグリーンの上へ（puttScrollH の説明） */
+  const puttSizes = (() => {
+    const faceMin = faceBoxPx(PUTT_FACE_MIN_SCALE);
+    if (!(puttScrollH > 0 && puttHeaderH > 0 && puttInfoH > 0)) {
+      return { greenH: puttGreenWidth, faceScale: PUTT_FACE_MIN_SCALE, gap: 0 };
+    }
+    const avail = puttScrollH - puttHeaderH - puttInfoH - PUTT_FIXED_GAPS;
+    const greenH = Math.floor(Math.max(240, Math.min(puttGreenWidth, avail - faceMin)));
+    const face = clamp(avail - greenH, faceMin, Math.max(faceMin, miniFaceMaxPx));
+    return {
+      greenH,
+      faceScale: faceScaleForBox(face),
+      gap: Math.max(0, Math.floor(avail - greenH - face)),
+    };
+  })();
+
   // 320幅ではヘッダーの氏名がホールマップのカードを画面外へ押し出していた。
   // 「外資エリート・アレクサンダー・スミス」は18字あり、fontSize 18 では
   // 名前だけで幅を使い切る。
@@ -1297,14 +1376,18 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         />
 
         {/* 3タップの間はスクロールを止める。指の動きがスクロールとタップの両方に取られないように。
-            メーターは 375×667 でもスクロールなしで収まる高さにしてある */}
+            メーターがスクロールなしで収まるよう、顔と俯瞰図は測った高さから決める（morningSizes） */}
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, styles.miniGameScrollContent]}
           scrollEnabled={morningPhase !== 'own_shot_swing'}
+          onLayout={(e) => setMorningScrollH(e.nativeEvent.layout.height)}
         >
           {/* Header */}
-          <View style={styles.compHeader}>
+          <View
+            style={styles.compHeader}
+            onLayout={(e) => setMorningHeaderH(e.nativeEvent.layout.height)}
+          >
             <View style={styles.compHeaderLeft}>
               <Text
                 style={[styles.compHeaderName, narrowLayout && styles.compHeaderNameNarrow]}
@@ -1340,21 +1423,22 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           {/* 段のタグ（前半 1/4）は出さない。ヘッダーのホールカードと同じ情報で、
               縦の余白を食って3タップのメーターが画面に収まらなくなる */}
 
-          {/* Face — 小さめで固定。3タップはタイミングの操作なので、メーターが
-              スクロールなしで見えていないといけない（375×667 で収める）。
+          {/* Face — 大きさは測った高さから決める（morningSizes）。3タップはタイミングの操作なので、
+              メーターがスクロールなしで見えていないといけない。
               faceScale は今の会話イベントの選択肢の長さで変わるので使わない。
-              話しかけ → 構え → 結果で顔の大きさが変わると、俯瞰図が上下にずれる */}
-          <View style={[styles.faceCenter, { marginVertical: 4 }]}>
-            <FaceSprite mood={mood} scale={MORNING_FACE_SCALE} characterId={characterId} />
+              話しかけ → 構え → 結果で顔の大きさが変わると、俯瞰図が上下にずれる。
+              余った高さは顔と俯瞰図の上下に 1/4 ずつ配る */}
+          <View style={[styles.faceCenter, { marginVertical: 4 + morningSizes.gap / 4 }]}>
+            <FaceSprite mood={mood} scale={morningSizes.faceScale} characterId={characterId} />
           </View>
 
           {/* Hole view (always visible during morning shot) */}
           {morningHole && (
-            <View style={styles.morningHoleViewWrap}>
+            <View style={[styles.morningHoleViewWrap, { marginVertical: 8 + morningSizes.gap / 4 }]}>
               <MorningShotView
                 layout={morningHole}
-                width={260}
-                height={MORNING_HOLE_VIEW_H}
+                width={morningHoleW}
+                height={morningSizes.holeH}
                 // teeShot は state なので同じオブジェクトのまま。弾道は一度だけ飛ぶ
                 shot={morningPhase === 'own_shot_result' ? teeShot : null}
                 opponentDistance={oppDrive}
@@ -1375,14 +1459,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* 相手の声かけ。構えたところで話しかけてくる */}
+          {/* 相手の声かけ。構えたところで話しかけてくる。
+              2択が両方スクロールなしで見えるよう、枠と選択肢は詰めてある（MORNING_BELOW_HOLE_H） */}
           {morningPhase === 'own_shot_talk' && (
             <View>
-              <View style={styles.eventBox}>
-                <View style={styles.morningBadge}>
+              <View style={[styles.eventBox, styles.morningTalkBox]}>
+                <View style={[styles.morningBadge, { marginBottom: 6 }]}>
                   <Text style={styles.morningBadgeText}>構えたところで</Text>
                 </View>
-                <Text style={styles.eventBoxTitle}>
+                <Text style={[styles.eventBoxTitle, { marginBottom: 4 }]}>
                   {'「'}{morningTalkLines[characterId]}{'」'}
                 </Text>
                 <Text style={styles.eventBoxDesc}>
@@ -1496,21 +1581,17 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         {/* 引いている間にスクロールされると打てない。グリーンが出ている間は止める */}
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, styles.puttScrollContent]}
+          contentContainerStyle={[styles.scrollContent, styles.miniGameScrollContent]}
           scrollEnabled={puttPhase === 'result'}
           onLayout={(e) => setPuttScrollH(e.nativeEvent.layout.height)}
         >
-          {/* グリーンより上。ここの高さを測ってグリーンの大きさを決める（puttGreenHeight） */}
-          {/* 結果の段では打つ段で測った高さより縮めない。結果の文が1行だと枠が低くなり、
-              グリーンが上へずれる（実測 2〜3px） */}
-          <View
-            style={puttPhase !== 'stroke' && puttAboveH > 0 ? { minHeight: puttAboveH } : undefined}
-            onLayout={(e) => {
-              if (puttPhase === 'stroke') setPuttAboveH(e.nativeEvent.layout.height);
-            }}
-          >
+          {/* グリーンより上。ヘッダーと説明の枠の高さを測って、グリーンと顔の大きさを決める（puttSizes） */}
+          <View>
             {/* Header */}
-            <View style={styles.compHeader}>
+            <View
+              style={styles.compHeader}
+              onLayout={(e) => setPuttHeaderH(e.nativeEvent.layout.height)}
+            >
               <View style={styles.compHeaderLeft}>
                 <Text
                   style={[styles.compHeaderName, narrowLayout && styles.compHeaderNameNarrow]}
@@ -1549,15 +1630,30 @@ export default function GameScreenSimple({ route, navigation }: Props) {
             {/* Face — 4 で固定していたため、直前に怒らせていても、
                 パットを外しても、最終パットの間だけ機嫌のいい顔になっていた。
                 会話で動いた機嫌をそのまま出し、結果が出たら結果の顔にする。
-                大きさは小さめで固定。グリーンを画面に収めるため上を詰める。
-                結果の段で大きくすると、転がり終わった直後にグリーンが下へずれる */}
-            <View style={[styles.faceCenter, { marginVertical: 4 }]}>
-              <FaceSprite mood={mood} scale={faceScale * 0.75} characterId={characterId} />
+                大きさはグリーンを決めた残りから（puttSizes）。全段で同じ値を使う。
+                結果の段で大きくすると、転がり終わった直後にグリーンが下へずれる。
+                余った高さは顔の上下とグリーンの上に 1/3 ずつ配る */}
+            <View style={[styles.faceCenter, { marginVertical: 4 + puttSizes.gap / 3 }]}>
+              <FaceSprite mood={mood} scale={puttSizes.faceScale} characterId={characterId} />
             </View>
 
             {/* 説明はグリーンの上。下に置くと小さい画面でスクロールの外に出て読めない。
-                結果も同じ枠に出して、グリーンの位置を動かさない */}
-            <View style={[styles.eventBox, styles.puttInfoBox]}>
+                結果も同じ枠に出して、グリーンの位置を動かさない。
+                高さは打つ段でだけ測り、結果の段ではその高さより縮めない
+                （結果の文が1行だと枠が低くなり、グリーンが上へずれる。実測 2〜3px）。
+                minHeight は打つ段にも掛ける。測った値は丸められていて（実高 86.5 → 87 など）、
+                結果の段だけに掛けると、その端数のぶんグリーンが 1px ずれた。
+                打つ段でも掛けておけば、測り直しても同じ値に落ち着く */}
+            <View
+              style={[
+                styles.eventBox,
+                styles.puttInfoBox,
+                puttInfoH > 0 ? { minHeight: puttInfoH } : null,
+              ]}
+              onLayout={(e) => {
+                if (puttPhase === 'stroke') setPuttInfoH(e.nativeEvent.layout.height);
+              }}
+            >
               {puttPhase === 'result' ? (
                 <>
                   <Text style={styles.puttResultLabel}>{puttResultLabel}</Text>
@@ -1582,13 +1678,13 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
           {/* グリーン。打つ・転がる・結果の全段で出す（結果の間も止まった位置を見せる） */}
           {puttSlopeInfo && (
-            <View style={styles.puttGreenViewWrap}>
+            <View style={[styles.puttGreenViewWrap, { marginTop: 8 + puttSizes.gap / 3 }]}>
               <PuttGreenView
                 slope={puttSlopeInfo.slope}
                 guideAim={puttAimToValue(puttAimIndex)}
                 focus={puttFocus}
                 width={puttGreenWidth}
-                height={puttGreenHeight}
+                height={puttSizes.greenH}
                 interactive={puttPhase === 'stroke'}
                 onStroke={handlePuttStroke}
                 playback={puttPlayback}
@@ -3025,8 +3121,11 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   // ===== Final Putt mini-game =====
-  /** パットの画面は下の余白を詰める（グリーンを画面に収めるため。puttGreenHeight と揃える） */
-  puttScrollContent: {
+  /**
+   * 朝イチ・パットの画面は下の余白を詰める（メーター・グリーンを画面に収めるため。
+   * morningSizes・puttSizes の固定の余白と揃える）
+   */
+  miniGameScrollContent: {
     paddingBottom: 16,
   },
   /** グリーンの上の説明・結果の枠。打つ段と結果の段で高さがあまり変わらないよう、2段に揃える */
@@ -3093,10 +3192,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
   },
+  /** 声かけの枠。2択と合わせて俯瞰図の下に収めるため、通常の eventBox より詰める */
+  morningTalkBox: {
+    paddingVertical: 12,
+    marginBottom: 2,
+  },
+  // 上下は詰める（2択を俯瞰図の下に収めるため。MORNING_BELOW_HOLE_H）
   talkChoice: {
     marginHorizontal: 16,
-    marginTop: 10,
-    padding: 14,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
