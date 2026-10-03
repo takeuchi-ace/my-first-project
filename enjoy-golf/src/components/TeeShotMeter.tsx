@@ -56,6 +56,14 @@ export const IMPACT_FLASH_HOLD_MS = 220;
 
 const pct = (v: number) => `${v * 100}%` as `${number}%`;
 
+/**
+ * 文字の拡大（iOS の「文字サイズ」）の上限。3タップの間は親がスクロールを止めているので、
+ * 文字が際限なく大きくなるとメーターが画面の外へ押し出されて押せなくなる。
+ * 親（GameScreenSimple）は朝イチ・パットの説明の文字にも同じ上限を掛け、
+ * 俯瞰図の下の段の高さの見積もり（MORNING_BELOW_HOLE_*）もこの上限までで計算する
+ */
+export const MINI_GAME_MAX_FONT_SCALE = 1.3;
+
 export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered, onDone }: Props) {
   const pos = useRef(new Animated.Value(0)).current;
   const posRef = useRef(0);
@@ -202,11 +210,11 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
       onStartShouldSetResponder={() => phaseRef.current !== 'done'}
       onResponderGrant={handleTap}
     >
-      <Text style={styles.hint}>{hint}</Text>
+      <Text style={styles.hint} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>{hint}</Text>
 
       <View style={styles.labels}>
-        <Text style={styles.label}>インパクト</Text>
-        <Text style={styles.label}>パワー →</Text>
+        <Text style={styles.label} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>インパクト</Text>
+        <Text style={styles.label} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>パワー →</Text>
       </View>
 
       <Animated.View
@@ -240,6 +248,7 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
             {/* PERFECT の目印。答え済みで PERFECT が出ないときは薄くして狙わせない */}
             <Text
               style={[styles.star, { left: pct(IMPACT_POS) }, talkAnswered && styles.starDim]}
+              maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}
             >
               ★
             </Text>
@@ -270,11 +279,11 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
       </Animated.View>
 
       <View style={styles.legend}>
-        <Text style={styles.legendText}>
+        <Text style={styles.legendText} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>
           {`刻み（〜${Math.round(LAYBACK_POWER * 100)}）は PERFECT なし`}
         </Text>
         {opponentDrive !== null && (
-          <Text style={[styles.legendText, styles.legendOpp]}>{`▼ ${opponentName}を越えるパワー`}</Text>
+          <Text style={[styles.legendText, styles.legendOpp]} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>{`▼ ${opponentName}を越えるパワー`}</Text>
         )}
       </View>
     </View>

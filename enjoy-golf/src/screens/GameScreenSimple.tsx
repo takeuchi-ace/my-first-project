@@ -89,7 +89,11 @@ import {
 import { HoleMap } from '../components/HoleMap';
 import { HoleMapModal } from '../components/HoleMapModal';
 import { MorningShotView } from '../components/MorningShotView';
-import { IMPACT_FLASH_HOLD_MS, TeeShotMeter } from '../components/TeeShotMeter';
+import {
+  IMPACT_FLASH_HOLD_MS,
+  MINI_GAME_MAX_FONT_SCALE,
+  TeeShotMeter,
+} from '../components/TeeShotMeter';
 import { TeeShotOutcome, judgeTeeShot, opponentDrive, didOutdrive } from '../logic/teeShot';
 import { PuttGreenView, puttMaxDragPx, usePuttDrag } from '../components/PuttGreenView';
 import { PuttSim, simulatePutt, focusJitter } from '../logic/puttPhysics';
@@ -121,8 +125,20 @@ const MORNING_HOLE_VIEW_H = 140;
  * 393 幅の Web での実測: 話しかけ 約278、3タップ 約248。文の折り返しの余裕を少し足してある。
  * どちらの段も、顔と俯瞰図の大きさを決める時点ではまだ描かれていないので測れない。
  * 描かれてから測って縮めると、話しかけ → 構えで俯瞰図がずれる
+ *
+ * 284 は文字の大きさで変わらない分（FIXED）と、文字の行の高さの分（TEXT）に分けて持つ。
+ * iOS の「文字サイズ」を大きくすると文字の分だけが伸びるので、TEXT にだけ倍率を掛ける
+ * （倍率は MINI_GAME_MAX_FONT_SCALE で止める。文字の側にも同じ上限を掛けてある）。
+ * 分け方は高いほうの話しかけの段の実測から（393 幅の Web、2026-10-03）:
+ *   段全体 280.5 ＝ 文字の行 168.5（バッジ 16.5・台詞 27・説明 2行 44・2択の見出し 22.5×2・添え書き 18×2）
+ *                ＋ それ以外 112（枠の上下 12+12・バッジの上下 3+3 と下 6・台詞の下 4・枠の下 2・
+ *                  2択それぞれの上 8・上下 11+11・枠線 1+1・添え書きの上 3）
+ *   284 との差 3.5 は折り返しの余裕なので、文字の側に入れる（FIXED 112 / TEXT 172）。
+ *   3タップの段（実測 247。うち文字の行 115）は文字の分が小さいので、倍率を掛けても話しかけの段を越えない。
+ * 足して 284 なので、文字が標準の大きさなら以前と同じ大きさになる
  */
-const MORNING_BELOW_HOLE_H = 284;
+const MORNING_BELOW_HOLE_FIXED_H = 112;
+const MORNING_BELOW_HOLE_TEXT_H = 284 - MORNING_BELOW_HOLE_FIXED_H;
 /** 最終パットの顔の下限。グリーンを優先して、ここまでは縮める（以前の 375×667 と同じ大きさ） */
 const PUTT_FACE_MIN_SCALE = 1.875;
 /** FaceSprite の外寸（32×scale ＋ 枠と余白 12） */
@@ -219,7 +235,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const store = useGameStore();
   const isAceRound = character.isAce;
   // 省スペース表示の判定に使う（小型端末で選択肢が画面外に出るのを防ぐ）
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  // fontScale は iOS の「文字サイズ」（PixelRatio.getFontScale() と同じ値）。設定を変えると描き直される
+  const { height: windowHeight, width: windowWidth, fontScale } = useWindowDimensions();
 
   // ===== Game State (engine-driven) =====
   // 同一の初期stateからeventを選出（charEventSlotsの不一致を防ぐ）
@@ -367,6 +384,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const [puttScrollH, setPuttScrollH] = useState(0);
   const [puttHeaderH, setPuttHeaderH] = useState(0);
   const [puttInfoH, setPuttInfoH] = useState(0);
+  /** 説明の枠の中身の高さ（切り上げ）。枠の下限に使う（JSX の説明の枠を参照） */
+  const [puttInfoContentH, setPuttInfoContentH] = useState(0);
   const puttGreenWidth = Math.min(420, windowWidth - 32);
   /**
    * スクロール領域の上下の余白 16+16、ヘッダーの下 12、顔の上下 4+4、
@@ -973,6 +992,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         // 旧リセット effect が担っていた。朝イチと共有のロックなので、ここで必ず戻す
         swingLockedRef.current = false;
         setPuttPlay(null);
+        // 説明の枠は新しいパットごとに測り直す（前の値を下限に残すと、高さが上がる一方になる）
+        setPuttInfoH(0);
+        setPuttInfoContentH(0);
         setPuttPhase('stroke');
         resetUI();
       }, 2500);
@@ -1211,7 +1233,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const miniFaceMaxPx = faceBoxPx(2.5 * Math.min(1.4, Math.max(1, windowHeight / 667)));
 
   /**
-   * 朝イチ。俯瞰図の下の段（MORNING_BELOW_HOLE_H）を先に取り、残りを顔と俯瞰図に分ける。
+   * 朝イチ。俯瞰図の下の段（MORNING_BELOW_HOLE_FIXED_H / TEXT_H）を先に取り、残りを顔と俯瞰図に分ける。
    * 3段（話しかけ → 構え → 結果）とも同じ値を使うので、俯瞰図は上下に動かない。
    * - 顔は残りの 35% を目安に、下限 MORNING_FACE_SCALE から会話の画面の大きさまで
    * - 俯瞰図は残り全部。絵は正方形の中に描くので、高さは幅で止める
@@ -1226,7 +1248,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     }
     // スクロール領域の上下の余白 16+16、ヘッダーの下 12、顔の上下 4+4、俯瞰図の枠の上下 8+8 と枠線 1+1
     const fixed = 16 + 16 + 12 + 8 + 16 + 2;
-    const avail = morningScrollH - morningHeaderH - fixed - MORNING_BELOW_HOLE_H;
+    // 俯瞰図の下の段。文字の分だけ「文字サイズ」の倍率で伸ばす（上限は文字の側と同じ）
+    const belowHole =
+      MORNING_BELOW_HOLE_FIXED_H +
+      MORNING_BELOW_HOLE_TEXT_H * Math.min(fontScale || 1, MINI_GAME_MAX_FONT_SCALE);
+    const avail = morningScrollH - morningHeaderH - fixed - belowHole;
     const faceMin = faceBoxPx(MORNING_FACE_SCALE);
     let face = clamp(avail * 0.35, faceMin, Math.max(faceMin, miniFaceMaxPx));
     const holeH = clamp(avail - face, MORNING_HOLE_VIEW_H, morningHoleW);
@@ -1474,17 +1500,17 @@ export default function GameScreenSimple({ route, navigation }: Props) {
           )}
 
           {/* 相手の声かけ。構えたところで話しかけてくる。
-              2択が両方スクロールなしで見えるよう、枠と選択肢は詰めてある（MORNING_BELOW_HOLE_H） */}
+              2択が両方スクロールなしで見えるよう、枠と選択肢は詰めてある（MORNING_BELOW_HOLE_FIXED_H / TEXT_H） */}
           {morningPhase === 'own_shot_talk' && (
             <View>
               <View style={[styles.eventBox, styles.morningTalkBox]}>
                 <View style={[styles.morningBadge, { marginBottom: 6 }]}>
-                  <Text style={styles.morningBadgeText}>構えたところで</Text>
+                  <Text style={styles.morningBadgeText} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>構えたところで</Text>
                 </View>
-                <Text style={[styles.eventBoxTitle, { marginBottom: 4 }]}>
+                <Text style={[styles.eventBoxTitle, { marginBottom: 4 }]} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>
                   {'「'}{morningTalkLines[characterId]}{'」'}
                 </Text>
-                <Text style={styles.eventBoxDesc}>
+                <Text style={styles.eventBoxDesc} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>
                   応じれば喜ばれるが、この一打で PERFECT は狙えなくなる。
                 </Text>
               </View>
@@ -1493,16 +1519,16 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                 style={({ pressed }) => [styles.talkChoice, pressed && styles.talkChoicePressed]}
                 onPress={() => answerMorningTalk(true)}
               >
-                <Text style={styles.talkChoiceLabel}>手を止めて応じる</Text>
-                <Text style={styles.talkChoiceNote}>PERFECT は出なくなる</Text>
+                <Text style={styles.talkChoiceLabel} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>手を止めて応じる</Text>
+                <Text style={styles.talkChoiceNote} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>PERFECT は出なくなる</Text>
               </Pressable>
 
               <Pressable
                 style={({ pressed }) => [styles.talkChoice, pressed && styles.talkChoicePressed]}
                 onPress={() => answerMorningTalk(false)}
               >
-                <Text style={styles.talkChoiceLabel}>聞こえなかったふりをする</Text>
-                <Text style={styles.talkChoiceNote}>ショットは狙えるが、話を流すことになる</Text>
+                <Text style={styles.talkChoiceLabel} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>聞こえなかったふりをする</Text>
+                <Text style={styles.talkChoiceNote} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>ショットは狙えるが、話を流すことになる</Text>
               </Pressable>
             </View>
           )}
@@ -1514,15 +1540,15 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               <View style={[styles.eventBox, styles.morningInfoBox]}>
                 <View style={styles.morningInfoRow}>
                   <View style={[styles.morningBadge, styles.morningBadgeInline]}>
-                    <Text style={styles.morningBadgeText}>朝イチのショット</Text>
+                    <Text style={styles.morningBadgeText} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>朝イチのショット</Text>
                   </View>
-                  <Text style={styles.morningInfoTitle}>どこまで飛ばす？</Text>
+                  <Text style={styles.morningInfoTitle} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>どこまで飛ばす？</Text>
                 </View>
-                <Text style={styles.morningInfoText}>
+                <Text style={styles.morningInfoText} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>
                   強く振るほど飛ぶが、当てるのが難しくなる
                 </Text>
                 {talkResultLine && (
-                  <Text style={[styles.swingTalkEcho, { marginTop: 2 }]}>{talkResultLine}</Text>
+                  <Text style={[styles.swingTalkEcho, { marginTop: 2 }]} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>{talkResultLine}</Text>
                 )}
               </View>
               <TeeShotMeter
@@ -1665,40 +1691,47 @@ export default function GameScreenSimple({ route, navigation }: Props) {
 
             {/* 説明はグリーンの上。下に置くと小さい画面でスクロールの外に出て読めない。
                 結果も同じ枠に出して、グリーンの位置を動かさない。
-                高さは打つ段でだけ測り、結果の段ではその高さより縮めない
+                高さは打つ段でだけ測り、転がり・結果の段ではその高さより縮めない
                 （結果の文が1行だと枠が低くなり、グリーンが上へずれる。実測 2〜3px）。
-                minHeight は打つ段にも掛ける。測った値は丸められていて（実高 86.5 → 87 など）、
-                結果の段だけに掛けると、その端数のぶんグリーンが 1px ずれた。
-                打つ段でも掛けておけば、測り直しても同じ値に落ち着く */}
+                下限は中身（内側の View）を測って決める。下限を掛けた枠そのものを測ると、
+                測った値が次の下限になって高さが上がる一方になる（新しいパットごとに 0 に戻すのも同じ理由）。
+                中身は下限の影響を受けないので、何度測っても同じ値になる。
+                測った中身は切り上げて下限にし、**打つ段から**掛ける。打つ段で掛けずにおくと、
+                打つ段は端数のまま（86.5）・転がりからは切り上げ（87）で、打った瞬間にグリーンが 0.5 下がった。
+                枠の高さ（puttSizes に使う）は枠そのものを打つ段で測る。下限が効いたあとは整数で落ち着く */}
             <View
-              style={[
-                styles.eventBox,
-                styles.puttInfoBox,
-                puttInfoH > 0 ? { minHeight: puttInfoH } : null,
-              ]}
+              style={[styles.eventBox, styles.puttInfoBox]}
               onLayout={(e) => {
-                if (puttPhase === 'stroke') setPuttInfoH(e.nativeEvent.layout.height);
+                if (puttPhase === 'stroke') setPuttInfoH(Math.ceil(e.nativeEvent.layout.height));
               }}
             >
-              {puttPhase === 'result' ? (
-                <>
-                  <Text style={styles.puttResultLabel}>{puttResultLabel}</Text>
-                  <Text style={styles.puttInfoText}>{puttResultText}</Text>
-                </>
-              ) : (
-                <>
-                  <View style={styles.puttInfoRow}>
-                    <View style={[styles.puttBadge, styles.puttBadgeInline]}>
-                      <Text style={styles.puttBadgeText}>最終パット</Text>
-                    </View>
-                    <Text style={styles.puttInfoTitle}>後ろへ引いて、離す</Text>
-                  </View>
-                  {/* 指がボールに重なると線もゲージも見えにくい。グリーンの外からでも引けると一言添える */}
-                  <Text style={styles.puttInfoText}>
-                    {puttSlopeInfo ? `${PUTT_SLOPE_HINT[puttSlopeInfo.slope]}。画面のどこからでも引ける` : ''}
-                  </Text>
-                </>
-              )}
+              <View style={puttInfoContentH > 0 ? { minHeight: puttInfoContentH } : null}>
+                <View
+                  onLayout={(e) => {
+                    if (puttPhase === 'stroke') setPuttInfoContentH(Math.ceil(e.nativeEvent.layout.height));
+                  }}
+                >
+                  {puttPhase === 'result' ? (
+                    <>
+                      <Text style={styles.puttResultLabel} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>{puttResultLabel}</Text>
+                      <Text style={styles.puttInfoText} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>{puttResultText}</Text>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.puttInfoRow}>
+                        <View style={[styles.puttBadge, styles.puttBadgeInline]}>
+                          <Text style={styles.puttBadgeText} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>最終パット</Text>
+                        </View>
+                        <Text style={styles.puttInfoTitle} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>後ろへ引いて、離す</Text>
+                      </View>
+                      {/* 指がボールに重なると線もゲージも見えにくい。グリーンの外からでも引けると一言添える */}
+                      <Text style={styles.puttInfoText} maxFontSizeMultiplier={MINI_GAME_MAX_FONT_SCALE}>
+                        {puttSlopeInfo ? `${PUTT_SLOPE_HINT[puttSlopeInfo.slope]}。画面のどこからでも引ける` : ''}
+                      </Text>
+                    </>
+                  )}
+                </View>
+              </View>
             </View>
           </View>
 
@@ -3223,7 +3256,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 2,
   },
-  // 上下は詰める（2択を俯瞰図の下に収めるため。MORNING_BELOW_HOLE_H）
+  // 上下は詰める（2択を俯瞰図の下に収めるため。MORNING_BELOW_HOLE_FIXED_H / TEXT_H）
   talkChoice: {
     marginHorizontal: 16,
     marginTop: 8,
