@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -90,7 +91,7 @@ import { HoleMapModal } from '../components/HoleMapModal';
 import { MorningShotView } from '../components/MorningShotView';
 import { IMPACT_FLASH_HOLD_MS, TeeShotMeter } from '../components/TeeShotMeter';
 import { TeeShotOutcome, judgeTeeShot, opponentDrive, didOutdrive } from '../logic/teeShot';
-import { PuttGreenView } from '../components/PuttGreenView';
+import { PuttGreenView, puttMaxDragPx, usePuttDrag } from '../components/PuttGreenView';
 import { PuttSim, simulatePutt, focusJitter } from '../logic/puttPhysics';
 import { getHoleLayout } from '../data/holeLayouts';
 import { useGameStore } from '../store/useGameStore';
@@ -1253,6 +1254,19 @@ export default function GameScreenSimple({ route, navigation }: Props) {
     };
   })();
 
+  /**
+   * 最終パットの「引いて打つ」入力。パット画面の一番外側に付け、画面のどこから引いても打てるようにする
+   * （グリーンの中だけだと、ボールのそばで指が線とゲージを隠す）。線とゲージはグリーンに描く。
+   * 強さ 1 に要る引きはグリーンの大きさから（puttMaxDragPx）。どこから引いても手応えは同じ。
+   * 地図を開いている間は打たない（閉じるための指の動きで打ってしまう）
+   */
+  const puttDrag = usePuttDrag({
+    interactive: puttPhase === 'stroke' && !holeMapVisible,
+    maxDragPx: puttMaxDragPx(puttGreenWidth, puttSizes.greenH),
+    focus: puttFocus,
+    onStroke: handlePuttStroke,
+  });
+
   // 320幅ではヘッダーの氏名がホールマップのカードを画面外へ押し出していた。
   // 「外資エリート・アレクサンダー・スミス」は18字あり、fontSize 18 では
   // 名前だけで幅を使い切る。
@@ -1566,7 +1580,19 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   // ===== Render: Final Putt mini-game =====
   if (puttPhase !== null) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
+      <SafeAreaView
+        style={[
+          styles.container,
+          // web のタッチ端末では、指を動かすとページのスクロールや引っぱって更新に取られ、
+          // 引いている途中で打てなくなる。打つ段だけ画面全体でブラウザの既定の動きを止める
+          // （結果の段は長い文をスクロールで読めるように戻す）。長押しで文字が選択されるのも止める
+          Platform.OS === 'web' && puttPhase === 'stroke'
+            ? ({ touchAction: 'none', userSelect: 'none' } as object)
+            : null,
+        ]}
+        edges={['bottom']}
+        {...puttDrag.panHandlers}
+      >
         {creepVignetteOpacity > 0 && (
           <View style={[styles.vignetteOverlay, { opacity: creepVignetteOpacity }]} pointerEvents="none" />
         )}
@@ -1667,9 +1693,9 @@ export default function GameScreenSimple({ route, navigation }: Props) {
                     </View>
                     <Text style={styles.puttInfoTitle}>後ろへ引いて、離す</Text>
                   </View>
-                  {/* 指がボールに重なると線もゲージも見えにくい。下のほうから引くよう一言添える */}
+                  {/* 指がボールに重なると線もゲージも見えにくい。グリーンの外からでも引けると一言添える */}
                   <Text style={styles.puttInfoText}>
-                    {puttSlopeInfo ? `${PUTT_SLOPE_HINT[puttSlopeInfo.slope]}。ボールの下のほうを引くと見やすい` : ''}
+                    {puttSlopeInfo ? `${PUTT_SLOPE_HINT[puttSlopeInfo.slope]}。画面のどこからでも引ける` : ''}
                   </Text>
                 </>
               )}
@@ -1682,11 +1708,11 @@ export default function GameScreenSimple({ route, navigation }: Props) {
               <PuttGreenView
                 slope={puttSlopeInfo.slope}
                 guideAim={puttAimToValue(puttAimIndex)}
-                focus={puttFocus}
                 width={puttGreenWidth}
                 height={puttSizes.greenH}
                 interactive={puttPhase === 'stroke'}
-                onStroke={handlePuttStroke}
+                drag={puttDrag.drag}
+                wobble={puttDrag.wobble}
                 playback={puttPlayback}
                 onPlaybackDone={handlePuttRolled}
               />

@@ -1,9 +1,11 @@
 /**
  * PuttGreenView — 最終パットのグリーン。引いて打つ入力と、転がりの再生を受け持つ
  *
- * - 入力: グリーンのどこからでも指を置いて**後ろへ引き、離して打つ**。
+ * - 入力: **パット画面のどこからでも**指を置いて**後ろへ引き、離して打つ**。
  *   引いた向きの反対へ打ち出し、引いた長さが強さ（`strokeFromDrag`）。
  *   ボールに正確に触れなくてよいのは、小さな球を指で隠してしまうと引く向きが見えないため。
+ *   入力そのものは `usePuttDrag` が持ち、親（パット画面）が画面全体に `panHandlers` を付ける。
+ *   このビューは受け取った `drag`・`wobble` を描くだけ。グリーンの外から引いても、線とゲージはここに出る。
  * - 引いている間は、打ち出し方向の線（破線の矢印）だけを出す。曲がりは見せない（読むのはプレイヤー）。
  *   集中力が低いと線が揺れ、離した瞬間の揺れがそのまま向きに乗る。
  * - 実機では指がボールの近く（グリーンの下のほう）に乗るので、ボールのそばの表示は指と手で隠れる。
@@ -17,6 +19,8 @@
  *
  * PanResponder は Capture 版で取る。親は ScrollView なので、取らないとドラッグを
  * スクロールに奪われる（親側でもこの画面の間はスクロールを止めている）。
+ * ただし取るのは**指が動いてから**（`DRAG_CLAIM_PX`）。触れた瞬間に取ると、画面全体を覆うため
+ * ヘッダーの地図のボタンなどのタップまで奪ってしまう。
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -39,13 +43,14 @@ interface Props {
   slope: SlopeType;
   /** 会話の3択で選んだ線。淡いガイドとして出すだけで、打つ向きは縛らない */
   guideAim: PuttAim;
-  focus: number;
   width: number;
   height: number;
-  /** false の間は触れない（転がり中・結果表示中） */
+  /** false の間は打てない（転がり中・結果表示中）。強さのゲージを出すかどうかにだけ使う */
   interactive: boolean;
-  /** 離して打ったとき。強さのブレは親が乗せる */
-  onStroke: (stroke: { angle: number; power: number }) => void;
+  /** 引いている量（`usePuttDrag` の `drag`）。null の間は線を出さない */
+  drag: PuttDrag | null;
+  /** 方向線の揺れ（`usePuttDrag` の `wobble`）。描く揺れと打つときに乗る揺れは同じ値 */
+  wobble: number;
   /** 再生する軌跡。null の間はボールはスタート位置 */
   playback: { path: Vec[]; sink: boolean } | null;
   onPlaybackDone?: () => void;
@@ -111,30 +116,84 @@ function SlopeArrows({ slope }: { slope: SlopeType }) {
   );
 }
 
-export function PuttGreenView({
-  slope,
-  guideAim,
-  focus,
-  width,
-  height,
-  interactive,
-  onStroke,
-  playback,
-  onPlaybackDone,
-}: Props) {
-  const scale = Math.min(width / 100, height / 100);
-  const offsetX = (width - 100 * scale) / 2;
-  const offsetY = (height - 100 * scale) / 2;
-  /** 指をこれだけ引けば強さ 1。グリーンの半分弱 */
-  const maxDragPx = 100 * scale * 0.45;
+export type PuttDrag = { dx: number; dy: number };
 
-  // ===== 入力 =====
-  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
-  const dragRef = useRef<{ dx: number; dy: number } | null>(null);
+/**
+ * 指をこれだけ引けば強さ 1。グリーンの半分弱。
+ * 入力（`usePuttDrag`）と描画（`PuttGreenView`）の両方がこれで計算する。
+ * 画面のどこから引いても、手応えはグリーンの大きさに合わせたまま変えないため
+ */
+export const puttMaxDragPx = (width: number, height: number): number =>
+  100 * Math.min(width / 100, height / 100) * 0.45;
+
+/**
+ * これだけ指が動いたら引き始めとみなして入力を取る。
+ * 触れた瞬間には取らない（画面全体を覆うので、取るとボタンのタップまで奪う）。
+ * 小さすぎるとタップの指のぶれで取ってしまい、大きすぎると引き始めが鈍く感じる
+ */
+const DRAG_CLAIM_PX = 5;
+
+/**
+ * web で、引き終えた直後のクリックを1回だけ捨てる。
+ * RN-web の Pressable は onPress を responder ではなくブラウザの click で出すため、
+ * 地図のボタンの上で押して少し引き、ボタンの上で離すと、打った上に地図まで開いてしまう。
+ * click は mouseup / touchend の直後に来るので、短い間だけ捕まえて止める
+ */
+const swallowNextClick = () => {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  const stop = (e: Event) => {
+    e.stopPropagation();
+    e.preventDefault();
+    cleanup();
+  };
+  const cleanup = () => {
+    window.removeEventListener('click', stop, true);
+    clearTimeout(timer);
+  };
+  window.addEventListener('click', stop, true);
+  const timer = setTimeout(cleanup, 400);
+};
+
+/**
+ * 最終パットの「引いて、離して打つ」入力。パット画面の一番外側に `panHandlers` を付けると、
+ * 画面のどこから引いても打てる。`drag`・`wobble` は `PuttGreenView` に渡して線とゲージを描く。
+ *
+ * - 引いた量は**指を置いた所から**の差。取るのは `DRAG_CLAIM_PX` 動いてからだが、
+ *   PanResponder は取った時点で dx/dy を 0 に戻すので、取るまでに動いた分を足し戻す。
+ * - 方向線の揺れはここで進める。描いた揺れ（`wobble`）と離した瞬間に乗る揺れ（`wobbleRef`）は同じ値。
+ * - PanResponder は一度だけ作り、変わる値（interactive・maxDragPx・onStroke）は ref で読む。
+ *   作り直すと引いている途中の gestureState が失われ、古い onStroke を呼ぶおそれもある。
+ */
+export function usePuttDrag({
+  interactive,
+  maxDragPx,
+  focus,
+  onStroke,
+}: {
+  interactive: boolean;
+  maxDragPx: number;
+  focus: number;
+  /** 離して打ったとき。強さのブレは親が乗せる */
+  onStroke: (stroke: { angle: number; power: number }) => void;
+}) {
+  const [drag, setDrag] = useState<PuttDrag | null>(null);
+  const dragRef = useRef<PuttDrag | null>(null);
+  /** 取るまでに動いた分（指を置いた所から、取った所まで） */
+  const claimOffsetRef = useRef<PuttDrag>({ dx: 0, dy: 0 });
   const interactiveRef = useRef(interactive);
   interactiveRef.current = interactive;
+  const maxDragRef = useRef(maxDragPx);
+  maxDragRef.current = maxDragPx;
   const onStrokeRef = useRef(onStroke);
   onStrokeRef.current = onStroke;
+
+  // 打てなくなったら（転がり始め・地図を開いた等）引いている途中の線を消す
+  useEffect(() => {
+    if (!interactive) {
+      dragRef.current = null;
+      setDrag(null);
+    }
+  }, [interactive]);
 
   // 方向線の揺れ。引いている間だけ進める
   const jitterAmp = focusJitter(focus).angle;
@@ -149,38 +208,69 @@ export function PuttGreenView({
   const wobble = jitterAmp * Math.sin(wobbleT * 5);
   wobbleRef.current = wobble;
 
-  const pan = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => interactiveRef.current,
-        onStartShouldSetPanResponderCapture: () => interactiveRef.current,
-        onMoveShouldSetPanResponder: () => interactiveRef.current,
-        onMoveShouldSetPanResponderCapture: () => interactiveRef.current,
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: () => {
-          dragRef.current = { dx: 0, dy: 0 };
-          setDrag({ dx: 0, dy: 0 });
-        },
-        onPanResponderMove: (_e, g) => {
-          dragRef.current = { dx: g.dx, dy: g.dy };
-          setDrag({ dx: g.dx, dy: g.dy });
-        },
-        onPanResponderRelease: () => {
-          const d = dragRef.current;
-          dragRef.current = null;
-          setDrag(null);
-          if (!d || !interactiveRef.current) return;
-          const s = strokeFromDrag(d.dx, d.dy, maxDragPx);
-          if (!s || s.power < MIN_POWER) return;
-          onStrokeRef.current({ angle: s.angle + wobbleRef.current, power: s.power });
-        },
-        onPanResponderTerminate: () => {
-          dragRef.current = null;
-          setDrag(null);
-        },
-      }),
-    [maxDragPx]
-  );
+  const pan = useMemo(() => {
+    const shouldClaim = (g: { dx: number; dy: number }) => {
+      if (!interactiveRef.current) return false;
+      if (Math.hypot(g.dx, g.dy) < DRAG_CLAIM_PX) return false;
+      claimOffsetRef.current = { dx: g.dx, dy: g.dy };
+      return true;
+    };
+    return PanResponder.create({
+      // 触れただけでは取らない。タップはその下のボタンへ届ける
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      // 動いたら取る。Capture 版なので、指がボタンの上で下りていてもこちらが先に取り、
+      // ボタン（Pressable）は取られることを認めて押下を取り消す（onPress は出ない）
+      onMoveShouldSetPanResponder: (_e, g) => shouldClaim(g),
+      onMoveShouldSetPanResponderCapture: (_e, g) => shouldClaim(g),
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        const d = { ...claimOffsetRef.current };
+        dragRef.current = d;
+        setDrag(d);
+      },
+      onPanResponderMove: (_e, g) => {
+        const base = claimOffsetRef.current;
+        const d = { dx: base.dx + g.dx, dy: base.dy + g.dy };
+        dragRef.current = d;
+        setDrag(d);
+      },
+      onPanResponderRelease: () => {
+        const d = dragRef.current;
+        dragRef.current = null;
+        setDrag(null);
+        swallowNextClick();
+        if (!d || !interactiveRef.current) return;
+        const s = strokeFromDrag(d.dx, d.dy, maxDragRef.current);
+        if (!s || s.power < MIN_POWER) return;
+        onStrokeRef.current({ angle: s.angle + wobbleRef.current, power: s.power });
+      },
+      onPanResponderTerminate: () => {
+        dragRef.current = null;
+        setDrag(null);
+        swallowNextClick();
+      },
+    });
+  }, []);
+
+  return { panHandlers: pan.panHandlers, drag, wobble };
+}
+
+export function PuttGreenView({
+  slope,
+  guideAim,
+  width,
+  height,
+  interactive,
+  drag,
+  wobble,
+  playback,
+  onPlaybackDone,
+}: Props) {
+  const scale = Math.min(width / 100, height / 100);
+  const offsetX = (width - 100 * scale) / 2;
+  const offsetY = (height - 100 * scale) / 2;
+  const maxDragPx = puttMaxDragPx(width, height);
 
   const preview = drag ? strokeFromDrag(drag.dx, drag.dy, maxDragPx) : null;
 
@@ -257,16 +347,8 @@ export function PuttGreenView({
   }
 
   return (
-    <View
-      style={[
-        { width, height },
-        // web のタッチ端末では、指を動かすとページのスクロールや引っぱって更新に取られ、
-        // 引いている途中で打てなくなる。グリーンの上ではブラウザの既定の動きを止める。
-        // 長押しで文字が選択されるのも止める
-        Platform.OS === 'web' && ({ touchAction: 'none', userSelect: 'none' } as object),
-      ]}
-      {...pan.panHandlers}
-    >
+    // 入力は親（パット画面全体）が持つ。web のブラウザ既定の動き（スクロール・文字選択）も親で止めている
+    <View style={{ width, height }}>
       <Svg width={width} height={height}>
         <Defs>
           <LinearGradient id="puttRough" x1="0" y1="0" x2="0" y2="1">
