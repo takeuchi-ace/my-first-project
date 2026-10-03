@@ -74,9 +74,16 @@ const getCtx = (): Ctx | null => {
   return ctx;
 };
 
-/** 効果音を鳴らすかどうか。設定画面から切り替える */
+/**
+ * 効果音を鳴らすかどうか。Web のタイトル画面のトグルから切り替える。
+ *
+ * **ネイティブでは false を受け付けない**（常に鳴らす）。ネイティブのタイトル画面には
+ * トグルが無く（冒頭「鳴らし方」）、オンに戻す手段がない。build 1 にはトグルがあったので、
+ * そのとき切った端末は保存された false を読み込み続け、インパクト音が二度と鳴らなくなる。
+ * ネイティブで消したい人は iOS の消音スイッチで消せる（playsInSilentMode を立てていない）
+ */
 export const setSfxEnabled = (v: boolean): void => {
-  enabled = v;
+  enabled = v || Platform.OS !== 'web';
 };
 
 // ===== 録音の音（expo-audio） =====
@@ -98,7 +105,14 @@ const getImpactPlayer = (): AudioPlayer | null => {
       // 音楽が止まる。mixWithOthers で ambient にして、流している音楽の上に重ねる
       setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(() => {});
     }
-    impactPlayer = createAudioPlayer(IMPACT_SOURCE);
+    const p = createAudioPlayer(IMPACT_SOURCE);
+    // 鳴り終わったらすぐ頭に戻しておく。タップの時点では play() を呼ぶだけで済むように
+    // （seekTo は非同期なので、タップのたびに戻してから鳴らすと、戻しきる前に play が来て
+    // 前回の終わり＝無音の所から鳴る・頭が欠けることがある）
+    p.addListener('playbackStatusUpdate', (s) => {
+      if (s.didJustFinish) p.seekTo(0).catch(() => {});
+    });
+    impactPlayer = p;
   } catch {
     impactBroken = true;
     impactPlayer = null;
@@ -118,10 +132,16 @@ const playImpact = (): void => {
   const p = getImpactPlayer();
   if (!p) return;
   try {
-    // 頭に戻してから鳴らす。seekTo の完了は待たない（待つとそのぶん遅れる。
-    // 戻しきる前に play が来ても、0.55 秒の音の頭が欠けるだけで済む）
-    p.seekTo(0).catch(() => {});
-    p.play();
+    // ふだんは鳴り終わりで頭に戻してある（getImpactPlayer の購読）ので、そのまま鳴らす。
+    // まだ鳴っている途中（素早く続けて打った）や、戻しが間に合っていないときだけ、
+    // 戻しきってから鳴らす。そのぶんわずかに遅れるが、途中や終わりから鳴るよりよい
+    if (p.currentTime > 0.05) {
+      p.seekTo(0)
+        .then(() => p.play())
+        .catch(() => {});
+    } else {
+      p.play();
+    }
   } catch {
     // 鳴らせなくても進行は止めない
   }
