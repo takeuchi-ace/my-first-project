@@ -455,7 +455,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
         outdriveReaction(character.ownPlayStance, outdrove)
       );
       setOwnShotResultText(getOwnShotResultText(result, characterId, character.name, character.ownPlayStance));
-      playSfx('shot');
+      // 打球音はここでは鳴らさない。インパクトのタップの瞬間にメーター側で鳴らす（録音の打球音）。
+      // ここで重ねると、描画を待ったぶん遅れた二つ目の音になる。押さずにバーが戻りきったときは空振りなので無音
       // 表情は結果からではなく信頼の動きから決める。
       // 結果から決めると、外して喜ぶ相手のときに顔とセリフが食い違う
       setMood(reactionMood(delta));

@@ -14,7 +14,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { IMPACT_POS, LAYBACK_POWER, powerToOutdrive, teeShotWindow } from '../logic/teeShot';
-import { playSfx } from '../lib/sound';
+import { playSfx, preloadSfx } from '../lib/sound';
 
 interface Props {
   focus: number;
@@ -53,6 +53,11 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+
+  // 打球音を先に読み込む。初回のインパクトで読み込みを待つと音が遅れる
+  useEffect(() => {
+    preloadSfx();
+  }, []);
 
   useEffect(() => {
     const id = pos.addListener(({ value }) => {
@@ -125,6 +130,8 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
       return;
     }
     if (p === 'down') {
+      // 音を最初に鳴らす。止める・振動・親への通知より前に出して、指と音のずれを減らす
+      playSfx('impact');
       animRef.current?.stop();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       finish(posRef.current);

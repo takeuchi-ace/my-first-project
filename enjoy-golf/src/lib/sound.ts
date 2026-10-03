@@ -1,5 +1,5 @@
 /**
- * 効果音 — 音源ファイルを持たず、その場で波形から作る
+ * 効果音 — 合成した音と、オーナー自身が録った打球音1つ
  *
  * ## なぜ合成か
  *
@@ -8,13 +8,23 @@
  * オシレータとノイズだけで組めば、素材も権利者も存在しない。
  * ファイルが増えないのでバンドルも重くならない。
  *
+ * ## 例外：朝イチのインパクト音（`impact`）
+ *
+ * 合成の「パシッ」では芯を食った手応えが出なかったので、ここだけ録音を使う。
+ * `assets/sounds/impact.m4a` は**オーナー自身のスイング動画から切り出した音**（2026-10-03）。
+ * 第三者の素材ではないので、権利の問題は起きない（フリー素材を入れない方針はそのまま）。
+ * 0.55 秒、打音が 5ms ほどで立ち上がるよう頭を詰めてある。
+ *
  * ## 鳴らし方
  *
- * Web Audio API を直接叩く。expo-av は入れていない。
- * ネイティブ（iOS/Android）には Web Audio が無いので、そこでは黙って何もしない。
+ * 合成音は Web Audio API を直接叩く。ネイティブ（iOS/Android）には Web Audio が無いので、
+ * **合成音は Web だけ**で、ネイティブでは黙って何もしない。
  * 押しても何も起きない「音 ON」を出さないよう、ネイティブのタイトル画面は
  * トグルを置かず、「音 ON」を消した画像を使う（TitleScreen.tsx）。
- * ネイティブで鳴らすなら、同じ波形を WAV に書き出して expo-audio で鳴らす。
+ *
+ * インパクト音は expo-audio で鳴らすので、**Web とネイティブの両方で鳴る**。
+ * expo-audio はネイティブモジュールなので、入っていないビルド（build 2 まで）では鳴らない。
+ * マイクは使わない（app.json のプラグイン設定でマイクの使用目的の文言も出さない）。
  *
  * ブラウザは「ユーザー操作より前に鳴らす」ことを禁じている。
  * 効果音はすべてタップの結果として鳴るので条件は満たすが、
@@ -25,7 +35,11 @@
  * 短く、小さく、耳につかないこと。
  * このゲームは相手の表情と間合いを読む時間が本体なので、
  * 音が主張すると読む邪魔になる。最長でも 0.4 秒、音量は控えめに固定する。
+ * （インパクト音の 0.55 秒は打球の余韻ぶん。鳴るのは朝イチの一打だけ）
  */
+
+import { Platform } from 'react-native';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 
 type Ctx = AudioContext;
 
@@ -65,6 +79,54 @@ export const setSfxEnabled = (v: boolean): void => {
   enabled = v;
 };
 
+// ===== 録音の音（expo-audio） =====
+
+/** 朝イチのインパクト音。オーナー自身の録音（冒頭参照） */
+const IMPACT_SOURCE = require('../../assets/sounds/impact.m4a');
+
+let impactPlayer: AudioPlayer | null = null;
+/** 作るのに失敗したら二度と試さない（毎タップで例外を出し続けないため） */
+let impactBroken = false;
+
+const getImpactPlayer = (): AudioPlayer | null => {
+  if (impactPlayer || impactBroken) return impactPlayer;
+  try {
+    if (Platform.OS !== 'web') {
+      // iOS の消音スイッチには従う（playsInSilentMode は立てない）。
+      // 効果音のためにマナーモードを破らない。
+      // 何も設定しないと iOS の既定（soloAmbient）で、鳴った瞬間にほかのアプリの
+      // 音楽が止まる。mixWithOthers で ambient にして、流している音楽の上に重ねる
+      setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers' }).catch(() => {});
+    }
+    impactPlayer = createAudioPlayer(IMPACT_SOURCE);
+  } catch {
+    impactBroken = true;
+    impactPlayer = null;
+  }
+  return impactPlayer;
+};
+
+/**
+ * 録音の音を先に読み込んでおく。初めて鳴らすときに読み込みを待つと、
+ * タップから音までが遅れて「当たった」感じがずれる。メーターが出た時点で呼ぶ
+ */
+export const preloadSfx = (): void => {
+  getImpactPlayer();
+};
+
+const playImpact = (): void => {
+  const p = getImpactPlayer();
+  if (!p) return;
+  try {
+    // 頭に戻してから鳴らす。seekTo の完了は待たない（待つとそのぶん遅れる。
+    // 戻しきる前に play が来ても、0.55 秒の音の頭が欠けるだけで済む）
+    p.seekTo(0).catch(() => {});
+    p.play();
+  } catch {
+    // 鳴らせなくても進行は止めない
+  }
+};
+
 // ===== 部品 =====
 
 /** 単音。減衰は指数で落とす（線形だとブツッと切れる） */
@@ -93,7 +155,7 @@ const tone = (
   osc.stop(start + dur + 0.02);
 };
 
-/** ノイズ。打球の「パシッ」はノイズの立ち上がりで作る */
+/** ノイズ。縁を舐める「ザッ」などの擦れる音に使う */
 const noise = (
   c: Ctx,
   start: number,
@@ -127,7 +189,7 @@ const noise = (
 // ===== 音の種類 =====
 
 export type SfxName =
-  | 'shot'      // 打球
+  | 'impact'    // 朝イチのインパクト（録音。Web・ネイティブとも鳴る）
   | 'cupIn'     // カップイン
   | 'cupMiss'   // 外した
   | 'good'      // 刺さった
@@ -135,25 +197,24 @@ export type SfxName =
   | 'tap';      // 選択
 
 /**
- * 鳴らす。設定がオフ、または Web Audio が無い環境では何もしない。
+ * 鳴らす。設定がオフ、または Web Audio が無い環境では何もしない
+ * （`impact` だけは録音なので Web Audio が無くても鳴る）。
  *
  * 例外は投げない。音が出ないことでゲームが止まるのは本末転倒なので、
  * 失敗はすべて黙って捨てる。
  */
 export const playSfx = (name: SfxName): void => {
   if (!enabled) return;
+  if (name === 'impact') {
+    playImpact();
+    return;
+  }
   const c = getCtx();
   if (!c) return;
   const t = c.currentTime;
 
   try {
     switch (name) {
-      case 'shot':
-        // 芯を食った音。ノイズの一撃に低い胴鳴りを重ねる
-        noise(c, t, 0.06, 0.9, 2600);
-        tone(c, 220, t, 0.09, 0.35, 'triangle', 120);
-        break;
-
       case 'cupIn':
         // カップの底で跳ねる。落ちる音を2回、間を詰めて
         tone(c, 880, t, 0.07, 0.5, 'sine', 620);

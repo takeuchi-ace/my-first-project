@@ -38,6 +38,15 @@
         "projectId": "ba26b3d0-abb8-4ae6-9d8c-64d5a6cbbaa1"
       }
     },
-    "owner": "takeuchi3"
+    "owner": "takeuchi3",
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
+    ]
   }
 }

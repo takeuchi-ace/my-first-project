@@ -194,7 +194,22 @@ npx expo export --platform web && npx vercel --prod --yes   # Web デプロイ
 - **プレイヤーの発言そのもの** — 極端な・ふざけた台詞はそのまま。変えてよいのは delta・tag・条件だけ
 - **難易度を下げる変更** — 一貫して「下げない」。やるなら上げる方向
 - **パットの吸い込みの強さ**（`puttPhysics.ts` の `FUNNEL_*`・`CAPTURE_SPEED`）— ぎりぎりで止めてある。強めると左右の傾斜でまっすぐ打って入る（読む意味が消える）、弱めると ふつう が下限を割る。触ったら `node tools/minigame-sim.js` を回す
-- **第三者の音源** — ライセンスを持っていない。効果音は自作波形のみ
+- **第三者の音源** — ライセンスを持っていない。効果音は自作波形のみ。
+  例外は `assets/sounds/impact.m4a`（朝イチのインパクト音）。**オーナー自身のスイング動画から切り出した録音**（2026-10-03）で、
+  権利はオーナーにあるので使ってよい。フリー素材・他人の録音は引き続き入れない
+- **`expo-audio` のプラグイン設定**（`app.json`）— `microphonePermission: false` / `recordAudioAndroid: false` を外さない。
+  外すとマイクの使用目的の文言（iOS）と `RECORD_AUDIO`（Android）が入り、App Privacy の「権限ゼロ」と食い違う。
+  確認は `npx expo config --type introspect` で `NSMicrophoneUsageDescription` が無いこと
+
+### 音（2026-10-03 追記）— **build 3 が必要**
+
+朝イチのインパクトのタップで、録音の打球音を鳴らすようにした（`src/lib/sound.ts`）。
+**`expo-audio` を入れた。ネイティブモジュールなので build 2 には入っていない。実機で鳴らすには build 3 を焼く。**
+（JS だけの差し替えでは鳴らない。build 2 のまま出すなら、インパクト音はネイティブでは無音のまま）
+
+- Web・ネイティブとも鳴る。iOS は**消音スイッチに従う**（`playsInSilentMode` は立てない）。ほかのアプリの音楽は止めない（mixWithOthers）
+- 合成の効果音は従来どおり Web だけ。ネイティブのタイトルに音トグルを出さない方針（A）はそのまま
+- build 3 の照合では、アセットに `impact.m4a` が入っているか、Info.plist に `NSMicrophoneUsageDescription` が**無い**かも見る
 
 ### git の注意
 
