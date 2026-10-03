@@ -88,7 +88,7 @@ import {
 import { HoleMap } from '../components/HoleMap';
 import { HoleMapModal } from '../components/HoleMapModal';
 import { MorningShotView } from '../components/MorningShotView';
-import { TeeShotMeter } from '../components/TeeShotMeter';
+import { IMPACT_FLASH_HOLD_MS, TeeShotMeter } from '../components/TeeShotMeter';
 import { TeeShotOutcome, judgeTeeShot, opponentDrive, didOutdrive } from '../logic/teeShot';
 import { PuttGreenView } from '../components/PuttGreenView';
 import { PuttSim, simulatePutt, focusJitter } from '../logic/puttPhysics';
@@ -394,6 +394,8 @@ export default function GameScreenSimple({ route, navigation }: Props) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gestureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const innerVoiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** インパクト直後、メーターの光りを見せるために結果へ切り替えるのを待つ間のタイマー */
+  const swingHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ===== Face animation (Competition style) =====
   const faceAnim = useRef(new Animated.Value(1)).current;
@@ -415,6 +417,7 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (gestureTimerRef.current) clearTimeout(gestureTimerRef.current);
       if (innerVoiceTimerRef.current) clearTimeout(innerVoiceTimerRef.current);
+      if (swingHoldTimerRef.current) clearTimeout(swingHoldTimerRef.current);
     };
   }, []);
 
@@ -465,7 +468,18 @@ export default function GameScreenSimple({ route, navigation }: Props) {
       if (base) {
         setPendingMorningState({ ...applyMinigameResult(base, delta), ownShot: result });
       }
-      setMorningPhase('own_shot_result');
+      // 当てたときだけ、結果の画面へ移るのを少し待つ。すぐ切り替えるとメーターが消え、
+      // インパクトの光り（TeeShotMeter）が一瞬も見えない。判定・信頼の反映はもう済んでいる
+      // （ロックも閉じている）ので、待つのは画面の切り替えだけ
+      if (shot.impact !== null) {
+        if (swingHoldTimerRef.current) clearTimeout(swingHoldTimerRef.current);
+        swingHoldTimerRef.current = setTimeout(() => {
+          swingHoldTimerRef.current = null;
+          setMorningPhase('own_shot_result');
+        }, IMPACT_FLASH_HOLD_MS);
+      } else {
+        setMorningPhase('own_shot_result');
+      }
     },
     [pendingMorningState, characterId, character.name, character.ownPlayStance, talkAnswered, ownShotFocus, oppDrive]
   );

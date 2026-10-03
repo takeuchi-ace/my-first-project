@@ -8,11 +8,19 @@
  *  - インパクトの窓（集中力とパワーで伸縮。パワーが決まるまでは強さ1の最も狭い幅）
  *  - 刻みの境（`LAYBACK_POWER`。これより手前で止めると PERFECT は出ない）
  *  - 相手の球を越えるのに要るパワー（`powerToOutdrive`。OB のときは出さない）
+ *
+ * 見た目（2026-10-03、実機で「安っぽい」と言われて作り直した。速さと判定は変えていない）:
+ *  - 木目の枠（WoodHeader と同じ色）に入れた高さ 44 のバー
+ *  - 位置は白い三角＋縦線の印。細い白棒では動いているバーの上で見失う
+ *  - 振り上げ中は印の後ろを暖色の帯で塗り、パワーが決まったらそこまでの帯を残す
+ *  - インパクトのタップでメーターが一瞬光って膨らむ（親は結果への切り替えを少し待つ）
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { COLORS } from '../theme/colors';
 import { IMPACT_POS, LAYBACK_POWER, powerToOutdrive, teeShotWindow } from '../logic/teeShot';
 import { playSfx, preloadSfx } from '../lib/sound';
 
@@ -40,6 +48,12 @@ const BAR_END = -0.03;
  */
 const POWER_TAP_GUARD_MS = 120;
 
+/**
+ * インパクトの光りの長さ。親（GameScreenSimple）は当てたとき、これだけ待ってから結果の画面へ移る。
+ * 移るとメーターが消えて光りが見えないため。onDone 自体は待たせない（判定はタップの瞬間に決まる）
+ */
+export const IMPACT_FLASH_HOLD_MS = 220;
+
 const pct = (v: number) => `${v * 100}%` as `${number}%`;
 
 export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered, onDone }: Props) {
@@ -53,6 +67,8 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
   const animRef = useRef<Animated.CompositeAnimation | null>(null);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+  /** インパクトの光り（1 → 0）。transform と opacity だけなのでネイティブで回せる */
+  const flash = useRef(new Animated.Value(0)).current;
 
   // 打球音を先に読み込む。初回のインパクトで読み込みを待つと音が遅れる
   useEffect(() => {
@@ -135,6 +151,14 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
       animRef.current?.stop();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       finish(posRef.current);
+      // 光りは親への通知のあとに始める（通知を一切遅らせない）
+      flash.setValue(1);
+      Animated.timing(flash, {
+        toValue: 0,
+        duration: IMPACT_FLASH_HOLD_MS + 60,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start();
     }
   };
 
@@ -153,7 +177,18 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
         ? 'もう一度タップでパワーを決める'
         : phase === 'down'
           ? '戻ってきたら印でタップ！'
-          : '';
+          : // 空にすると行の高さが消え、光っている間にメーターが上へずれる
+            ' ';
+
+  /**
+   * 暖色の帯の右端。振り上げ中は印を追い、パワーが決まったらそこで止める。
+   * 帯そのものはバー全幅のグラデーションで、右側を暗い覆いで隠して長さを出す
+   * （幅を動かすとグラデーションごと伸び縮みして、色が位置と結びつかない）
+   */
+  const fillEdge: Animated.AnimatedInterpolation<string> | `${number}%` =
+    phase === 'up'
+      ? pos.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'], extrapolate: 'clamp' })
+      : pct(phase === 'ready' ? 0 : power ?? 0);
 
   return (
     // 押した瞬間で取る（onPress は指を離したときに来るので、タイミングを取る操作では遅れる）。
@@ -174,28 +209,65 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
         <Text style={styles.label}>パワー →</Text>
       </View>
 
-      <View style={styles.track}>
-        {/* 刻みの域。ここで止めると PERFECT は出ない */}
-        <View style={[styles.layback, { left: 0, width: pct(LAYBACK_POWER) }]} />
-        <View style={[styles.zone, styles.zoneGood, zone(w.good)]} />
-        <View
-          style={[styles.zone, talkAnswered ? styles.zoneGood : styles.zonePerfect, zone(w.perfect)]}
-        />
-        <View style={[styles.impactMark, { left: pct(IMPACT_POS) }]} />
-        {oppMark !== null && <View style={[styles.oppMark, { left: pct(oppMark) }]} />}
-        {power !== null && <View style={[styles.powerMark, { left: pct(power) }]} />}
-        <Animated.View
-          style={[
-            styles.indicator,
-            {
-              left: pos.interpolate({
-                inputRange: [BAR_END, 1],
-                outputRange: [pct(BAR_END), '100%'],
-              }),
-            },
-          ]}
-        />
-      </View>
+      <Animated.View
+        style={[
+          styles.frame,
+          { transform: [{ scale: flash.interpolate({ inputRange: [0, 1], outputRange: [1, 1.05] }) }] },
+        ]}
+      >
+        <View style={styles.trackArea}>
+          <View style={styles.track}>
+            {/* 暖色の帯（全幅）。右側は覆いで隠す */}
+            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
+              <Defs>
+                <LinearGradient id="teeShotBand" x1="0" y1="0" x2="1" y2="0">
+                  {/* 左端は濃い琥珀から。淡い黄で始めると、同じ側にある金色の PERFECT の窓が埋もれる */}
+                  <Stop offset="0%" stopColor="#9A4E12" />
+                  <Stop offset="50%" stopColor="#E07A1F" />
+                  <Stop offset="100%" stopColor="#FF3B2E" />
+                </LinearGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="100%" fill="url(#teeShotBand)" opacity={0.9} />
+            </Svg>
+            <Animated.View style={[styles.cover, { left: fillEdge }]} />
+            {/* 刻みの域。ここで止めると PERFECT は出ない */}
+            <View style={[styles.layback, { left: 0, width: pct(LAYBACK_POWER) }]} />
+            <View style={[styles.zone, styles.zoneGood, zone(w.good)]} />
+            <View
+              style={[styles.zone, talkAnswered ? styles.zoneGood : styles.zonePerfect, zone(w.perfect)]}
+            />
+            <View style={[styles.impactMark, { left: pct(IMPACT_POS) }]} />
+            {/* PERFECT の目印。答え済みで PERFECT が出ないときは薄くして狙わせない */}
+            <Text
+              style={[styles.star, { left: pct(IMPACT_POS) }, talkAnswered && styles.starDim]}
+            >
+              ★
+            </Text>
+            {oppMark !== null && <View style={[styles.oppMark, { left: pct(oppMark) }]} />}
+            {power !== null && <View style={[styles.powerMark, { left: pct(power) }]} />}
+          </View>
+          {/* 相手の印の頭。右側の帯は赤に近く、線だけだと埋もれる。凡例の ▼ と同じ形を枠の上に出す */}
+          {oppMark !== null && <View style={[styles.oppHead, { left: pct(oppMark) }]} />}
+          {/* 位置の印。バーの外（上）へはみ出すので、overflow を切るバーの外に置く */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.indicator,
+              {
+                left: pos.interpolate({
+                  inputRange: [BAR_END, 1],
+                  outputRange: [pct(BAR_END), '100%'],
+                }),
+              },
+            ]}
+          >
+            <View style={styles.indicatorHead} />
+            <View style={styles.indicatorLine} />
+          </Animated.View>
+        </View>
+        {/* インパクトの光り */}
+        <Animated.View pointerEvents="none" style={[styles.flash, { opacity: flash }]} />
+      </Animated.View>
 
       <View style={styles.legend}>
         <Text style={styles.legendText}>
@@ -209,35 +281,117 @@ export function TeeShotMeter({ focus, opponentDrive, opponentName, talkAnswered,
   );
 }
 
+/** バーの高さ。印の三角はこの上へはみ出す */
+const TRACK_H = 44;
+
 const styles = StyleSheet.create({
   area: { paddingVertical: 14, paddingHorizontal: 16 },
-  hint: { color: '#FFD700', fontSize: 15, fontWeight: '700', textAlign: 'center', marginBottom: 10 },
-  labels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  hint: { color: '#FFD700', fontSize: 15, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
+  // 下の余白は印の三角（枠の上へ 6px はみ出す）のぶん
+  labels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   label: { color: '#F5E6C8', fontSize: 11, opacity: 0.8 },
-  track: {
-    height: 26,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  // 木目の枠。WoodHeader と同じ濃い木と明るい縁
+  frame: {
+    backgroundColor: COLORS.woodDark,
     borderWidth: 2,
-    borderColor: '#F5E6C8',
-    borderRadius: 4,
+    borderColor: COLORS.woodLight,
+    borderRadius: 6,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  trackArea: { height: TRACK_H },
+  track: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#24170b',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 230, 200, 0.5)',
+    borderRadius: 3,
     overflow: 'hidden',
   },
-  layback: { position: 'absolute', top: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.06)' },
+  /** 帯のまだ塗られていない側。バーの地の色で覆う */
+  cover: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: '#24170b' },
+  layback: { position: 'absolute', top: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.07)' },
   zone: { position: 'absolute', top: 0, bottom: 0 },
-  zoneGood: { backgroundColor: 'rgba(255, 215, 0, 0.25)' },
-  zonePerfect: { backgroundColor: 'rgba(255, 215, 0, 0.6)' },
+  // 帯の暖色の上で埋もれないよう、緑は濃いめにして縁を明るくする
+  zoneGood: {
+    backgroundColor: 'rgba(80, 190, 100, 0.8)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(200, 255, 210, 0.9)',
+  },
+  zonePerfect: { backgroundColor: 'rgba(255, 215, 0, 0.92)' },
   impactMark: { position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, backgroundColor: '#ffffff' },
-  oppMark: { position: 'absolute', top: 0, bottom: 0, width: 3, marginLeft: -1.5, backgroundColor: '#e63946' },
-  powerMark: { position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, backgroundColor: '#7fd3ff' },
+  star: {
+    position: 'absolute',
+    top: 1,
+    width: 20,
+    marginLeft: -10,
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 15,
+    color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowRadius: 2,
+    textShadowOffset: { width: 0, height: 1 },
+  },
+  starDim: { opacity: 0.3 },
+  // 白い縁を付ける。帯の赤の上でも線が見えるように
+  oppMark: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 5,
+    marginLeft: -2.5,
+    backgroundColor: '#e63946',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#ffffff',
+  },
+  oppHead: {
+    position: 'absolute',
+    top: -9,
+    width: 0,
+    height: 0,
+    marginLeft: -6,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#ff5a66',
+  },
+  powerMark: { position: 'absolute', top: 0, bottom: 0, width: 3, marginLeft: -1.5, backgroundColor: '#7fd3ff' },
   indicator: {
     position: 'absolute',
-    top: -2,
-    bottom: -2,
-    width: 6,
-    marginLeft: -3,
+    top: -12,
+    bottom: -3,
+    width: 18,
+    marginLeft: -9,
+    alignItems: 'center',
+  },
+  // 下向きの三角（枠線の色違いで作る）
+  indicatorHead: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 11,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#ffffff',
+  },
+  indicatorLine: {
+    flex: 1,
+    width: 4,
     backgroundColor: '#ffffff',
     borderRadius: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.55)',
   },
+  flash: { ...StyleSheet.absoluteFillObject, backgroundColor: '#FFF6D0', borderRadius: 4 },
   legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   legendText: { color: '#F5E6C8', fontSize: 11, opacity: 0.75 },
   legendOpp: { color: '#ff8a8a', opacity: 1 },
