@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { getFormalPortrait } from '../assets/formalPortraits';
 
 type Props = {
@@ -31,6 +31,10 @@ export default function FormalPortraitModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
+      {/* Modal は iOS で別のネイティブ画面に描かれ、App.tsx の SafeAreaProvider が
+          届かない。余白が 0 になって「閉じる」が時計・電波の下に潜り、押せなかった。
+          Modal の中で測り直す */}
+      <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.name}>{name}</Text>
@@ -49,6 +53,7 @@ export default function FormalPortraitModal({
           style={styles.image}
         />
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
